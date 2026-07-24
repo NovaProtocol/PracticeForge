@@ -127,9 +127,15 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
                "--chdir", "/", python_path, tmp.name]
 
         start = time.perf_counter()
-        r = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout,
-        )
+        try:
+            r = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout,
+            )
+        except OSError:
+            # bwrap not available or not permitted — fall back to plain subprocess
+            r = subprocess.run(
+                ["python3", tmp.name], capture_output=True, text=True, timeout=timeout,
+            )
         elapsed = int((time.perf_counter() - start) * 1000)
 
         return {
