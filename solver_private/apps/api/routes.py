@@ -65,5 +65,5 @@ def queue_status(queue_id: int):
 
 @blueprint.route("/auto-save/<int:problem_id>")
 def auto_save_get(problem_id: int):
-    code = load_code(problem_id)
-    return jsonify({"code": code or ""})
+    data = load_code(problem_id)
+    return jsonify({"code": data["code"] or "", "last_ran": data["last_ran"] or ""})

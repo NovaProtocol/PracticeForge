@@ -136,9 +136,16 @@ def save_code(problem_id: int, code: str):
     )
 
 
-def load_code(problem_id: int) -> str | None:
-    row = query_one("SELECT code FROM auto_saves WHERE problem_id = %s", (problem_id,))
-    return row["code"] if row else None
+def save_last_ran(problem_id: int, code: str):
+    execute(
+        "UPDATE auto_saves SET last_ran = %s WHERE problem_id = %s",
+        (code, problem_id),
+    )
+
+
+def load_code(problem_id: int) -> dict:
+    row = query_one("SELECT code, last_ran FROM auto_saves WHERE problem_id = %s", (problem_id,))
+    return {"code": row["code"] if row else None, "last_ran": row["last_ran"] if row else None}
 
 
 

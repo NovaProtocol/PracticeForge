@@ -22,7 +22,8 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     <select id="lang-select"><option value="python3">Python3</option></select>
     <button id="font-dec" title="Decrease font size">A−</button>
     <button id="font-inc" title="Increase font size">A+</button>
-    <button id="reset-btn" title="Reset to saved code">↺ Reset</button>
+    <button id="reset-btn" title="Reset to original template">↺ Reset</button>
+    <button id="lastran-btn" title="Restore last ran code">↻ Last Run</button>
     <button id="fullscreen-btn" title="Toggle fullscreen">⛶ Fullscreen</button>
   </div>
   <div class="editor-wrapper" id="editor-wrapper"></div>
@@ -64,12 +65,17 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   $('font-inc').addEventListener('click', function() { fontSize = Math.min(32, fontSize + 2); applyFontSize(); });
   $('font-dec').addEventListener('click', function() { fontSize = Math.max(8, fontSize - 2); applyFontSize(); });
 
+  var baseCode = {{ base_code|tojson }};
   $('reset-btn').addEventListener('click', function() {
-    if (confirm('Reset code to last saved state?')) {
-      fetch('/api/auto-save/' + C.problemId).then(function(r) { return r.json(); }).then(function(d) {
-        window.editor.setValue(d.code || ''); window.editor.focus();
-      }).catch(function() {});
+    if (confirm('Reset to original template?')) {
+      window.editor.setValue(baseCode); window.editor.focus();
     }
+  });
+  $('lastran-btn').addEventListener('click', function() {
+    fetch('/api/auto-save/' + C.problemId).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.last_ran) { window.editor.setValue(d.last_ran); window.editor.focus(); }
+      else { alert('No previously run code saved.'); }
+    }).catch(function() {});
   });
 
   var fsActive = false;
