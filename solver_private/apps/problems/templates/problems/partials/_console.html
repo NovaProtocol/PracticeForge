@@ -774,32 +774,14 @@
 
   window.__consoleSubmit = async function(code, contestId, index) {
     window.consoleApi.showSpinner('Submitting...');
-    var testCasesData = window.consoleApi.getTestCases();
     try {
-      var body = new URLSearchParams({ code: code, testcases: JSON.stringify(testCasesData) });
       var r = await fetch('/problem/' + contestId + '/' + index + '/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body
+        body: new URLSearchParams({ code: code })
       });
       var data = await r.json();
       window.consoleApi.showSubmissionResult(data);
-
-      // Poll for status if submission_id is returned
-      if (data.submission_id) {
-        (function pollStatus(id) {
-          setTimeout(async function() {
-            try {
-              var pr = await fetch('/api/submission-status/' + id);
-              var pd = await pr.json();
-              window.consoleApi.showSubmissionResult(pd);
-              if (pd.status === 'pending' || pd.status === 'running') {
-                pollStatus(id);
-              }
-            } catch(e) {}
-          }, 1500);
-        })(data.submission_id);
-      }
     } catch (e) {
       window.consoleApi.showResult({ status: 'Runtime Error', error: e.message });
     }
