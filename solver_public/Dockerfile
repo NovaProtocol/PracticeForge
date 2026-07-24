@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ libc6-d
     pip3 install --no-cache-dir -r /app/shared/requirements.txt gunicorn
 
 COPY shared/ /app/shared/
+COPY shared/templates/ /app/templates/
 
 COPY solver_public/ /app/
 

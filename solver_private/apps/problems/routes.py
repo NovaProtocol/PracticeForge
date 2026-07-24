@@ -1,25 +1,27 @@
 from __future__ import annotations
 
-import os
-import subprocess
-import tempfile
-
 from flask import jsonify, render_template, request
 
 from apps.problems import blueprint
 from shared.models import (
-    create_solution,
+    create_run,
+    get_all_tags,
+    get_all_test_cases,
     get_problem,
-    get_problems,
-    get_sample_cases,
-    queue_execution,
+    get_problems_with_status,
+    get_run_status,
+    load_code,
+    queue_full_submission,
+    queue_test_cases,
+    save_code,
 )
 
 
 @blueprint.route("/")
 def index():
-    problems = get_problems()
-    return render_template("problems/index.html", problems=problems)
+    problems = get_problems_with_status()
+    all_tags = get_all_tags()
+    return render_template("problems/index.html", problems=problems, all_tags=all_tags)
 
 
 @blueprint.route("/problem/<int:contest_id>/<index>/")
@@ -27,77 +29,37 @@ def detail(contest_id: int, index: str):
     problem = get_problem(contest_id, index)
     if not problem:
         return render_template("404.html"), 404
-    samples = get_sample_cases(problem["id"])
-    return render_template("problems/detail.html", problem=problem, samples=samples)
-
-
-def _run_code(code: str, stdin_data: str, timeout: int = 10) -> dict:
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
-    try:
-        tmp.write(code)
-        tmp.close()
-        r = subprocess.run(
-            ["python3", tmp.name],
-            input=stdin_data,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-        return {
-            "passed": r.returncode == 0,
-            "got": r.stdout.strip(),
-            "error": r.stderr.strip(),
-        }
-    except subprocess.TimeoutExpired:
-        return {"passed": False, "got": "Time Limit Exceeded", "error": ""}
-    except Exception as e:
-        return {"passed": False, "got": "", "error": str(e)}
-    finally:
-        try:
-            os.unlink(tmp.name)
-        except OSError:
-            pass
+    saved = load_code(problem["id"])
+    return render_template("problems/detail.html", problem=problem, saved_code=saved)
 
 
 @blueprint.route("/problem/<int:contest_id>/<index>/run", methods=["POST"])
 def run(contest_id: int, index: str):
     problem = get_problem(contest_id, index)
     if not problem:
-        return jsonify({"error": "problem not found"}), 404
-
+        return jsonify({"error": "not found"}), 404
     code = request.form.get("code", "")
-    samples = get_sample_cases(problem["id"])
-    results = []
-    passed = 0
-
-    for tc in samples:
-        r = _run_code(code, tc["input"])
-        got = r["got"]
-        if r["passed"] and got == tc["expected_output"].strip():
-            passed += 1
-            results.append({"passed": True, "input": tc["input"], "expected": tc["expected_output"], "got": got})
-        elif r["error"]:
-            results.append({"passed": False, "input": tc["input"], "expected": tc["expected_output"], "got": r["error"]})
-        else:
-            results.append({"passed": False, "input": tc["input"], "expected": tc["expected_output"], "got": got or r["error"]})
-
-    total = len(samples)
-    return jsonify({
-        "passed": passed,
-        "total": total,
-        "verdict": "Accepted" if passed == total else "Wrong Answer",
-        "results": results,
-    })
+    run_id = create_run(problem["id"], code)
+    total = queue_test_cases(run_id, problem["id"], code)
+    return jsonify({"run_id": run_id, "total": total, "status": "queued"})
 
 
 @blueprint.route("/problem/<int:contest_id>/<index>/submit", methods=["POST"])
 def submit(contest_id: int, index: str):
     problem = get_problem(contest_id, index)
     if not problem:
-        return jsonify({"error": "problem not found"}), 404
-
+        return jsonify({"error": "not found"}), 404
     code = request.form.get("code", "")
-    submission_id = create_solution(problem["id"], code)
-    queue_execution(submission_id)
+    run_id = request.form.get("run_id", "")
+    solution_id = queue_full_submission(problem["id"], code, run_id)
+    return jsonify({"solution_id": solution_id, "status": "accepted"})
 
-    return jsonify({"submission_id": submission_id, "status": "queued"})
+
+@blueprint.route("/problem/<int:contest_id>/<index>/save", methods=["POST"])
+def save(contest_id: int, index: str):
+    problem = get_problem(contest_id, index)
+    if not problem:
+        return jsonify({"error": "not found"}), 404
+    code = request.form.get("code", "")
+    save_code(problem["id"], code)
+    return jsonify({"status": "ok"})

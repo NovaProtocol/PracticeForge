@@ -36,21 +36,48 @@ CREATE TABLE IF NOT EXISTS solutions (
     notes TEXT,
     passed_count INTEGER DEFAULT 0,
     total_count INTEGER DEFAULT 0,
+    timing_ms INTEGER,
+    memory_kb INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS runs (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    problem_id INTEGER NOT NULL,
+    code TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'running',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS execution_queue (
     id INTEGER AUTO_INCREMENT PRIMARY KEY,
-    submission_id INTEGER NOT NULL,
+    run_id VARCHAR(36),
+    submission_id INTEGER,
+    test_case_id INTEGER NOT NULL,
+    code TEXT NOT NULL,
     status ENUM('queued','running','completed','failed') DEFAULT 'queued',
     result TEXT,
     error TEXT,
+    timing_ms INTEGER,
+    memory_kb INTEGER,
     started_at TIMESTAMP NULL,
     completed_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (submission_id) REFERENCES solutions(id) ON DELETE CASCADE
+    FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE,
+    FOREIGN KEY (submission_id) REFERENCES solutions(id) ON DELETE CASCADE,
+    FOREIGN KEY (test_case_id) REFERENCES test_cases(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS auto_saves (
+    problem_id INTEGER NOT NULL,
+    code TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (problem_id),
+    FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
 """
 
@@ -93,7 +120,6 @@ SEED_PROBLEMS = [
 ]
 
 SEED_TEST_CASES = [
-    # Problem 1: A + B
     (1, "2 3", "5", True),
     (1, "10 20", "30", True),
     (1, "0 0", "0", False),
@@ -110,7 +136,6 @@ SEED_TEST_CASES = [
     (1, "256 256", "512", False),
     (1, "1 0", "1", False),
     (1, "999 999", "1998", False),
-    # Problem 2: Max of Three
     (2, "1 2 3", "3", True),
     (2, "5 5 5", "5", True),
     (2, "10 5 3", "10", False),
@@ -127,7 +152,6 @@ SEED_TEST_CASES = [
     (2, "50 50 50", "50", False),
     (2, "3 1 4", "4", False),
     (2, "-5 0 5", "5", False),
-    # Problem 3: Even or Odd
     (3, "4", "Even", True),
     (3, "7", "Odd", True),
     (3, "0", "Even", False),
@@ -144,7 +168,6 @@ SEED_TEST_CASES = [
     (3, "1025", "Odd", False),
     (3, "5000", "Even", False),
     (3, "5001", "Odd", False),
-    # Problem 4: Count Vowels
     (4, "hello", "2", True),
     (4, "world", "1", True),
     (4, "aeiou", "5", False),
@@ -161,7 +184,6 @@ SEED_TEST_CASES = [
     (4, "algorithm", "3", False),
     (4, "datastructure", "4", False),
     (4, "openai", "4", False),
-    # Problem 5: Factorial
     (5, "1", "1", True),
     (5, "3", "6", True),
     (5, "2", "2", False),

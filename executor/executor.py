@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import os
+import resource
 import subprocess
 import tempfile
 import time
-import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pymysql
 from pymysql.cursors import DictCursor
 
-POLL_INTERVAL = 2
+POLL_INTERVAL = 1
 TIMEOUT_PER_CASE = 10
+MAX_WORKERS = 4
 
 
 def get_connection():
@@ -25,177 +27,105 @@ def get_connection():
     )
 
 
-def fetch_queued(conn):
+def fetch_batch(conn, limit=4):
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT * FROM execution_queue WHERE status = 'queued' ORDER BY id LIMIT 1"
+            "SELECT * FROM execution_queue WHERE status = 'queued' ORDER BY id LIMIT %s",
+            (limit,),
         )
-        return cur.fetchone()
+        rows = cur.fetchall()
+        if rows:
+            ids = [r["id"] for r in rows]
+            fmt = ",".join(["%s"] * len(ids))
+            cur.execute(
+                f"UPDATE execution_queue SET status = 'running', started_at = NOW() WHERE id IN ({fmt})",
+                ids,
+            )
+        return rows
 
 
-def mark_running(conn, queue_id):
+def mark_done(conn, entry_id, status, result, error, timing_ms, memory_kb):
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE execution_queue SET status = 'running', started_at = NOW() WHERE id = %s",
-            (queue_id,),
-        )
-
-
-def mark_completed(conn, queue_id, result, error=None):
-    with conn.cursor() as cur:
-        cur.execute(
-            "UPDATE execution_queue SET status = 'completed', result = %s, error = %s, completed_at = NOW() WHERE id = %s",
-            (result, error, queue_id),
-        )
-
-
-def mark_failed(conn, queue_id, error):
-    with conn.cursor() as cur:
-        cur.execute(
-            "UPDATE execution_queue SET status = 'failed', error = %s, completed_at = NOW() WHERE id = %s",
-            (error, queue_id),
+            """UPDATE execution_queue
+               SET status = %s, result = %s, error = %s, timing_ms = %s, memory_kb = %s, completed_at = NOW()
+               WHERE id = %s""",
+            (status, result, error, timing_ms, memory_kb, entry_id),
         )
 
 
-def update_solution_verdict(conn, solution_id, verdict, passed, total):
-    with conn.cursor() as cur:
-        cur.execute(
-            "UPDATE solutions SET verdict = %s, passed_count = %s, total_count = %s WHERE id = %s",
-            (verdict, passed, total, solution_id),
-        )
-
-
-def run_test_case(code: str, stdin_data: str) -> dict:
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-        f.write(code)
-        tmp_path = f.name
-
+def run_code(code: str, stdin_data: str) -> dict:
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
     try:
-        result = subprocess.run(
-            ["python3", tmp_path],
+        tmp.write(code)
+        tmp.close()
+        start = time.perf_counter()
+        r = subprocess.run(
+            ["python3", tmp.name],
             input=stdin_data,
             capture_output=True,
             text=True,
             timeout=TIMEOUT_PER_CASE,
         )
-        stdout = result.stdout.strip()
-        stderr = result.stderr.strip()
+        elapsed = int((time.perf_counter() - start) * 1000)
+        try:
+            usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+            mem = usage.ru_maxrss
+        except Exception:
+            mem = 0
 
-        if result.returncode != 0:
-            return {"status": "error", "stdout": stdout, "stderr": stderr or "Non-zero exit code"}
-
-        return {"status": "ok", "stdout": stdout, "stderr": stderr}
+        if r.returncode != 0:
+            return {"status": "failed", "result": r.stdout.strip(), "error": r.stderr.strip() or "Non-zero exit", "timing_ms": elapsed, "memory_kb": mem}
+        return {"status": "completed", "result": r.stdout.strip(), "error": r.stderr.strip(), "timing_ms": elapsed, "memory_kb": mem}
     except subprocess.TimeoutExpired:
-        return {"status": "timeout", "stdout": "", "stderr": "Time Limit Exceeded"}
+        return {"status": "failed", "result": "", "error": "Time Limit Exceeded", "timing_ms": TIMEOUT_PER_CASE * 1000, "memory_kb": 0}
     except Exception as e:
-        return {"status": "error", "stdout": "", "stderr": str(e)}
+        return {"status": "failed", "result": "", "error": str(e), "timing_ms": 0, "memory_kb": 0}
     finally:
         try:
-            os.unlink(tmp_path)
+            os.unlink(tmp.name)
         except OSError:
             pass
 
 
-def execute_submission(conn, queue_entry):
-    queue_id = queue_entry["id"]
-    submission_id = queue_entry["submission_id"]
-
-    mark_running(conn, queue_id)
-
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM solutions WHERE id = %s", (submission_id,))
-            solution = cur.fetchone()
-
-            cur.execute("SELECT * FROM test_cases WHERE problem_id = %s ORDER BY id", (solution["problem_id"],))
-            test_cases = cur.fetchall()
-
-        if not solution or not test_cases:
-            mark_failed(conn, queue_id, "Solution or test cases not found")
-            return
-
-        code = solution["code"]
-        passed = 0
-        total = len(test_cases)
-        first_failure = None
-
-        for tc in test_cases:
-            result = run_test_case(code, tc["input"])
-            if result["status"] == "ok" and result["stdout"] == tc["expected_output"].strip():
-                passed += 1
-            else:
-                if first_failure is None:
-                    if result["status"] == "timeout":
-                        first_failure = {
-                            "input": tc["input"],
-                            "expected": tc["expected_output"],
-                            "got": "Time Limit Exceeded",
-                            "error": result["stderr"],
-                        }
-                    elif result["status"] == "error":
-                        first_failure = {
-                            "input": tc["input"],
-                            "expected": tc["expected_output"],
-                            "got": result["stdout"],
-                            "error": result["stderr"],
-                        }
-                    else:
-                        first_failure = {
-                            "input": tc["input"],
-                            "expected": tc["expected_output"],
-                            "got": result["stdout"],
-                            "error": result["stderr"],
-                        }
-
-        if passed == total:
-            verdict = "Accepted"
-        elif first_failure and first_failure["error"] and "Time Limit" in first_failure["error"]:
-            verdict = "Timeout"
-        elif first_failure and first_failure["error"]:
-            verdict = "Error"
-        else:
-            verdict = "Wrong Answer"
-
-        update_solution_verdict(conn, submission_id, verdict, passed, total)
-
-        result_text = (
-            f"Passed {passed}/{total}\n"
-        )
-        if first_failure:
-            result_text += (
-                f"\nFirst failure:\n"
-                f"Input: {first_failure['input']}\n"
-                f"Expected: {first_failure['expected']}\n"
-                f"Got: {first_failure['got']}\n"
-            )
-            if first_failure["error"]:
-                result_text += f"Error: {first_failure['error']}\n"
-
-        mark_completed(conn, queue_id, result_text)
-
-    except Exception as e:
-        tb = traceback.format_exc()
-        mark_failed(conn, queue_id, f"{e}\n{tb}")
-        update_solution_verdict(conn, submission_id, "Error", 0, 0)
+def process_entry(entry: dict) -> dict:
+    return run_code(entry["code"], entry.get("input") or "")
 
 
 def main():
-    print("[executor] Starting queue worker...")
+    print("[executor] Starting multi-threaded worker (max_workers=%d)..." % MAX_WORKERS)
+    pool = ThreadPoolExecutor(max_workers=MAX_WORKERS)
     while True:
         try:
             conn = get_connection()
             print("[executor] Connected to MySQL.")
             while True:
                 try:
-                    entry = fetch_queued(conn)
-                    if entry:
-                        print(f"[executor] Processing queue #{entry['id']} (submission #{entry['submission_id']})...")
-                        execute_submission(conn, entry)
-                        print(f"[executor] Queue #{entry['id']} done.")
+                    entries = fetch_batch(conn, MAX_WORKERS)
+                    if entries:
+                        futures = {pool.submit(process_entry, e): e for e in entries}
+                        for future in as_completed(futures):
+                            entry = futures[future]
+                            try:
+                                result = future.result()
+                                eid = entry["id"]
+                                expected = entry.get("input")  # will match via test_case
+                                mark_done(
+                                    conn, eid,
+                                    result["status"],
+                                    result["result"],
+                                    result["error"],
+                                    result["timing_ms"],
+                                    result["memory_kb"],
+                                )
+                                print(f"[executor] Queue #{eid}: {result['status']} ({result['timing_ms']}ms)")
+                            except Exception as e:
+                                print(f"[executor] Queue #{entry['id']} error: {e}")
+                                mark_done(conn, entry["id"], "failed", "", str(e), 0, 0)
                     else:
                         time.sleep(POLL_INTERVAL)
                 except Exception as e:
-                    print(f"[executor] Error in poll loop: {e}")
+                    print(f"[executor] Poll error: {e}")
                     time.sleep(POLL_INTERVAL)
         except Exception as e:
             print(f"[executor] DB connection failed: {e}, retrying in 5s...")

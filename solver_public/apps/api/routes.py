@@ -3,7 +3,7 @@ from __future__ import annotations
 from flask import jsonify
 
 from apps.api import blueprint
-from shared.models import get_solved, get_stats, get_solution, queue_execution
+from shared.models import get_solved, get_stats, re_run_solution
 
 
 @blueprint.route("/stats")
@@ -18,8 +18,7 @@ def solved():
 
 @blueprint.route("/re-run/<int:solution_id>", methods=["POST"])
 def re_run(solution_id: int):
-    solution = get_solution(solution_id)
-    if not solution:
-        return jsonify({"error": "not found"}), 404
-    queue_execution(solution_id)
-    return jsonify({"status": "queued", "solution_id": solution_id})
+    run_id = re_run_solution(solution_id)
+    if not run_id:
+        return jsonify({"error": "solution not found or not accepted"}), 404
+    return jsonify({"run_id": run_id, "status": "queued"})

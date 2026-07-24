@@ -13,43 +13,28 @@
       </div>
       <h4 style="font-weight: 700;">{{ problem.title }}</h4>
       {% if problem.tags %}
-        <div class="mb-2">
-          {% for tag in problem.tags %}
-            <span class="tag" style="margin-bottom: 0;">{{ tag }}</span>
-          {% endfor %}
-        </div>
+        <div class="mb-2">{% for tag in problem.tags %}<span class="tag" style="margin-bottom: 0;">{{ tag }}</span> {% endfor %}</div>
       {% endif %}
       <hr style="border-color: var(--border); margin: 0.5rem 0;">
-      <div style="font-size: 0.9rem; line-height: 1.7; color: var(--text-primary);">
-        {{ problem.description_html|safe }}
-      </div>
-      <hr style="border-color: var(--border); margin: 0.75rem 0;">
-      <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Sample Test Cases</h6>
-      {% for sample in samples %}
-        <div class="card p-3 mb-2" style="background: var(--bg-secondary); border-color: var(--border);">
-          <strong style="font-size: 0.8rem; color: var(--text-secondary);">Input {{ loop.index }}:</strong>
-          <pre style="background: var(--bg-primary); padding: 0.5rem; border-radius: 4px; font-size: 0.82rem; margin: 0.25rem 0 0.5rem 0;">{{ sample.input }}</pre>
-          <strong style="font-size: 0.8rem; color: var(--text-secondary);">Output {{ loop.index }}:</strong>
-          <pre style="background: var(--bg-primary); padding: 0.5rem; border-radius: 4px; font-size: 0.82rem; margin: 0.25rem 0 0 0;">{{ sample.expected_output }}</pre>
-        </div>
-      {% endfor %}
+      <div style="font-size: 0.9rem; line-height: 1.7;">{{ problem.description_html|safe }}</div>
     </div>
 
     <div class="col-lg-7 h-100 d-flex flex-column pl-lg-2">
-      <textarea id="code-editor" class="form-control" style="flex: 1; min-height: 200px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; resize: none; tab-size: 4;" placeholder="Write your Python solution here..." spellcheck="false">{% if code %}{{ code }}{% endif %}</textarea>
+      <textarea id="code" class="form-control" style="flex: 1; min-height: 200px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; resize: none; tab-size: 4;" spellcheck="false">{% if saved_code %}{{ saved_code }}{% endif %}</textarea>
 
       <div class="d-flex align-items-center py-2" style="gap: 8px;">
-        <button id="run-btn" class="btn-accent btn-sm" style="padding: 0.5rem 1.5rem;">
-          <i class="fas fa-play mr-1"></i> Run
-        </button>
-        <button id="submit-btn" class="btn-outline-accent btn-sm" style="padding: 0.5rem 1.5rem;">
-          <i class="fas fa-cloud-upload-alt mr-1"></i> Submit
-        </button>
+        <button id="run-btn" class="btn-accent btn-sm" style="padding: 0.5rem 1.5rem;"><i class="fas fa-play mr-1"></i> Run</button>
+        <button id="submit-btn" class="btn-outline-accent btn-sm" style="padding: 0.5rem 1.5rem;" disabled><i class="fas fa-cloud-upload-alt mr-1"></i> Submit</button>
         <span id="status-text" style="color: var(--text-secondary); font-size: 0.82rem; margin-left: 8px;"></span>
       </div>
 
-      <div id="console" style="flex: 1; min-height: 150px; background: #0d0d14; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6;">
-        <div style="color: var(--text-secondary);">> Ready</div>
+      <div style="flex: 1; min-height: 150px; display: flex; flex-direction: column; background: #0d0d14; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+        <div id="console-tabs" class="d-flex" style="border-bottom: 1px solid var(--border); background: #0a0a0f; overflow-x: auto;">
+          <div class="ctab active" data-tab="log">Log</div>
+        </div>
+        <div id="console-log" style="flex: 1; overflow-y: auto; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; word-break: break-all;">
+          <span style="color: var(--text-secondary);">> Ready</span>
+        </div>
       </div>
     </div>
   </div>
@@ -58,131 +43,84 @@
 
 {% block head_extra %}
 <style>
-  #code-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
-  #console { white-space: pre-wrap; word-break: break-all; }
-  #console .pass { color: #4ade80; }
-  #console .fail { color: #f87171; }
-  #console .info { color: var(--text-secondary); }
-  #console .error { color: #fbbf24; }
-  #console .prompt { color: #64ffda; }
+#code:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+.ctab { padding: 0.4rem 0.9rem; font-size: 0.78rem; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap; }
+.ctab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.ctab:hover { color: var(--text-primary); }
+.log-pass  { color: #4ade80; }
+.log-fail  { color: #f87171; }
+.log-info  { color: var(--text-secondary); }
+.log-error { color: #fbbf24; }
 </style>
 <script>
-const contestId = {{ problem.contest_id }};
-const problemIndex = '{{ problem.problem_index }}';
-const editor = document.getElementById('code-editor');
-const consoleDiv = document.getElementById('console');
-const statusText = document.getElementById('status-text');
+const C = { contestId: {{ problem.contest_id }}, index: '{{ problem.problem_index }}', problemId: {{ problem.id }} };
+const $ = id => document.getElementById(id);
+const code = $('code'), logEl = $('console-log'), tabs = $('console-tabs'), runBtn = $('run-btn'), subBtn = $('submit-btn'), statusEl = $('status-text');
+let runId = null, poll = null, filter = 'log';
 
-function log(line, cls = '') {
-  const d = document.createElement('div');
-  d.className = cls;
-  d.textContent = line;
-  consoleDiv.appendChild(d);
-  consoleDiv.scrollTop = consoleDiv.scrollHeight;
+function puts(text, cls) { const d = document.createElement('div'); d.className = cls||''; d.dataset.tc = ''; d.textContent = text; logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight; }
+function clearLog() { logEl.innerHTML = ''; }
+function addTab(id, label) { const t = document.createElement('div'); t.className = 'ctab'; t.dataset.tab = id; t.textContent = label; tabs.appendChild(t); }
+
+function showOnly(tabId) {
+  filter = tabId;
+  document.querySelectorAll('.ctab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+  if (tabId === 'log') { Array.from(logEl.children).forEach(c => c.style.display = ''); return; }
+  const tcId = tabId.replace('tc-', '');
+  Array.from(logEl.children).forEach(c => c.style.display = c.dataset.tc === tcId ? '' : 'none');
 }
 
-function clearConsole() {
-  consoleDiv.innerHTML = '';
-}
+tabs.addEventListener('click', e => { const t = e.target.closest('.ctab'); if (t) showOnly(t.dataset.tab); });
 
-function appendConsole(html, cls = '') {
-  const d = document.createElement('div');
-  d.className = cls;
-  d.innerHTML = html;
-  consoleDiv.appendChild(d);
-  consoleDiv.scrollTop = consoleDiv.scrollHeight;
-}
+// auto-save
+let st;
+code.addEventListener('input', () => { clearTimeout(st); st = setTimeout(() => { navigator.sendBeacon(`/problem/${C.contestId}/${C.index}/save`, new URLSearchParams({code: code.value})); }, 500); });
 
-async function runCode() {
-  const code = editor.value;
-  clearConsole();
-  log('> Running against sample test cases...', 'info');
-  statusText.textContent = 'Running...';
-
+// run
+runBtn.addEventListener('click', async () => {
+  clearInterval(poll); clearLog(); subBtn.disabled = true;
+  puts('> Queuing test cases...', 'log-info'); statusEl.textContent = 'Queuing...';
   try {
-    const resp = await fetch(`/problem/${contestId}/${problemIndex}/run`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ code }),
-    });
-    const data = await resp.json();
+    const r = await fetch(`/problem/${C.contestId}/${C.index}/run`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({code: code.value}) });
+    const d = await r.json(); runId = d.run_id;
+    puts(`> ${d.total} test cases queued`, 'log-info'); statusEl.textContent = 'Running...';
+    clearLog(); document.querySelectorAll('.ctab:not([data-tab="log"])').forEach(t => t.remove());
+    poll = setInterval(pollRun, 1000);
+  } catch(e) { puts('Error: '+e.message, 'log-error'); statusEl.textContent = 'Error'; }
+});
 
-    for (let i = 0; i < data.results.length; i++) {
-      const r = data.results[i];
-      if (r.passed) {
-        appendConsole(`<span class="pass">✓ Test ${i + 1}: Passed</span>`);
-      } else {
-        appendConsole(`<span class="fail">✗ Test ${i + 1}: Failed</span>`);
-        appendConsole(`<span class="info">  Input:    ${escapeHtml(r.input)}</span>`);
-        appendConsole(`<span class="info">  Expected: ${escapeHtml(r.expected)}</span>`);
-        appendConsole(`<span class="fail">  Got:      ${escapeHtml(r.got || r.error)}</span>`);
-      }
+async function pollRun() {
+  try {
+    const r = await fetch(`/api/run-status/${runId}`); const s = await r.json();
+    s.entries.forEach(e2 => {
+      const tabId = 'tc-'+e2.test_case_id;
+      if (!document.querySelector(`.ctab[data-tab="${tabId}"]`)) addTab(tabId, 'TC #'+e2.test_case_id);
+      if (e2.status === 'running') puts(`[TC #${e2.test_case_id}] Running...`, 'log-info');
+      else if (e2.status === 'completed') {
+        const ok = e2.got === e2.expected;
+        puts(`[TC #${e2.test_case_id}] ${ok?'PASS':'FAIL'} (${e2.timing_ms||'?'}ms, ${e2.memory_kb||'?'}KB)`, ok?'log-pass':'log-fail');
+        if (!ok) { puts(`  Input: ${e2.input}`, 'log-info'); puts(`  Expected: ${e2.expected}`, 'log-info'); puts(`  Got: ${e2.got||e2.error}`, 'log-fail'); }
+      } else if (e2.status === 'failed') puts(`[TC #${e2.test_case_id}] FAIL — ${e2.error||e2.got}`, 'log-fail');
+    });
+    statusEl.textContent = `${s.passed}/${s.total} passed`;
+    if (s.status === 'completed') {
+      clearInterval(poll);
+      if (s.passed === s.total) { subBtn.disabled = false; puts('> All tests passed. Submit to save.', 'log-pass'); statusEl.textContent = 'All passed'; }
+      else { puts('> Some tests failed.', 'log-fail'); statusEl.textContent = 'Tests failed'; }
     }
-
-    const verdictCls = data.verdict === 'Accepted' ? 'pass' : 'fail';
-    appendConsole(`<span class="${verdictCls}">${data.verdict} — ${data.passed}/${data.total} test cases passed</span>`);
-    statusText.textContent = data.verdict;
-  } catch (e) {
-    log('Error: ' + e.message, 'error');
-    statusText.textContent = 'Error';
-  }
+  } catch(e) { clearInterval(poll); puts('Poll error: '+e.message, 'log-error'); }
 }
 
-async function submitCode() {
-  const code = editor.value;
-  clearConsole();
-  log('> Submitting solution...', 'info');
-  statusText.textContent = 'Submitting...';
-
+// submit
+subBtn.addEventListener('click', async () => {
+  subBtn.disabled = true; statusEl.textContent = 'Submitting...';
   try {
-    const resp = await fetch(`/problem/${contestId}/${problemIndex}/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ code }),
-    });
-    const data = await resp.json();
-    const submissionId = data.submission_id;
-    log(`> Queued (submission #${submissionId}). Waiting for results...`, 'info');
-    statusText.textContent = 'Queued';
+    const r = await fetch(`/problem/${C.contestId}/${C.index}/submit`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({code: code.value, run_id: runId}) });
+    const d = await r.json(); puts(`> Submitted as solution #${d.solution_id}.`, 'log-pass'); statusEl.textContent = 'Accepted';
+  } catch(e) { puts('Error: '+e.message, 'log-error'); statusEl.textContent = 'Error'; }
+});
 
-    const poll = setInterval(async () => {
-      try {
-        const r = await fetch(`/api/submission-status/${submissionId}`);
-        const s = await r.json();
-        statusText.textContent = s.status;
-
-        if (s.status === 'running') {
-          log('> Running...', 'info');
-        } else if (s.status === 'completed' || s.status === 'failed') {
-          clearInterval(poll);
-          const verdictCls = s.verdict === 'Accepted' ? 'pass' : 'fail';
-          appendConsole(`<span class="${verdictCls}">${s.verdict} — ${s.passed}/${s.total}</span>`);
-          if (s.result) appendConsole(`${escapeHtml(s.result)}`);
-          if (s.error) appendConsole(`<span class="error">${escapeHtml(s.error)}</span>`);
-          statusText.textContent = s.verdict;
-        } else if (s.status === 'queued') {
-          log('.', 'info');
-        }
-      } catch (e) {
-        clearInterval(poll);
-        log('Poll error: ' + e.message, 'error');
-      }
-    }, 1500);
-
-  } catch (e) {
-    log('Error: ' + e.message, 'error');
-    statusText.textContent = 'Error';
-  }
-}
-
-function escapeHtml(s) {
-  if (!s) return '';
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-document.getElementById('run-btn').addEventListener('click', runCode);
-document.getElementById('submit-btn').addEventListener('click', submitCode);
+// restore auto-save
+fetch(`/api/auto-save/${C.problemId}`).then(r=>r.json()).then(d=>{ if(d.code) code.value = d.code; }).catch(()=>{});
 </script>
 {% endblock %}
