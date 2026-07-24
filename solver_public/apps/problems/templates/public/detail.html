@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ problem.title }} &mdash; SolveSpace{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-lg-7">
+      <div class="d-flex align-items-center mb-2" style="gap: 8px;">
+        <span class="tag" style="margin-bottom: 0;">{{ problem.contest_id }}{{ problem.problem_index }}</span>
+        {% if problem.difficulty_rating %}
+          {% set diff = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
+          <span class="badge-difficulty badge-{{ diff }}" style="line-height: 1.4;">{{ problem.difficulty_rating }}</span>
+        {% endif %}
+      </div>
+      <h4 style="font-weight: 700;">{{ problem.title }}</h4>
+      {% if problem.tags %}
+        <div class="mb-2">{% for tag in problem.tags %}<span class="tag" style="margin-bottom: 0;">{{ tag }}</span> {% endfor %}</div>
+      {% endif %}
+      <hr style="border-color: var(--border); margin: 0.5rem 0;">
+      <div style="font-size: 0.9rem; line-height: 1.7;">{{ problem.description_html|safe }}</div>
+    </div>
+
+    <div class="col-lg-5">
+      <h6 style="font-weight: 600;">Current Code</h6>
+      <pre style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-size: 0.82rem; max-height: 300px; overflow-y: auto;">{{ saved_code or "# No code saved yet" }}</pre>
+
+      <h6 style="font-weight: 600; margin-top: 1.5rem;">Past Solutions</h6>
+      {% for sol in solutions %}
+      <div class="card p-3 mb-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            {% if sol.verdict == 'Accepted' %}
+              <span class="verdict-accepted"><i class="fas fa-check-circle mr-1"></i>Accepted</span>
+            {% else %}
+              <span class="verdict-wrong">{{ sol.verdict }}</span>
+            {% endif %}
+            <span class="text-secondary ml-2" style="font-size: 0.82rem;">{{ sol.passed_count }}/{{ sol.total_count }}</span>
+            {% if sol.timing_ms %}
+              <span class="text-secondary ml-2" style="font-size: 0.82rem;">{{ sol.timing_ms }}ms</span>
+            {% endif %}
+            {% if sol.memory_kb %}
+              <span class="text-secondary ml-2" style="font-size: 0.82rem;">{{ "{:,}".format(sol.memory_kb) }}KB</span>
+            {% endif %}
+          </div>
+          {% if sol.verdict == 'Accepted' %}
+          <button class="btn-outline-accent btn-sm re-run-btn" data-id="{{ sol.id }}" style="padding: 0.2rem 0.6rem; font-size: 0.78rem;">Re-run</button>
+          {% endif %}
+        </div>
+        <details style="margin-top: 0.5rem;">
+          <summary style="font-size: 0.82rem; color: var(--text-secondary); cursor: pointer;">View code</summary>
+          <pre style="background: var(--bg-primary); padding: 0.75rem; border-radius: 4px; font-size: 0.8rem; margin-top: 0.5rem; overflow-x: auto;">{{ sol.code }}</pre>
+        </details>
+      </div>
+      {% else %}
+      <p class="text-secondary">No submissions yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.re-run-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    btn.disabled = true; btn.textContent = 'Queuing...';
+    try {
+      const r = await fetch(`/api/re-run/${id}`, { method: 'POST' });
+      const d = await r.json();
+      btn.textContent = 'Re-run queued';
+    } catch(e) { btn.textContent = 'Error'; btn.disabled = false; }
+  });
+});
+</script>
+{% endblock %}
