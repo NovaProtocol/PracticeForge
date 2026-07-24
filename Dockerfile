@@ -13,4 +13,6 @@ RUN rm -f .env
 
 ENV PYTHON_GIL=0
 
-CMD ["python3", "run.py", "--deployment-type", "PRODUCTION"]
+ENV DEPLOYMENT_TYPE=PRODUCTION
+
+CMD ["gunicorn", "--bind", "0.0.0.0:7030", "--worker-class", "gthread", "--workers", "2", "--threads", "4", "--access-logfile", "-", "wsgi:app"]
