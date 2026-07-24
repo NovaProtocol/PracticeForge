@@ -71,6 +71,21 @@ def get_all_test_cases(problem_id: int):
     )
 
 
+def get_all_test_cases_json(problem_id: int):
+    """Returns test cases suitable for LeetCode-style execution (args+expected JSON)."""
+    return query(
+        "SELECT id, args, expected, is_sample FROM test_cases WHERE problem_id = %s AND args IS NOT NULL ORDER BY id",
+        (problem_id,),
+    )
+
+
+def get_sample_cases_json(problem_id: int):
+    return query(
+        "SELECT id, args, expected FROM test_cases WHERE problem_id = %s AND is_sample = TRUE AND args IS NOT NULL ORDER BY id",
+        (problem_id,),
+    )
+
+
 def get_sample_cases(problem_id: int):
     return query(
         "SELECT * FROM test_cases WHERE problem_id = %s AND is_sample = TRUE ORDER BY id",

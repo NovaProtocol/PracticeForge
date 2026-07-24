@@ -65,12 +65,21 @@
       <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Examples</h6>
       {% for sample in problem.sample_cases or [] %}
       <div class="sample-card">
+        {% if sample.args %}
+        <button class="copy-btn" data-text='{{ sample.args }}' onclick="copyText(this)">Copy</button>
+        <strong style="font-size: 0.78rem; color: var(--text-secondary);">Arguments:</strong>
+        <pre>{{ sample.args }}</pre>
+        <button class="copy-btn" data-text='{{ sample.expected }}' onclick="copyText(this)" style="top: auto; bottom: 3.5rem;">Copy</button>
+        <strong style="font-size: 0.78rem; color: var(--text-secondary);">Expected:</strong>
+        <pre>{{ sample.expected }}</pre>
+        {% else %}
         <button class="copy-btn" data-text="{{ sample.input }}" onclick="copyText(this)">Copy</button>
         <strong style="font-size: 0.78rem; color: var(--text-secondary);">Input:</strong>
         <pre>{{ sample.input }}</pre>
         <button class="copy-btn" data-text="{{ sample.expected_output }}" onclick="copyText(this)" style="top: auto; bottom: 3.5rem;">Copy</button>
         <strong style="font-size: 0.78rem; color: var(--text-secondary);">Output:</strong>
         <pre>{{ sample.expected_output }}</pre>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
