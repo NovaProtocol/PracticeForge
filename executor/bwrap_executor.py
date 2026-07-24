@@ -117,7 +117,7 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
         python_path = "/usr/local/bin/python3"
         lib_dirs = ["/usr/local/lib", "/usr/lib", "/lib", "/usr/local/lib/python3.14t"]
 
-        cmd = [BWRAP, "--unshare-net", "--unshare-ipc", "--unshare-pid",
+        cmd = [BWRAP, "--unshare-user", "--unshare-net", "--unshare-ipc", "--unshare-pid",
                "--die-with-parent", "--ro-bind", "/usr", "/usr",
                "--ro-bind", "/usr/local", "/usr/local",
                "--ro-bind", "/lib", "/lib",
