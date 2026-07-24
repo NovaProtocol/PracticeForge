@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS execution_queue (
 CREATE TABLE IF NOT EXISTS auto_saves (
     problem_id INTEGER NOT NULL,
     code TEXT NOT NULL,
+    last_ran TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (problem_id),
     FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
@@ -225,7 +226,8 @@ def ensure_schema():
         if stmt:
             execute(stmt)
     for stmt in ("ALTER TABLE test_cases MODIFY input TEXT", "ALTER TABLE test_cases MODIFY expected_output TEXT",
-                 "ALTER TABLE execution_queue ADD COLUMN stdout TEXT AFTER result"):
+                 "ALTER TABLE execution_queue ADD COLUMN stdout TEXT AFTER result",
+                 "ALTER TABLE auto_saves ADD COLUMN last_ran TEXT AFTER code"):
         try:
             execute(stmt)
         except Exception:

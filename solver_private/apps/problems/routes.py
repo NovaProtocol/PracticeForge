@@ -12,6 +12,7 @@ from shared.models import (
     get_sample_cases_json,
     load_code,
     save_code,
+    save_last_ran,
 )
 
 
@@ -45,11 +46,13 @@ def detail(contest_id: int, index: str):
     problem = get_problem(contest_id, index)
     if not problem:
         return render_template("404.html"), 404
-    saved = load_code(problem["id"])
+    saved_data = load_code(problem["id"])
+    saved = saved_data["code"]
+    last_ran = saved_data["last_ran"]
     problem["sample_cases"] = get_sample_cases_json(problem["id"]) or get_sample_cases(problem["id"])
     submissions = get_problem_submissions(problem["id"])
     base_code = problem.get("base_code") or "class Solution:\n    def run(self, input: str) -> str:\n        "
-    return render_template("problems/detail.html", problem=problem, saved_code=saved, submissions=submissions, base_code=base_code)
+    return render_template("problems/detail.html", problem=problem, saved_code=saved, last_ran=last_ran, submissions=submissions, base_code=base_code)
 
 
 @blueprint.route("/problem/<int:contest_id>/<index>/run", methods=["POST"])
@@ -60,6 +63,7 @@ def run(contest_id: int, index: str):
     code = request.form.get("code", "")
     method_name = problem.get("method_name") or "run"
     test_cases = request.form.get("testcases", "[]")
+    save_last_ran(problem["id"], code)
     qid = _queue_execution(problem["id"], code, method_name, "run", test_cases)
     return jsonify({"queue_id": qid, "status": "queued"})
 
@@ -71,6 +75,7 @@ def submit(contest_id: int, index: str):
         return jsonify({"error": "not found"}), 404
     code = request.form.get("code", "")
     method_name = problem.get("method_name") or "run"
+    save_last_ran(problem["id"], code)
     qid = _queue_execution(problem["id"], code, method_name, "submit")
     return jsonify({"queue_id": qid, "status": "queued"})
 
