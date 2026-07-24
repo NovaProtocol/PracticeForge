@@ -2,15 +2,12 @@ services:
   solver_public:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: solver_public/Dockerfile
     container_name: solver_public
     restart: unless-stopped
     ports:
       - "7030:7030"
     environment:
-      SOLVER_ROLE: public
-      PYTHON_GIL: ${PYTHON_GIL:-0}
-      DEPLOYMENT_TYPE: ${DEPLOYMENT_TYPE:-PRODUCTION}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
@@ -29,15 +26,12 @@ services:
   solver_private:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: solver_private/Dockerfile
     container_name: solver_private
     restart: unless-stopped
     ports:
       - "7031:7031"
     environment:
-      SOLVER_ROLE: private
-      PYTHON_GIL: ${PYTHON_GIL:-0}
-      DEPLOYMENT_TYPE: ${DEPLOYMENT_TYPE:-PRODUCTION}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
@@ -57,7 +51,6 @@ services:
     container_name: solver_executor
     restart: unless-stopped
     environment:
-      PYTHON_GIL: ${PYTHON_GIL:-0}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_USER: ${MYSQL_USER:-root}

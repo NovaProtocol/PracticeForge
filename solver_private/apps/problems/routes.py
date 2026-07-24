@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from flask import render_template, request
 
-from apps.models import (
+from apps.problems import blueprint
+from shared.models import (
     create_solution,
     get_problem,
     get_problems,
     get_sample_cases,
-    get_test_cases,
     queue_execution,
 )
-from apps.problems import blueprint
 
 
 @blueprint.route("/")

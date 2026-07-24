@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from flask import jsonify, request
+from flask import jsonify
 
 from apps.api import blueprint
-from apps.models import get_solved, get_stats, get_solution, get_test_cases, queue_execution
+from shared.models import get_solved, get_stats, get_solution, queue_execution
 
 
 @blueprint.route("/stats")
