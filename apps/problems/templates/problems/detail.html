@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ problem.title }} &mdash; SolveSpace{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-center mb-3">
+                <span class="tag mr-2">{{ problem.contest_id }}{{ problem.problem_index }}</span>
+                {% if problem.difficulty_rating %}
+                    {% set diff = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
+                    <span class="badge-difficulty badge-{{ diff }}">{{ problem.difficulty_rating }}</span>
+                {% endif %}
+            </div>
+            <h1 class="section-title">{{ problem.title }}</h1>
+            {% if problem.tags %}
+            <div class="mb-3">
+                {% for tag in problem.tags %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="card p-3 mb-3">
+                {{ problem.description_html|safe }}
+            </div>
+            <h5 class="mb-2">Sample Test Cases</h5>
+            {% for sample in samples %}
+            <div class="card p-3 mb-2">
+                <strong>Input {{ loop.index }}:</strong>
+                <pre class="mb-2" style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; font-size: 0.85rem;">{{ sample.input }}</pre>
+                <strong>Output {{ loop.index }}:</strong>
+                <pre class="mb-0" style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; font-size: 0.85rem;">{{ sample.expected_output }}</pre>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card p-3">
+                <h5 class="mb-3">Submit Solution</h5>
+                <form method="POST" action="{{ url_for('problems_blueprint.submit', contest_id=problem.contest_id, index=problem.problem_index) }}">
+                    <div class="form-group">
+                        <textarea class="form-control" name="code" rows="20" placeholder="# Write your Python solution here" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-accent btn-block">
+                        <i class="fas fa-play mr-1"></i> Submit
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
