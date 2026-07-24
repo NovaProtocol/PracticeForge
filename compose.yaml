@@ -14,8 +14,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
-      MYSQL_USER: ${MYSQL_USER:-solver}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
       GATEKEEPER_INTERNAL: ${GATEKEEPER_INTERNAL:?GATEKEEPER_INTERNAL is required}
     depends_on:
@@ -41,8 +40,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
-      MYSQL_USER: ${MYSQL_USER:-solver}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
     depends_on:
       mysql:
@@ -60,8 +58,7 @@ services:
       PYTHON_GIL: ${PYTHON_GIL:-0}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
-      MYSQL_USER: ${MYSQL_USER:-solver}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
     depends_on:
       mysql:
@@ -74,10 +71,8 @@ services:
     container_name: solver_mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
-      MYSQL_USER: ${MYSQL_USER:-solver}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -98,8 +93,8 @@ services:
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
-      PMA_USER: ${MYSQL_USER:-solver}
-      PMA_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_PASS:?MYSQL_PASS is required}
       UPLOAD_LIMIT: 64M
     depends_on:
       mysql:
