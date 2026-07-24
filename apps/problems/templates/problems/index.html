@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Problems &mdash; SolveSpace{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h1 class="section-title">Problems</h1>
+    <p class="section-subtitle">Codeforces practice problems</p>
+
+    <div class="row">
+        {% for problem in problems %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <a href="{{ url_for('problems_blueprint.detail', contest_id=problem.contest_id, index=problem.problem_index) }}" style="text-decoration: none; color: inherit;">
+                <div class="card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="tag">{{ problem.contest_id }}{{ problem.problem_index }}</span>
+                        {% if problem.difficulty_rating %}
+                            {% set diff = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
+                            <span class="badge-difficulty badge-{{ diff }}">{{ problem.difficulty_rating }}</span>
+                        {% endif %}
+                    </div>
+                    <h5 style="font-weight: 600; font-size: 1rem;">{{ problem.title }}</h5>
+                    {% if problem.tags %}
+                    <div class="mt-auto">
+                        {% for tag in problem.tags %}
+                        <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <p class="text-secondary">No problems loaded yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

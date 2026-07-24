@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Solutions &mdash; SolveSpace{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h1 class="section-title">Solutions</h1>
+    <p class="section-subtitle">Submission history</p>
+
+    <div class="card p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-borderless mb-0" style="background: transparent;">
+                <thead>
+                    <tr style="color: var(--text-secondary); font-size: 0.85rem; border-bottom: 1px solid var(--border);">
+                        <th class="pl-3">Problem</th>
+                        <th>Verdict</th>
+                        <th>Tests</th>
+                        <th>Date</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for solution in solutions %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td class="pl-3">
+                            <a href="{{ url_for('problems_blueprint.detail', contest_id=solution.contest_id, index=solution.problem_index) }}" style="color: var(--text-primary);">
+                                {{ solution.contest_id }}{{ solution.problem_index }} &mdash; {{ solution.title }}
+                            </a>
+                        </td>
+                        <td>
+                            {% set v = solution.verdict|lower %}
+                            {% if v == 'accepted' %}
+                                <span class="verdict-accepted"><i class="fas fa-check-circle mr-1"></i>Accepted</span>
+                            {% elif v in ('wrong answer', 'error') %}
+                                <span class="verdict-wrong"><i class="fas fa-times-circle mr-1"></i>{{ solution.verdict }}</span>
+                            {% elif v == 'timeout' %}
+                                <span class="verdict-timeout"><i class="fas fa-hourglass-end mr-1"></i>Time Limit</span>
+                            {% else %}
+                                <span class="verdict-pending">{{ solution.verdict }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-secondary">{{ solution.passed_count }}/{{ solution.total_count }}</td>
+                        <td class="text-secondary">{{ solution.created_at.strftime('%Y-%m-%d') if solution.created_at else '' }}</td>
+                        <td>
+                            <a href="{{ url_for('solutions_blueprint.detail', solution_id=solution.id) }}" class="btn-outline-accent btn-sm" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">View</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-secondary py-4">No submissions yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
