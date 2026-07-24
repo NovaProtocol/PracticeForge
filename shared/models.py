@@ -1,17 +1,30 @@
 from __future__ import annotations
 
+import json
+
 from shared.db import execute, query, query_one
 
 
+def _parse_problem(row: dict) -> dict:
+    if row and isinstance(row.get("tags"), str):
+        try:
+            row["tags"] = json.loads(row["tags"])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return row
+
+
 def get_problems():
-    return query("SELECT * FROM problems ORDER BY contest_id, problem_index")
+    rows = query("SELECT * FROM problems ORDER BY contest_id, problem_index")
+    return [_parse_problem(r) for r in rows]
 
 
 def get_problem(contest_id: int, index: str):
-    return query_one(
+    row = query_one(
         "SELECT * FROM problems WHERE contest_id = %s AND problem_index = %s",
         (contest_id, index),
     )
+    return _parse_problem(row)
 
 
 def get_test_cases(problem_id: int):
