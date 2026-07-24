@@ -55,21 +55,20 @@ CREATE TABLE IF NOT EXISTS runs (
 
 CREATE TABLE IF NOT EXISTS execution_queue (
     id INTEGER AUTO_INCREMENT PRIMARY KEY,
-    run_id VARCHAR(36),
-    submission_id INTEGER,
-    test_case_id INTEGER NOT NULL,
+    problem_id INTEGER NOT NULL,
     code TEXT NOT NULL,
+    method_name VARCHAR(100),
+    exec_type ENUM('run','submit') DEFAULT 'run',
     status ENUM('queued','running','completed','failed') DEFAULT 'queued',
     result TEXT,
     error TEXT,
     timing_ms INTEGER,
     memory_kb INTEGER,
+    solution_id INTEGER,
     started_at TIMESTAMP NULL,
     completed_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE,
-    FOREIGN KEY (submission_id) REFERENCES solutions(id) ON DELETE CASCADE,
-    FOREIGN KEY (test_case_id) REFERENCES test_cases(id) ON DELETE CASCADE
+    FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS auto_saves (
@@ -215,12 +214,12 @@ SEED_TEST_CASES = [
 
 
 MIGRATIONS = [
-    "ALTER TABLE execution_queue ADD COLUMN run_id VARCHAR(36) AFTER submission_id",
-    "ALTER TABLE execution_queue ADD COLUMN test_case_id INTEGER AFTER run_id",
-    "ALTER TABLE execution_queue ADD COLUMN code TEXT AFTER test_case_id",
+    "ALTER TABLE execution_queue ADD COLUMN problem_id INTEGER AFTER id",
+    "ALTER TABLE execution_queue ADD COLUMN method_name VARCHAR(100) AFTER code",
+    "ALTER TABLE execution_queue ADD COLUMN exec_type ENUM('run','submit') DEFAULT 'run' AFTER method_name",
     "ALTER TABLE execution_queue ADD COLUMN timing_ms INTEGER AFTER error",
     "ALTER TABLE execution_queue ADD COLUMN memory_kb INTEGER AFTER timing_ms",
-    "ALTER TABLE execution_queue MODIFY submission_id INTEGER",
+    "ALTER TABLE execution_queue ADD COLUMN solution_id INTEGER AFTER memory_kb",
     "ALTER TABLE solutions ADD COLUMN timing_ms INTEGER AFTER total_count",
     "ALTER TABLE solutions ADD COLUMN memory_kb INTEGER AFTER timing_ms",
     "ALTER TABLE problems ADD COLUMN base_code TEXT AFTER tags",

@@ -1,12 +1,14 @@
-FROM python3146t
-
+FROM python3146t:latest
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-COPY executor.py .
+COPY bwrap_executor.py .
 
 ENV PYTHON_GIL=0
 
-CMD ["python3", "executor.py"]
+CMD ["python3", "bwrap_executor.py"]
