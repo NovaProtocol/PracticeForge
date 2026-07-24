@@ -1,50 +1,188 @@
 {% extends "base.html" %}
 {% block title %}{{ problem.title }} &mdash; SolveSpace{% endblock %}
 {% block content %}
-<div class="container py-4">
-    <div class="row">
-        <div class="col-lg-6 mb-4">
-            <div class="d-flex align-items-center mb-3">
-                <span class="tag mr-2">{{ problem.contest_id }}{{ problem.problem_index }}</span>
-                {% if problem.difficulty_rating %}
-                    {% set diff = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
-                    <span class="badge-difficulty badge-{{ diff }}">{{ problem.difficulty_rating }}</span>
-                {% endif %}
-            </div>
-            <h1 class="section-title">{{ problem.title }}</h1>
-            {% if problem.tags %}
-            <div class="mb-3">
-                {% for tag in problem.tags %}
-                <span class="tag">{{ tag }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-            <div class="card p-3 mb-3">
-                {{ problem.description_html|safe }}
-            </div>
-            <h5 class="mb-2">Sample Test Cases</h5>
-            {% for sample in samples %}
-            <div class="card p-3 mb-2">
-                <strong>Input {{ loop.index }}:</strong>
-                <pre class="mb-2" style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; font-size: 0.85rem;">{{ sample.input }}</pre>
-                <strong>Output {{ loop.index }}:</strong>
-                <pre class="mb-0" style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; font-size: 0.85rem;">{{ sample.expected_output }}</pre>
-            </div>
-            {% endfor %}
+<div class="container-fluid py-3" style="height: calc(100vh - 70px);">
+  <div class="row h-100">
+    <div class="col-lg-5 h-100 d-flex flex-column pr-lg-2" style="overflow-y: auto;">
+      <div class="d-flex align-items-center mb-2" style="gap: 8px;">
+        <span class="tag" style="margin-bottom: 0;">{{ problem.contest_id }}{{ problem.problem_index }}</span>
+        {% if problem.difficulty_rating %}
+          {% set diff = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
+          <span class="badge-difficulty badge-{{ diff }}" style="line-height: 1.4;">{{ problem.difficulty_rating }}</span>
+        {% endif %}
+      </div>
+      <h4 style="font-weight: 700;">{{ problem.title }}</h4>
+      {% if problem.tags %}
+        <div class="mb-2">
+          {% for tag in problem.tags %}
+            <span class="tag" style="margin-bottom: 0;">{{ tag }}</span>
+          {% endfor %}
         </div>
-        <div class="col-lg-6 mb-4">
-            <div class="card p-3">
-                <h5 class="mb-3">Submit Solution</h5>
-                <form method="POST" action="{{ url_for('problems_blueprint.submit', contest_id=problem.contest_id, index=problem.problem_index) }}">
-                    <div class="form-group">
-                        <textarea class="form-control" name="code" rows="20" placeholder="# Write your Python solution here" required></textarea>
-                    </div>
-                    <button type="submit" class="btn-accent btn-block">
-                        <i class="fas fa-play mr-1"></i> Submit
-                    </button>
-                </form>
-            </div>
+      {% endif %}
+      <hr style="border-color: var(--border); margin: 0.5rem 0;">
+      <div style="font-size: 0.9rem; line-height: 1.7; color: var(--text-primary);">
+        {{ problem.description_html|safe }}
+      </div>
+      <hr style="border-color: var(--border); margin: 0.75rem 0;">
+      <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Sample Test Cases</h6>
+      {% for sample in samples %}
+        <div class="card p-3 mb-2" style="background: var(--bg-secondary); border-color: var(--border);">
+          <strong style="font-size: 0.8rem; color: var(--text-secondary);">Input {{ loop.index }}:</strong>
+          <pre style="background: var(--bg-primary); padding: 0.5rem; border-radius: 4px; font-size: 0.82rem; margin: 0.25rem 0 0.5rem 0;">{{ sample.input }}</pre>
+          <strong style="font-size: 0.8rem; color: var(--text-secondary);">Output {{ loop.index }}:</strong>
+          <pre style="background: var(--bg-primary); padding: 0.5rem; border-radius: 4px; font-size: 0.82rem; margin: 0.25rem 0 0 0;">{{ sample.expected_output }}</pre>
         </div>
+      {% endfor %}
     </div>
+
+    <div class="col-lg-7 h-100 d-flex flex-column pl-lg-2">
+      <textarea id="code-editor" class="form-control" style="flex: 1; min-height: 200px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; resize: none; tab-size: 4;" placeholder="Write your Python solution here..." spellcheck="false">{% if code %}{{ code }}{% endif %}</textarea>
+
+      <div class="d-flex align-items-center py-2" style="gap: 8px;">
+        <button id="run-btn" class="btn-accent btn-sm" style="padding: 0.5rem 1.5rem;">
+          <i class="fas fa-play mr-1"></i> Run
+        </button>
+        <button id="submit-btn" class="btn-outline-accent btn-sm" style="padding: 0.5rem 1.5rem;">
+          <i class="fas fa-cloud-upload-alt mr-1"></i> Submit
+        </button>
+        <span id="status-text" style="color: var(--text-secondary); font-size: 0.82rem; margin-left: 8px;"></span>
+      </div>
+
+      <div id="console" style="flex: 1; min-height: 150px; background: #0d0d14; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6;">
+        <div style="color: var(--text-secondary);">> Ready</div>
+      </div>
+    </div>
+  </div>
 </div>
+{% endblock %}
+
+{% block head_extra %}
+<style>
+  #code-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+  #console { white-space: pre-wrap; word-break: break-all; }
+  #console .pass { color: #4ade80; }
+  #console .fail { color: #f87171; }
+  #console .info { color: var(--text-secondary); }
+  #console .error { color: #fbbf24; }
+  #console .prompt { color: #64ffda; }
+</style>
+<script>
+const contestId = {{ problem.contest_id }};
+const problemIndex = '{{ problem.problem_index }}';
+const editor = document.getElementById('code-editor');
+const consoleDiv = document.getElementById('console');
+const statusText = document.getElementById('status-text');
+
+function log(line, cls = '') {
+  const d = document.createElement('div');
+  d.className = cls;
+  d.textContent = line;
+  consoleDiv.appendChild(d);
+  consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+
+function clearConsole() {
+  consoleDiv.innerHTML = '';
+}
+
+function appendConsole(html, cls = '') {
+  const d = document.createElement('div');
+  d.className = cls;
+  d.innerHTML = html;
+  consoleDiv.appendChild(d);
+  consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+
+async function runCode() {
+  const code = editor.value;
+  clearConsole();
+  log('> Running against sample test cases...', 'info');
+  statusText.textContent = 'Running...';
+
+  try {
+    const resp = await fetch(`/problem/${contestId}/${problemIndex}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ code }),
+    });
+    const data = await resp.json();
+
+    for (let i = 0; i < data.results.length; i++) {
+      const r = data.results[i];
+      if (r.passed) {
+        appendConsole(`<span class="pass">✓ Test ${i + 1}: Passed</span>`);
+      } else {
+        appendConsole(`<span class="fail">✗ Test ${i + 1}: Failed</span>`);
+        appendConsole(`<span class="info">  Input:    ${escapeHtml(r.input)}</span>`);
+        appendConsole(`<span class="info">  Expected: ${escapeHtml(r.expected)}</span>`);
+        appendConsole(`<span class="fail">  Got:      ${escapeHtml(r.got || r.error)}</span>`);
+      }
+    }
+
+    const verdictCls = data.verdict === 'Accepted' ? 'pass' : 'fail';
+    appendConsole(`<span class="${verdictCls}">${data.verdict} — ${data.passed}/${data.total} test cases passed</span>`);
+    statusText.textContent = data.verdict;
+  } catch (e) {
+    log('Error: ' + e.message, 'error');
+    statusText.textContent = 'Error';
+  }
+}
+
+async function submitCode() {
+  const code = editor.value;
+  clearConsole();
+  log('> Submitting solution...', 'info');
+  statusText.textContent = 'Submitting...';
+
+  try {
+    const resp = await fetch(`/problem/${contestId}/${problemIndex}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ code }),
+    });
+    const data = await resp.json();
+    const submissionId = data.submission_id;
+    log(`> Queued (submission #${submissionId}). Waiting for results...`, 'info');
+    statusText.textContent = 'Queued';
+
+    const poll = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/submission-status/${submissionId}`);
+        const s = await r.json();
+        statusText.textContent = s.status;
+
+        if (s.status === 'running') {
+          log('> Running...', 'info');
+        } else if (s.status === 'completed' || s.status === 'failed') {
+          clearInterval(poll);
+          const verdictCls = s.verdict === 'Accepted' ? 'pass' : 'fail';
+          appendConsole(`<span class="${verdictCls}">${s.verdict} — ${s.passed}/${s.total}</span>`);
+          if (s.result) appendConsole(`${escapeHtml(s.result)}`);
+          if (s.error) appendConsole(`<span class="error">${escapeHtml(s.error)}</span>`);
+          statusText.textContent = s.verdict;
+        } else if (s.status === 'queued') {
+          log('.', 'info');
+        }
+      } catch (e) {
+        clearInterval(poll);
+        log('Poll error: ' + e.message, 'error');
+      }
+    }, 1500);
+
+  } catch (e) {
+    log('Error: ' + e.message, 'error');
+    statusText.textContent = 'Error';
+  }
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.getElementById('run-btn').addEventListener('click', runCode);
+document.getElementById('submit-btn').addEventListener('click', submitCode);
+</script>
 {% endblock %}
