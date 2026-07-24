@@ -6,9 +6,12 @@ from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from shared.config import ProductionConfig
+from shared.startup import run as run_startup
 
 
 def create_app() -> Flask:
+    run_startup()
+
     templates = Path(__file__).resolve().parent / "templates"
     app = Flask(__name__, template_folder=str(templates))
     app.config.from_object(ProductionConfig)
