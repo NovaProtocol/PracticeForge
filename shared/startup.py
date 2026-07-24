@@ -226,21 +226,27 @@ def ensure_schema():
 
 
 def ensure_seed_data():
-    count = query_one("SELECT COUNT(*) AS c FROM problems")
-    if count and count["c"] > 0:
+    tc_count = query_one("SELECT COUNT(*) AS c FROM test_cases")
+    if tc_count and tc_count["c"] > 0:
         return
 
     problem_ids = {}
     for p in SEED_PROBLEMS:
         execute(
-            """INSERT INTO problems (contest_id, problem_index, title, slug, difficulty_rating, tags, description_html, url, base_code, method_name)
+            """INSERT IGNORE INTO problems (contest_id, problem_index, title, slug, difficulty_rating, tags, description_html, url, base_code, method_name)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (p["contest_id"], p["problem_index"], p["title"], p["slug"],
              p["difficulty_rating"], p["tags"], p["description_html"], p["url"],
              p["base_code"], p["method_name"]),
         )
-        row = query_one("SELECT LAST_INSERT_ID() AS id")
-        problem_ids[(p["contest_id"], p["problem_index"])] = row["id"]
+
+    for p in SEED_PROBLEMS:
+        row = query_one(
+            "SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
+            (p["contest_id"], p["problem_index"]),
+        )
+        if row:
+            problem_ids[(p["contest_id"], p["problem_index"])] = row["id"]
 
     for problem_index, is_sample, args_json, expected_json in SEED_TEST_CASES:
         pid = problem_ids.get((1, chr(64 + problem_index)))
