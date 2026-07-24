@@ -14,8 +14,8 @@ def create_app() -> Flask:
     app.config.from_object(ProductionConfig)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
-    from apps.problems import blueprint as problems_blueprint
-    from apps.solutions import blueprint as solutions_blueprint
+    from apps.problems.routes import blueprint as problems_blueprint
+    from apps.solutions.routes import blueprint as solutions_blueprint
     app.register_blueprint(problems_blueprint)
     app.register_blueprint(solutions_blueprint)
 
