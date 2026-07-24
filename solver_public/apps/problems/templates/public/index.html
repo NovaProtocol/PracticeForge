@@ -1,11 +1,93 @@
 {% extends "base.html" %}
 {% block title %}Problems &mdash; SolveSpace{% endblock %}
+{% block head_extra %}
+<style>
+.sidebar-filters {
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  width: 240px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  padding: 1.25rem;
+  overflow-y: auto;
+  z-index: 100;
+}
+.sidebar-filters .filter-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  margin-top: 1.25rem;
+}
+.sidebar-filters .filter-label:first-child { margin-top: 0; }
+.main-area {
+  margin-right: 240px;
+  min-height: calc(100vh - 56px);
+}
+.view-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.view-toggle.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.view-toggle:hover { color: var(--text-primary); }
+</style>
+{% endblock %}
 {% block content %}
-<div class="container-fluid py-4">
-  <div class="row">
-    <div class="col-lg-9">
-      <h1 class="section-title">Problems</h1>
-      <p class="section-subtitle">Browse and review solutions</p>
+<aside class="sidebar-filters">
+  <div class="filter-label">Completion</div>
+  {% for key, label in [('completed','Completed'), ('in_progress','In Progress'), ('incomplete','Incomplete')] %}
+  <label class="d-block" style="font-size: 0.85rem; cursor: pointer;">
+    <input type="checkbox" class="filter-completion" value="{{ key }}" {{ 'checked' if key == 'completed' else '' }}> {{ label }}
+  </label>
+  {% endfor %}
+
+  <div class="filter-label">Topic</div>
+  <div id="topic-filters">
+    {% for tag in all_tags %}
+    <label class="d-block" style="font-size: 0.85rem; cursor: pointer;">
+      <input type="checkbox" class="filter-topic" value="{{ tag }}" checked> {{ tag }}
+    </label>
+    {% endfor %}
+  </div>
+
+  <div class="filter-label">Difficulty</div>
+  <div class="d-flex" style="gap: 4px;">
+    <input type="number" id="diff-min" class="form-control form-control-sm" placeholder="Min" value="">
+    <span style="color: var(--text-secondary); align-self: center;">—</span>
+    <input type="number" id="diff-max" class="form-control form-control-sm" placeholder="Max" value="">
+  </div>
+
+  <button id="clear-filters" class="btn-outline-accent btn-sm btn-block mt-3" style="font-size: 0.8rem;">Clear Filters</button>
+</aside>
+
+<div class="main-area">
+  <div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="section-title mb-0">Problems</h1>
+        <p class="text-secondary mb-0" style="font-size: 0.9rem;">Browse and review solutions</p>
+      </div>
+      <div class="d-flex" style="gap: 4px;">
+        <button id="view-cards" class="view-toggle active" title="Card view"><i class="fas fa-th-large"></i></button>
+        <button id="view-list" class="view-toggle" title="List view"><i class="fas fa-list"></i></button>
+      </div>
+    </div>
+
+    <div id="problem-container">
       <div id="problem-list" class="row">
         {% for problem in problems %}
         <div class="col-md-6 col-xl-4 mb-4 problem-card" data-completion="{{ problem.completion }}" data-tags='{{ problem.tags|tojson }}' data-difficulty="{{ problem.difficulty_rating or 0 }}">
@@ -34,35 +116,6 @@
         {% endfor %}
       </div>
     </div>
-
-    <div class="col-lg-3">
-      <div class="card p-3" style="position: sticky; top: 80px;">
-        <h6 style="font-weight: 600; margin-bottom: 1rem;">Filters</h6>
-        <div class="mb-3">
-          <label style="font-size: 0.82rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Completion</label>
-          {% for key, label in [('completed','Completed'), ('in_progress','In Progress'), ('incomplete','Incomplete')] %}
-          <label class="d-block" style="font-size: 0.85rem; cursor: pointer;"><input type="checkbox" class="filter-completion" value="{{ key }}" {{ 'checked' if key == 'completed' else '' }}> {{ label }}</label>
-          {% endfor %}
-        </div>
-        <div class="mb-3">
-          <label style="font-size: 0.82rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Topic</label>
-          <div id="topic-filters">
-            {% for tag in all_tags %}
-            <label class="d-block" style="font-size: 0.85rem; cursor: pointer;"><input type="checkbox" class="filter-topic" value="{{ tag }}" checked> {{ tag }}</label>
-            {% endfor %}
-          </div>
-        </div>
-        <div class="mb-3">
-          <label style="font-size: 0.82rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Difficulty</label>
-          <div class="d-flex" style="gap: 4px;">
-            <input type="number" id="diff-min" class="form-control form-control-sm" placeholder="Min" style="width: 48%;">
-            <span style="color: var(--text-secondary); align-self: center;">—</span>
-            <input type="number" id="diff-max" class="form-control form-control-sm" placeholder="Max" style="width: 48%;">
-          </div>
-        </div>
-        <button id="clear-filters" class="btn-outline-accent btn-sm btn-block" style="font-size: 0.8rem;">Clear Filters</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -70,22 +123,46 @@
 function applyFilters() {
   const comps = Array.from(document.querySelectorAll('.filter-completion:checked')).map(c => c.value);
   const topics = Array.from(document.querySelectorAll('.filter-topic:checked')).map(c => c.value);
-  const dMin = parseInt(document.getElementById('diff-min').value) || 0;
-  const dMax = parseInt(document.getElementById('diff-max').value) || 9999;
+  const dMin = parseInt(document.getElementById('diff-min')?.value) || 0;
+  const dMax = parseInt(document.getElementById('diff-max')?.value) || 9999;
   document.querySelectorAll('.problem-card').forEach(card => {
     const completion = card.dataset.completion;
-    let cardTags = []; try { cardTags = JSON.parse(card.dataset.tags); } catch(e) {}
+    let cardTags = [];
+    try { cardTags = JSON.parse(card.dataset.tags); } catch(e) {}
     const diff = parseInt(card.dataset.difficulty) || 0;
     card.style.display = (comps.length===0||comps.includes(completion)) && (topics.length===0||cardTags.some(t=>topics.includes(t))) && diff>=dMin && diff<=dMax ? '' : 'none';
   });
 }
-document.querySelectorAll('.filter-completion, .filter-topic').forEach(el => el.addEventListener('change', applyFilters));
-['diff-min','diff-max'].forEach(id => document.getElementById(id).addEventListener('input', applyFilters));
-document.getElementById('clear-filters').addEventListener('click', () => {
+document.querySelectorAll('.filter-completion, .filter-topic')?.forEach(el => el.addEventListener('change', applyFilters));
+['diff-min','diff-max'].forEach(id => document.getElementById(id)?.addEventListener('input', applyFilters));
+document.getElementById('clear-filters')?.addEventListener('click', () => {
   document.querySelectorAll('.filter-completion').forEach(c => c.checked = false);
   document.querySelectorAll('.filter-topic').forEach(c => c.checked = true);
-  document.getElementById('diff-min').value = ''; document.getElementById('diff-max').value = '';
+  document.getElementById('diff-min').value = '';
+  document.getElementById('diff-max').value = '';
   applyFilters();
 });
+
+function setView(mode) {
+  const list = document.getElementById('problem-list');
+  const cards = document.getElementById('view-cards');
+  const listBtn = document.getElementById('view-list');
+  if (!list) return;
+  if (mode === 'list') {
+    list.classList.remove('row');
+    list.querySelectorAll('.problem-card').forEach(c => { c.classList.remove('col-md-6','col-xl-4','mb-4'); });
+    cards?.classList.remove('active');
+    listBtn?.classList.add('active');
+  } else {
+    list.classList.add('row');
+    list.querySelectorAll('.problem-card').forEach(c => { c.classList.add('col-md-6','col-xl-4','mb-4'); });
+    cards?.classList.add('active');
+    listBtn?.classList.remove('active');
+  }
+  try { localStorage.setItem('problemView', mode); } catch(e) {}
+}
+document.getElementById('view-cards')?.addEventListener('click', () => setView('cards'));
+document.getElementById('view-list')?.addEventListener('click', () => setView('list'));
+try { setView(localStorage.getItem('problemView') || 'cards'); } catch(e) {}
 </script>
 {% endblock %}
