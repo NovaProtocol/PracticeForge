@@ -12,27 +12,31 @@
 .desc-header .id-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.25rem; }
 .desc-header h4 { font-weight: 700; font-size: 1.1rem; margin: 0; }
 .desc-header .tags-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0.3rem; }
-.desc-body { flex: 1; overflow-y: auto; padding: 0.75rem 1.25rem 1rem; }
-.desc-body .sample-card {
+.desc-body { flex: 1; overflow-y: auto; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 1.25rem; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+  border-bottom: 1px solid var(--border); user-select: none;
+}
+.section-header:hover { background: var(--bg-secondary); }
+.section-header .chevron { font-size: 0.7rem; transition: transform 0.2s; color: var(--text-secondary); }
+.section-header.open .chevron { transform: rotate(180deg); }
+.section-content { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); }
+.section-content.hidden { display: none; }
+.sample-card {
   background: var(--bg-secondary); border: 1px solid var(--border);
   border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; position: relative;
 }
-.desc-body .sample-card .copy-btn {
+.sample-card .copy-btn {
   position: absolute; right: 0.5rem; top: 0.5rem;
   background: var(--bg-primary); border: 1px solid var(--border);
   color: var(--text-secondary); font-size: 0.72rem; padding: 0.15rem 0.5rem;
   border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;
 }
-.desc-body .sample-card:hover .copy-btn { opacity: 1; }
-.desc-body .sample-card .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
-.hint-toggle { border-top: 1px solid var(--border); padding: 0.5rem 1.25rem; cursor: pointer; flex-shrink: 0; }
-.hint-toggle:hover { background: var(--bg-secondary); }
-.hint-toggle .chevron { transition: transform 0.2s; font-size: 0.75rem; }
-.hint-toggle.open .chevron { transform: rotate(180deg); }
-.hint-content { padding: 0 1.25rem 0.75rem; display: none; flex-shrink: 0; }
-.hint-content.open { display: block; }
-.desc-body pre { background: var(--bg-primary); padding: 0.5rem; border-radius: 4px; font-size: 0.82rem; margin: 0.25rem 0; }
-.submission-item { padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.sample-card:hover .copy-btn { opacity: 1; }
+.sample-card .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
+.section-content pre { background: var(--bg-primary); padding: 0.5rem; border-radius: 4px; font-size: 0.82rem; margin: 0.25rem 0; }
+.submission-item { padding: 0.5rem 1.25rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
 .submission-item:last-child { border-bottom: none; }
 .submission-item .code-toggle { cursor: pointer; color: var(--accent); font-size: 0.8rem; }
 .submission-item .code-toggle:hover { text-decoration: underline; }
@@ -43,26 +47,34 @@
     <div class="desc-tab" data-tab="submissions">Submissions</div>
   </div>
 
-  <div class="desc-header">
-    <div class="id-row">
-      <span class="tag" style="margin-bottom: 0; font-size: 0.78rem;">{{ problem.contest_id }}{{ problem.problem_index }}</span>
-      {% if problem.difficulty_rating %}
-        {% set d = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
-        <span class="badge-difficulty badge-{{ d }}" style="line-height: 1.4; font-size: 0.72rem;">{{ problem.difficulty_rating }}</span>
+  <div id="desc-content">
+    <div class="desc-header">
+      <div class="id-row">
+        <span class="tag" style="margin-bottom: 0; font-size: 0.78rem;">{{ problem.contest_id }}{{ problem.problem_index }}</span>
+        {% if problem.difficulty_rating %}
+          {% set d = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
+          <span class="badge-difficulty badge-{{ d }}" style="line-height: 1.4; font-size: 0.72rem;">{{ problem.difficulty_rating }}</span>
+        {% endif %}
+      </div>
+      <h4>{{ problem.title }}</h4>
+      {% if problem.tags %}
+        <div class="tags-row">{% for tag in problem.tags %}<span class="tag" style="margin-bottom: 0; font-size: 0.72rem;">{{ tag }}</span>{% endfor %}</div>
       {% endif %}
     </div>
-    <h4>{{ problem.title }}</h4>
-    {% if problem.tags %}
-      <div class="tags-row">{% for tag in problem.tags %}<span class="tag" style="margin-bottom: 0; font-size: 0.72rem;">{{ tag }}</span>{% endfor %}</div>
-    {% endif %}
-  </div>
 
-  <div id="desc-body-content" class="desc-body">
-    <!-- Description tab content -->
-    <div id="desc-content">
-      <div style="font-size: 0.9rem; line-height: 1.7;">{{ problem.description_html|safe }}</div>
-      <hr style="border-color: var(--border); margin: 1rem 0;">
-      <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Examples</h6>
+    <div class="section-header open" onclick="toggleSection('desc-text')">
+      <span>Description</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div id="desc-text" class="section-content" style="font-size: 0.9rem; line-height: 1.7;">
+      {{ problem.description_html|safe }}
+    </div>
+
+    <div class="section-header open" onclick="toggleSection('desc-examples')">
+      <span>Examples</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div id="desc-examples" class="section-content">
       {% for sample in problem.sample_cases or [] %}
       <div class="sample-card">
         {% if sample.args %}
@@ -83,30 +95,40 @@
       </div>
       {% endfor %}
     </div>
-    <!-- Submissions tab content (hidden by default) -->
-    <div id="desc-submissions" style="display: none;">
-      {% for sub in submissions %}
-      <div class="submission-item">
-        <span class="{% if sub.verdict == 'Accepted' %}verdict-accepted{% else %}verdict-wrong{% endif %}">{{ sub.verdict }}</span>
-        <span class="text-secondary"> — {{ sub.passed_count }}/{{ sub.total_count }}</span>
-        {% if sub.timing_ms %}<span class="text-secondary"> · {{ sub.timing_ms }}ms</span>{% endif %}
-        {% if sub.memory_kb %}<span class="text-secondary"> · {{ "{:,}".format(sub.memory_kb) }}KB</span>{% endif %}
-        <span class="text-secondary" style="float: right; font-size: 0.78rem;">{{ sub.created_at.strftime('%Y-%m-%d %H:%M') if sub.created_at else '' }}</span>
-        <div class="code-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">View code</div>
-        <pre style="display: none; font-size: 0.78rem; margin-top: 0.3rem;">{{ sub.code }}</pre>
-      </div>
-      {% else %}
-      <p class="text-secondary" style="font-size: 0.85rem;">No submissions yet.</p>
-      {% endfor %}
+
+    <div class="section-header open" onclick="toggleSection('desc-constraints')">
+      <span>Constraints</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div id="desc-constraints" class="section-content" style="font-size: 0.85rem;">
+      <ul style="padding-left: 1.25rem; margin: 0;">
+        <li>Input values are within the problem's specified range</li>
+      </ul>
+    </div>
+
+    <div class="section-header" onclick="toggleSection('desc-hints')">
+      <span>Hints</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div id="desc-hints" class="section-content hidden" style="font-size: 0.85rem;">
+      <p class="text-secondary" style="margin: 0;">Hint 1: Think about the problem constraints and edge cases.</p>
     </div>
   </div>
 
-  <div id="hint-toggle" class="hint-toggle" onclick="toggleHints()">
-    <span style="font-size: 0.82rem; font-weight: 500;">Hints</span>
-    <span class="chevron" style="float: right;">▾</span>
-  </div>
-  <div id="hint-content" class="hint-content">
-    <p class="text-secondary" style="font-size: 0.82rem; margin: 0;">Hint 1: Think about the problem constraints and edge cases.</p>
+  <div id="desc-submissions" style="display: none;">
+    {% for sub in submissions %}
+    <div class="submission-item">
+      <span class="{% if sub.verdict == 'Accepted' %}verdict-accepted{% else %}verdict-wrong{% endif %}">{{ sub.verdict }}</span>
+      <span class="text-secondary"> — {{ sub.passed_count }}/{{ sub.total_count }}</span>
+      {% if sub.timing_ms %}<span class="text-secondary"> · {{ sub.timing_ms }}ms</span>{% endif %}
+      {% if sub.memory_kb %}<span class="text-secondary"> · {{ "{:,}".format(sub.memory_kb) }}KB</span>{% endif %}
+      <span class="text-secondary" style="float: right; font-size: 0.78rem;">{{ sub.created_at.strftime('%Y-%m-%d %H:%M') if sub.created_at else '' }}</span>
+      <div class="code-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">View code</div>
+      <pre style="display: none; font-size: 0.78rem; margin-top: 0.3rem;">{{ sub.code }}</pre>
+    </div>
+    {% else %}
+    <p class="text-secondary" style="font-size: 0.85rem; padding: 1rem 1.25rem;">No submissions yet.</p>
+    {% endfor %}
   </div>
 </div>
 <script>
@@ -116,9 +138,11 @@ function copyText(btn) {
     setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
   }).catch(function() {});
 }
-function toggleHints() {
-  document.getElementById('hint-toggle').classList.toggle('open');
-  document.getElementById('hint-content').classList.toggle('open');
+function toggleSection(id) {
+  var el = document.getElementById(id);
+  var hdr = el.previousElementSibling;
+  el.classList.toggle('hidden');
+  hdr.classList.toggle('open');
 }
 document.querySelectorAll('.desc-tab').forEach(function(tab) {
   tab.addEventListener('click', function() {
