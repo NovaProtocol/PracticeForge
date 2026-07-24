@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS problems (
     slug VARCHAR(255) NOT NULL UNIQUE,
     difficulty_rating INTEGER,
     tags JSON,
+    base_code TEXT,
+    method_name VARCHAR(100),
     description_html TEXT,
     url VARCHAR(255),
     solved_count INTEGER DEFAULT 0,
@@ -24,6 +26,8 @@ CREATE TABLE IF NOT EXISTS test_cases (
     input TEXT NOT NULL,
     expected_output TEXT NOT NULL,
     is_sample BOOLEAN DEFAULT FALSE,
+    args JSON,
+    expected JSON,
     FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
 
