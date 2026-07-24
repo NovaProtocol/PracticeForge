@@ -120,7 +120,7 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
 
 
 def _parse_output(stdout: str) -> dict:
-    result = {"results_json": "[]", "raw_stdout": stdout}
+    result = {"results_json": "[]", "user_stdout": "", "raw_stdout": stdout}
     marker = "__SOLVER_RESULT__"
     if marker in stdout:
         parts = stdout.split(marker + "\n", 1)
@@ -151,7 +151,6 @@ def run_code(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             "returncode": r.returncode,
             "stdout": r.stdout.strip(),
             "stderr": r.stderr.strip(),
-            "user_stdout": parsed["user_stdout"],
             "results_json": parsed["results_json"],
             "timing_ms": elapsed,
         }
@@ -196,7 +195,6 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             "returncode": r.returncode,
             "stdout": r.stdout.strip(),
             "stderr": r.stderr.strip(),
-            "user_stdout": parsed["user_stdout"],
             "results_json": parsed["results_json"],
             "timing_ms": elapsed,
         }
