@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from flask import render_template
 
-from apps.models import get_solution, get_solutions
 from apps.solutions import blueprint
+from shared.models import get_solution, get_solutions
 
 
 @blueprint.route("/solutions/")

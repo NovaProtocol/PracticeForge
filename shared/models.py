@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.db import query, query_one, execute
+from shared.db import execute, query, query_one
 
 
 def get_problems():
