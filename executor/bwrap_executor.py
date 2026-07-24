@@ -169,7 +169,15 @@ def process_entry(conn, entry):
 
     mark_running(conn, qid)
 
-    test_cases = get_test_cases(conn, problem_id)
+    test_cases = None
+    raw = entry.get("test_cases_json")
+    if raw:
+        try:
+            test_cases = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    if not test_cases:
+        test_cases = get_test_cases(conn, problem_id)
     if not test_cases:
         mark_failed(conn, qid, "No test cases found")
         return

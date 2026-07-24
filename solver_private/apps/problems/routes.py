@@ -15,12 +15,12 @@ from shared.models import (
 )
 
 
-def _queue_execution(problem_id: int, code: str, method_name: str, exec_type: str) -> int:
+def _queue_execution(problem_id: int, code: str, method_name: str, exec_type: str, test_cases_json: str = "[]") -> int:
     from shared.db import execute as db_execute, query_one
     db_execute(
-        """INSERT INTO execution_queue (problem_id, code, method_name, exec_type, status)
-           VALUES (%s, %s, %s, %s, 'queued')""",
-        (problem_id, code, method_name, exec_type),
+        """INSERT INTO execution_queue (problem_id, code, method_name, test_cases_json, exec_type, status)
+           VALUES (%s, %s, %s, %s, %s, 'queued')""",
+        (problem_id, code, method_name, test_cases_json, exec_type),
     )
     return query_one("SELECT LAST_INSERT_ID() AS id")["id"]
 
@@ -59,7 +59,8 @@ def run(contest_id: int, index: str):
         return jsonify({"error": "not found"}), 404
     code = request.form.get("code", "")
     method_name = problem.get("method_name") or "run"
-    qid = _queue_execution(problem["id"], code, method_name, "run")
+    test_cases = request.form.get("testcases", "[]")
+    qid = _queue_execution(problem["id"], code, method_name, "run", test_cases)
     return jsonify({"queue_id": qid, "status": "queued"})
 
 

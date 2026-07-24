@@ -466,14 +466,14 @@
     var idx = parseInt(activeTab.dataset.idx, 10);
     initTestCase(idx);
     var tc = testCases.find(function(t) { return t.idx === idx; });
-    tc.input = document.getElementById('tc-input').value;
+    tc.args = document.getElementById('tc-input').value;
     tc.expected = document.getElementById('tc-expected').value;
   }
 
   function loadCase(idx) {
     initTestCase(idx);
     var tc = testCases.find(function(t) { return t.idx === idx; });
-    document.getElementById('tc-input').value = tc.input;
+    document.getElementById('tc-input').value = tc.args;
     document.getElementById('tc-expected').value = tc.expected;
   }
 
@@ -507,7 +507,7 @@
     var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
     if (tabs.length <= 1) return;
     var tc = testCases.find(function(t) { return t.idx === idx; });
-    if (tc && (tc.input || tc.expected)) {
+    if (tc && (tc.args || tc.expected)) {
       if (!confirm('Delete this test case?')) return;
     }
     testCases = testCases.filter(function(t) { return t.idx !== idx; });
@@ -528,7 +528,7 @@
       var idx = parseInt(t.dataset.idx, 10);
       var tc = testCases.find(function(tc) { return tc.idx === idx; });
       if (tc) {
-        result.push({ input: tc.input, expected: tc.expected });
+        result.push({ args: tc.args, expected: tc.expected });
       } else {
         result.push({ input: '', expected: '' });
       }
@@ -749,7 +749,28 @@
     }
   });
 
-  // Initialize first test case
+  // Auto-load sample test cases from server
+  var problemId = {{ problem.id }};
+  fetch('/api/sample-cases/' + problemId).then(function(r) { return r.json(); }).then(function(cases) {
+    if (cases && cases.length > 0) {
+      // Remove the default empty case
+      var defaultTab = document.querySelector('.tc-tab[data-idx="0"]');
+      if (defaultTab) removeCase(0, defaultTab);
+      cases.forEach(function(tc) {
+        var idx = currentCaseIdx;
+        addTab(idx);
+        var tab = document.querySelector('.tc-tab[data-idx="' + idx + '"]');
+        tab.textContent = 'Sample ' + (idx + 1);
+        var pane = document.getElementById('tc-pane-' + idx);
+        if (pane) {
+          pane.querySelector('.tc-input').value = tc.args || '';
+          pane.querySelector('.tc-expected').value = tc.expected || '';
+        }
+        currentCaseIdx++;
+      });
+      switchTab(0);
+    }
+  }).catch(function() {});
   initTestCase(0);
 
   function pollQueue(queueId, callback) {
@@ -771,10 +792,12 @@
   window.__consoleRun = async function(code, contestId, index) {
     window.consoleApi.showSpinner('Running...');
     try {
+      var tcs = JSON.stringify(window.consoleApi.getTestCases());
+      var body = new URLSearchParams({ code: code, testcases: tcs });
       var r = await fetch('/problem/' + contestId + '/' + index + '/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ code: code })
+        body: body
       });
       var data = await r.json();
       window.consoleApi.appendLog('> Queued (#' + data.queue_id + ')', 'info');
