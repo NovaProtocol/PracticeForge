@@ -84,9 +84,7 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
         user_code,
         "solution = Solution()",
         "method = getattr(solution, " + json.dumps(method_name) + ")",
-        "_capture = io.StringIO()",
         "_old_stdout = sys.stdout",
-        "sys.stdout = _capture",
         "results = []",
     ]
     for tc in test_cases:
@@ -98,6 +96,8 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
             args_str = "[]"
         if not expected_str:
             expected_str = '""'
+        lines.append("_cap = io.StringIO()")
+        lines.append("sys.stdout = _cap")
         lines.append("_r_input = " + json.dumps(inp_display))
         lines.append("_r_expected = " + json.dumps(exp_display))
         lines.append("err = ''")
@@ -111,38 +111,21 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
         lines.append("    got = json.dumps(str(_ex))")
         lines.append("    err = repr(_ex)")
         lines.append("    passed = False")
-        lines.append("results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed})")
+        lines.append("_tc_stdout = _cap.getvalue()")
+        lines.append("results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout})")
     lines.append("sys.stdout = _old_stdout")
-    lines.append("print('__SOLVER_STDOUT__')")
-    lines.append("print(_capture.getvalue(), end='')")
     lines.append("print('__SOLVER_RESULT__')")
     lines.append("print(json.dumps(results))")
     return "\n".join(lines)
 
 
 def _parse_output(stdout: str) -> dict:
-    """Separate user stdout from structured JSON result using sentinel markers."""
-    result = {
-        "user_stdout": "",
-        "results_json": "[]",
-        "raw_stdout": stdout,
-    }
-    marker_result = "__SOLVER_RESULT__"
-    marker_stdout = "__SOLVER_STDOUT__"
-
-    if marker_result in stdout:
-        parts = stdout.split(marker_result + "\n", 1)
-        before_result = parts[0]
+    result = {"results_json": "[]", "raw_stdout": stdout}
+    marker = "__SOLVER_RESULT__"
+    if marker in stdout:
+        parts = stdout.split(marker + "\n", 1)
         if len(parts) > 1:
             result["results_json"] = parts[1].strip()
-        if marker_stdout in before_result:
-            stdout_parts = before_result.split(marker_stdout + "\n", 1)
-            if len(stdout_parts) > 1:
-                result["user_stdout"] = stdout_parts[1].strip()
-        else:
-            result["user_stdout"] = before_result.strip()
-    else:
-        result["user_stdout"] = stdout.strip()
     return result
 
 
@@ -280,15 +263,16 @@ def process_entry(conn, entry):
     total = len(tc_results)
     timing_ms = result["timing_ms"]
     memory_kb = 0
-    user_stdout = result.get("user_stdout", "")
+
+    all_stdout = "\n".join(t.get("stdout", "") for t in tc_results if t.get("stdout"))
 
     result_data = json.dumps({
         "results": tc_results,
-        "stdout": user_stdout,
+        "stdout": all_stdout,
     })
 
     verdict = "Accepted" if passed == total else "Wrong Answer"
-    mark_completed(conn, qid, result_data, user_stdout, "", timing_ms, memory_kb)
+    mark_completed(conn, qid, result_data, all_stdout, "", timing_ms, memory_kb)
 
     if exec_type == "submit":
         sid = create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, memory_kb)
