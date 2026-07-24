@@ -37,7 +37,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   var C = { contestId: {{ problem.contest_id }}, index: '{{ problem.problem_index }}', problemId: {{ problem.id }} };
   var $ = function(id) { return document.getElementById(id); };
   var editorEl = $('editor-wrapper');
-  var initialCode = '{{ (saved_code or base_code)|e("js") }}';
+  var initialCode = {{ (saved_code or base_code)|tojson }};
 
   var textarea = document.createElement('textarea');
   textarea.id = 'code'; textarea.style.display = 'none';
