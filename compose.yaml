@@ -86,8 +86,11 @@ services:
       dockerfile: Dockerfile
     container_name: solver_executor
     restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
     security_opt:
       - seccomp:unconfined
+      - apparmor:unconfined
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
