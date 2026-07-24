@@ -456,7 +456,7 @@
   function initTestCase(caseIdx) {
     var i = testCases.findIndex(function(tc) { return tc.idx === caseIdx; });
     if (i === -1) {
-      testCases.push({ idx: caseIdx, input: '', expected: '' });
+      testCases.push({ idx: caseIdx, args: '', expected: '' });
     }
   }
 
@@ -507,7 +507,7 @@
     var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
     if (tabs.length <= 1) return;
     var tc = testCases.find(function(t) { return t.idx === idx; });
-    if (tc && (tc.args || tc.expected)) {
+    if (tc && (tc.args || tc.expected || tc.input)) {
       if (!confirm('Delete this test case?')) return;
     }
     testCases = testCases.filter(function(t) { return t.idx !== idx; });
@@ -752,23 +752,20 @@
   // Load sample test cases from server-embedded data
   var sampleCases = (window.__sampleCases || []).map(function(tc) { return { args: tc.args || tc.input, expected: tc.expected || tc.expected_output || '' }; });
   if (sampleCases.length > 0) {
-      // Remove the default empty case
-      var defaultTab = document.querySelector('.tc-tab[data-idx="0"]');
-      if (defaultTab) removeCase(0, defaultTab);
-      cases.forEach(function(tc) {
-        var idx = currentCaseIdx;
-        addTab(idx);
-        var tab = document.querySelector('.tc-tab[data-idx="' + idx + '"]');
-        tab.textContent = 'Sample ' + (idx + 1);
-        var pane = document.getElementById('tc-pane-' + idx);
-        if (pane) {
-          pane.querySelector('.tc-input').value = tc.args || '';
-          pane.querySelector('.tc-expected').value = tc.expected || '';
-        }
-        currentCaseIdx++;
-      });
-      switchTab(0);
-    }
+    testCases = [];
+    document.querySelectorAll('#tc-tabs .tc-tab').forEach(function(t) { t.remove(); });
+    sampleCases.forEach(function(tc, i) {
+      var idx = i;
+      var tab = document.createElement('div');
+      tab.className = 'tc-tab ' + (i === 0 ? 'active' : '');
+      tab.dataset.idx = idx;
+      tab.innerHTML = 'Sample ' + (i + 1);
+      var addBtn = document.getElementById('tc-add');
+      addBtn.parentNode.insertBefore(tab, addBtn);
+      testCases.push({ idx: idx, args: tc.args || '', expected: tc.expected || '' });
+    });
+    loadCase(0);
+  }
   initTestCase(0);
 
   function pollQueue(queueId, callback) {
