@@ -1,209 +1,95 @@
 <style>
 .editor-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  padding: 5px 10px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+  padding: 5px 10px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-.editor-toolbar select,
-.editor-toolbar button {
-  font-size: 0.78rem;
-  padding: 4px 10px;
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s, border-color 0.15s;
+.editor-toolbar select, .editor-toolbar button {
+  background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+  padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.78rem; cursor: pointer;
 }
-.editor-toolbar select {
-  margin-right: auto;
-  min-width: 100px;
-}
-.editor-toolbar button:hover {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-}
-.editor-toolbar button:active {
-  transform: scale(0.96);
-}
-.editor-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  position: relative;
-}
-.editor-wrapper .CodeMirror {
-  flex: 1;
-  height: auto;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-}
-.editor-wrapper .CodeMirror-gutters {
-  background: #1a1a28;
-  border-right: 1px solid var(--border);
-}
-.editor-wrapper .CodeMirror-linenumber {
-  color: #555;
-}
-.editor-wrapper .CodeMirror-cursor {
-  border-left: 2px solid var(--accent);
-}
-
-.editor-fullscreen .editor-wrapper {
-  position: fixed;
-  top: 56px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-  background: #1e1e1e;
-}
-.editor-fullscreen .editor-wrapper .CodeMirror {
-  height: 100%;
+.editor-toolbar button:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.editor-toolbar select option { background: var(--bg-primary); color: var(--text-primary); }
+.editor-wrapper { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.editor-wrapper .CodeMirror { flex: 1; height: auto !important; }
+body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; right: 0; bottom: 0; z-index: 999; }
+.editor-actions {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  background: var(--bg-secondary); border-top: 1px solid var(--border); flex-shrink: 0;
 }
 </style>
-
-<div class="editor-toolbar">
-  <select id="lang-select">
-    <option value="python3">Python3</option>
-  </select>
-  <button id="font-dec" title="Decrease font size">A−</button>
-  <button id="font-inc" title="Increase font size">A+</button>
-  <button id="reset-btn" title="Reset code to saved state">Reset</button>
-  <button id="fullscreen-btn" title="Toggle fullscreen">⛶</button>
+<div style="display:flex;flex-direction:column;flex:1;min-height:0;">
+  <div class="editor-toolbar">
+    <select id="lang-select"><option value="python3">Python3</option></select>
+    <button id="font-dec" title="Decrease font size">A−</button>
+    <button id="font-inc" title="Increase font size">A+</button>
+    <button id="reset-btn" title="Reset to saved code">↺ Reset</button>
+    <button id="fullscreen-btn" title="Toggle fullscreen">⛶ Fullscreen</button>
+  </div>
+  <div class="editor-wrapper" id="editor-wrapper"></div>
+  <div class="editor-actions">
+    <button id="run-btn" class="btn-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-play mr-1"></i>Run</button>
+    <button id="submit-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-cloud-upload-alt mr-1"></i>Submit</button>
+    <span id="status-text" style="color:var(--text-secondary);font-size:0.8rem;margin-left:4px;"></span>
+  </div>
 </div>
-
-<div class="editor-wrapper" id="editor-wrapper">
-</div>
-
-<div class="d-flex align-items-center py-2" style="gap: 8px;">
-  <button id="run-btn" class="btn-accent btn-sm" style="padding: 0.5rem 1.5rem;"><i class="fas fa-play mr-1"></i> Run</button>
-  <button id="submit-btn" class="btn-outline-accent btn-sm" style="padding: 0.5rem 1.5rem;" disabled><i class="fas fa-cloud-upload-alt mr-1"></i> Submit</button>
-  <span id="status-text" style="color: var(--text-secondary); font-size: 0.82rem; margin-left: 8px;"></span>
-</div>
-
 <script>
 (function() {
   var C = { contestId: {{ problem.contest_id }}, index: '{{ problem.problem_index }}', problemId: {{ problem.id }} };
   var $ = function(id) { return document.getElementById(id); };
   var editorEl = $('editor-wrapper');
-
-  var initialCode = '{% if saved_code %}{% filter escapejs %}{{ saved_code }}{% endfilter %}{% endif %}';
-  var stored = localStorage.getItem('code_' + C.problemId);
-  if (stored) {
-    initialCode = stored;
-  } else if (!initialCode) {
-    initialCode = '';
-  }
+  var initialCode = '{{ saved_code|e("js") if saved_code else "" }}';
 
   var textarea = document.createElement('textarea');
-  textarea.id = 'code';
-  textarea.style.display = 'none';
+  textarea.id = 'code'; textarea.style.display = 'none';
   textarea.textContent = initialCode;
   editorEl.appendChild(textarea);
 
   window.editor = CodeMirror.fromTextArea(textarea, {
-    lineNumbers: true,
-    autoCloseBrackets: true,
-    matchBrackets: true,
-    tabSize: 4,
-    indentUnit: 4,
-    mode: 'python',
-    theme: 'material-darker',
-    indentWithTabs: false,
-    electricChars: true,
+    lineNumbers: true, autoCloseBrackets: true, matchBrackets: true,
+    tabSize: 4, indentUnit: 4, mode: 'python', theme: 'material-darker',
+    indentWithTabs: false, electricChars: true,
     extraKeys: {
-      'Ctrl-Enter': function() { $('run-btn').click(); },
-      'Cmd-Enter': function() { $('run-btn').click(); },
-      'Ctrl-Shift-Enter': function() { $('submit-btn').click(); },
-      'Cmd-Shift-Enter': function() { $('submit-btn').click(); }
+      'Ctrl-Enter': function() { var b=$('run-btn'); if(b) b.click(); },
+      'Cmd-Enter': function() { var b=$('run-btn'); if(b) b.click(); },
+      'Ctrl-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); },
+      'Cmd-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); }
     }
   });
 
-  var fontSize = parseInt(localStorage.getItem('editorFontSize') || '14', 10);
+  var fontSize = 14;
   function applyFontSize() {
-    editorEl.querySelector('.CodeMirror').style.fontSize = fontSize + 'px';
-    localStorage.setItem('editorFontSize', fontSize);
-    editor.refresh();
+    var cm = editorEl.querySelector('.CodeMirror');
+    if (cm) { cm.style.fontSize = fontSize + 'px'; window.editor.refresh(); }
   }
-  applyFontSize();
-
-  $('font-inc').addEventListener('click', function() {
-    fontSize = Math.min(32, fontSize + 2);
-    applyFontSize();
-  });
-  $('font-dec').addEventListener('click', function() {
-    fontSize = Math.max(8, fontSize - 2);
-    applyFontSize();
-  });
+  $('font-inc').addEventListener('click', function() { fontSize = Math.min(32, fontSize + 2); applyFontSize(); });
+  $('font-dec').addEventListener('click', function() { fontSize = Math.max(8, fontSize - 2); applyFontSize(); });
 
   $('reset-btn').addEventListener('click', function() {
-    if (confirm('Reset code to saved state?')) {
-      var saved = localStorage.getItem('code_' + C.problemId);
-      window.editor.setValue(saved || '');
-      window.editor.focus();
+    if (confirm('Reset code to last saved state?')) {
+      fetch('/api/auto-save/' + C.problemId).then(function(r) { return r.json(); }).then(function(d) {
+        window.editor.setValue(d.code || ''); window.editor.focus();
+      }).catch(function() {});
     }
   });
 
-  var fullscreenActive = false;
+  var fsActive = false;
   $('fullscreen-btn').addEventListener('click', function() {
-    fullscreenActive = !fullscreenActive;
-    if (fullscreenActive) {
-      document.body.classList.add('editor-fullscreen');
-      if (editorEl.requestFullscreen) {
-        editorEl.requestFullscreen();
-      } else if (editorEl.webkitRequestFullscreen) {
-        editorEl.webkitRequestFullscreen();
-      } else if (editorEl.msRequestFullscreen) {
-        editorEl.msRequestFullscreen();
-      }
-    } else {
-      document.body.classList.remove('editor-fullscreen');
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      }
-    }
-    setTimeout(function() { window.editor.refresh(); }, 150);
+    fsActive = !fsActive;
+    document.body.classList.toggle('editor-fullscreen', fsActive);
+    if (fsActive && editorEl.requestFullscreen) editorEl.requestFullscreen();
+    else if (!fsActive && document.exitFullscreen) document.exitFullscreen();
+    setTimeout(function() { if (window.editor) window.editor.refresh(); }, 150);
   });
-
   document.addEventListener('fullscreenchange', function() {
-    if (!document.fullscreenElement) {
-      fullscreenActive = false;
-      document.body.classList.remove('editor-fullscreen');
-      window.editor.refresh();
-    }
-  });
-  document.addEventListener('webkitfullscreenchange', function() {
-    if (!document.webkitFullscreenElement) {
-      fullscreenActive = false;
-      document.body.classList.remove('editor-fullscreen');
-      window.editor.refresh();
-    }
+    if (!document.fullscreenElement) { fsActive = false; document.body.classList.remove('editor-fullscreen'); if (window.editor) window.editor.refresh(); }
   });
 
-  var saveTimeout;
+  var saveTimer;
   window.editor.on('change', function() {
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(function() {
-      localStorage.setItem('code_' + C.problemId, window.editor.getValue());
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function() {
+      navigator.sendBeacon('/problem/' + C.contestId + '/' + C.index + '/save', new URLSearchParams({code: window.editor.getValue()}));
     }, 500);
   });
-
-  setInterval(function() {
-    var code = window.editor.getValue();
-    navigator.sendBeacon('/problem/' + C.contestId + '/' + C.index + '/save', new URLSearchParams({code: code}));
-  }, 30000);
 })();
 </script>
