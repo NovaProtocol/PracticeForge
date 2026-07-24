@@ -585,19 +585,22 @@
   function showResult(data) {
     document.getElementById('result-spinner').style.display = 'none';
 
+    var verdict = data.verdict || data.status || 'Pending';
     var badge = document.getElementById('result-badge');
-    badge.className = 'result-badge ' + statusToClass(data.status);
-    badge.textContent = statusLabel(data.status);
+    badge.className = 'result-badge ' + statusToClass(verdict);
+    badge.textContent = statusLabel(verdict);
 
-    if (data.runtime != null) {
+    var rt = data.timing_ms || data.runtime;
+    if (rt != null) {
       document.getElementById('result-runtime').style.display = 'inline-flex';
-      document.getElementById('result-runtime-val').textContent = data.runtime;
+      document.getElementById('result-runtime-val').textContent = rt + ' ms';
     } else {
       document.getElementById('result-runtime').style.display = 'none';
     }
-    if (data.memory != null) {
+    var mem = data.memory_kb || data.memory;
+    if (mem != null) {
       document.getElementById('result-memory').style.display = 'inline-flex';
-      document.getElementById('result-memory-val').textContent = data.memory;
+      document.getElementById('result-memory-val').textContent = mem + ' KB';
     } else {
       document.getElementById('result-memory').style.display = 'none';
     }
@@ -610,7 +613,7 @@
       comparison.style.display = 'block';
       data.results.forEach(function(r, i) {
         var tr = document.createElement('tr');
-        var pass = r.status === 'passed' || r.got === r.expected;
+        var pass = r.passed === true || r.status === 'passed' || r.got === r.expected;
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td>' + escHtml(r.input || '') + '</td>' +
@@ -622,19 +625,14 @@
       comparison.style.display = 'none';
     }
 
-    var stdoutEl = document.getElementById('result-stdout');
-    var stdoutContent = document.getElementById('result-stdout-content');
-    if (data.stdout) {
-      stdoutContent.textContent = data.stdout;
-      stdoutEl.style.display = 'block';
-    } else {
-      stdoutEl.style.display = 'none';
+    var err = data.error || '';
+    if (data.results) {
+      data.results.forEach(function(r) { if (r.error) err += r.error + '\n'; });
     }
-
     var errorEl = document.getElementById('result-error');
     var errorContent = document.getElementById('result-error-content');
-    if (data.error || data.traceback) {
-      errorContent.textContent = data.error || data.traceback;
+    if (err) {
+      errorContent.textContent = err;
       errorEl.style.display = 'block';
     } else {
       errorEl.style.display = 'none';

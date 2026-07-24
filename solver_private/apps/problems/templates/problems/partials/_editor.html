@@ -91,5 +91,12 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
       navigator.sendBeacon('/problem/' + C.contestId + '/' + C.index + '/save', new URLSearchParams({code: window.editor.getValue()}));
     }, 500);
   });
+
+  $('run-btn').addEventListener('click', function() {
+    if (window.__consoleRun) window.__consoleRun(window.editor.getValue(), C.contestId, C.index);
+  });
+  $('submit-btn').addEventListener('click', function() {
+    if (window.__consoleSubmit) window.__consoleSubmit(window.editor.getValue(), C.contestId, C.index);
+  });
 })();
 </script>
