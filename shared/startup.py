@@ -203,11 +203,28 @@ SEED_TEST_CASES = [
 ]
 
 
+MIGRATIONS = [
+    "ALTER TABLE execution_queue ADD COLUMN run_id VARCHAR(36) AFTER submission_id",
+    "ALTER TABLE execution_queue ADD COLUMN test_case_id INTEGER AFTER run_id",
+    "ALTER TABLE execution_queue ADD COLUMN code TEXT AFTER test_case_id",
+    "ALTER TABLE execution_queue ADD COLUMN timing_ms INTEGER AFTER error",
+    "ALTER TABLE execution_queue ADD COLUMN memory_kb INTEGER AFTER timing_ms",
+    "ALTER TABLE execution_queue MODIFY submission_id INTEGER",
+    "ALTER TABLE solutions ADD COLUMN timing_ms INTEGER AFTER total_count",
+    "ALTER TABLE solutions ADD COLUMN memory_kb INTEGER AFTER timing_ms",
+]
+
+
 def ensure_schema():
     for statement in SCHEMA_SQL.split(";"):
         stmt = statement.strip()
         if stmt:
             execute(stmt)
+    for stmt in MIGRATIONS:
+        try:
+            execute(stmt)
+        except Exception:
+            pass
 
 
 def ensure_seed_data():
