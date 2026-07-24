@@ -87,20 +87,20 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
         "results = []",
     ]
     for tc in test_cases:
-        if tc.get("args") is not None:
-            args_str = tc["args"]
-            expected_str = tc["expected"]
-        else:
-            args_str = json.dumps([tc.get("input", "")])
-            expected_str = json.dumps(tc.get("expected_output", ""))
-        parts.append("args = json.loads(" + json.dumps(args_str) + ")")
-        parts.append("expected = json.loads(" + json.dumps(expected_str) + ")")
+        args_str = tc.get("args") or tc.get("input") or ""
+        expected_str = tc.get("expected") or tc.get("expected_output") or ""
+        if not args_str:
+            args_str = "[]"
+        if not expected_str:
+            expected_str = '""'
         parts.append("try:")
+        parts.append("    args = json.loads(" + json.dumps(args_str) + ")")
+        parts.append("    expected = json.loads(" + json.dumps(expected_str) + ")")
         parts.append("    result = method(*args)")
         parts.append("    got = json.dumps(result)")
         parts.append("    passed = got == " + json.dumps(expected_str))
         parts.append("except Exception as ex:")
-        parts.append("    got = ''")
+        parts.append("    got = json.dumps(str(ex))")
         parts.append("    passed = False")
         parts.append("results.append({'passed': passed, 'got': got, 'error': repr(ex) if not passed else ''})")
     parts.append("print(json.dumps(results))")
@@ -172,8 +172,10 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             "stderr": r.stderr.strip(),
             "timing_ms": elapsed,
         }
-    except (OSError, subprocess.TimeoutExpired) as e:
+    except OSError:
         return run_code(wrapper_code, timeout)
+    except subprocess.TimeoutExpired:
+        return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000}
     except Exception as e:
         return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0}
     finally:
