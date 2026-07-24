@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS execution_queue (
     problem_id INTEGER NOT NULL,
     code TEXT NOT NULL,
     method_name VARCHAR(100),
+    test_cases_json JSON,
     exec_type ENUM('run','submit') DEFAULT 'run',
     status ENUM('queued','running','completed','failed') DEFAULT 'queued',
     result TEXT,

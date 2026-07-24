@@ -12,6 +12,13 @@ from shared.models import (
 )
 
 
+@blueprint.route("/sample-cases/<int:problem_id>")
+def sample_cases(problem_id: int):
+    from shared.models import get_sample_cases_json
+    cases = get_sample_cases_json(problem_id)
+    return jsonify(cases)
+
+
 @blueprint.route("/submissions/<int:problem_id>")
 def problem_submissions(problem_id: int):
     return jsonify(get_problem_submissions(problem_id))
