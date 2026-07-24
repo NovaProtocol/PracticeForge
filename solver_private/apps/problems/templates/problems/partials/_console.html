@@ -749,10 +749,9 @@
     }
   });
 
-  // Auto-load sample test cases from server
-  var problemId = {{ problem.id }};
-  fetch('/api/sample-cases/' + problemId).then(function(r) { return r.json(); }).then(function(cases) {
-    if (cases && cases.length > 0) {
+  // Load sample test cases from server-embedded data
+  var sampleCases = (window.__sampleCases || []).map(function(tc) { return { args: tc.args || tc.input, expected: tc.expected || tc.expected_output || '' }; });
+  if (sampleCases.length > 0) {
       // Remove the default empty case
       var defaultTab = document.querySelector('.tc-tab[data-idx="0"]');
       if (defaultTab) removeCase(0, defaultTab);
@@ -770,7 +769,6 @@
       });
       switchTab(0);
     }
-  }).catch(function() {});
   initTestCase(0);
 
   function pollQueue(queueId, callback) {
