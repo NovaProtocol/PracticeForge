@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS execution_queue (
     exec_type ENUM('run','submit') DEFAULT 'run',
     status ENUM('queued','running','completed','failed') DEFAULT 'queued',
     result TEXT,
+    stdout TEXT,
     error TEXT,
     timing_ms INTEGER,
     memory_kb INTEGER,
@@ -223,7 +224,8 @@ def ensure_schema():
         stmt = statement.strip()
         if stmt:
             execute(stmt)
-    for stmt in ("ALTER TABLE test_cases MODIFY input TEXT", "ALTER TABLE test_cases MODIFY expected_output TEXT"):
+    for stmt in ("ALTER TABLE test_cases MODIFY input TEXT", "ALTER TABLE test_cases MODIFY expected_output TEXT",
+                 "ALTER TABLE execution_queue ADD COLUMN stdout TEXT AFTER result"):
         try:
             execute(stmt)
         except Exception:

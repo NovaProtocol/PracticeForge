@@ -591,19 +591,11 @@
     badge.textContent = statusLabel(verdict);
 
     var rt = data.timing_ms || data.runtime;
-    if (rt != null) {
-      document.getElementById('result-runtime').style.display = 'inline-flex';
-      document.getElementById('result-runtime-val').textContent = rt + ' ms';
-    } else {
-      document.getElementById('result-runtime').style.display = 'none';
-    }
+    document.getElementById('result-runtime').style.display = rt != null ? 'inline-flex' : 'none';
+    if (rt != null) document.getElementById('result-runtime-val').textContent = rt + ' ms';
     var mem = data.memory_kb || data.memory;
-    if (mem != null) {
-      document.getElementById('result-memory').style.display = 'inline-flex';
-      document.getElementById('result-memory-val').textContent = mem + ' KB';
-    } else {
-      document.getElementById('result-memory').style.display = 'none';
-    }
+    document.getElementById('result-memory').style.display = mem != null ? 'inline-flex' : 'none';
+    if (mem != null) document.getElementById('result-memory-val').textContent = mem + ' KB';
 
     var tbody = document.getElementById('result-table-body');
     tbody.innerHTML = '';
@@ -612,17 +604,31 @@
     if (data.results && data.results.length > 0) {
       comparison.style.display = 'block';
       data.results.forEach(function(r, i) {
+        var pass = r.passed === true;
         var tr = document.createElement('tr');
-        var pass = r.passed === true || r.status === 'passed' || r.got === r.expected;
         tr.innerHTML =
-          '<td>' + (i + 1) + '</td>' +
+          '<td class="' + (pass ? 'pass' : 'fail') + '" style="font-weight:600;">' + (pass ? 'PASS' : 'FAIL') + '</td>' +
           '<td>' + escHtml(r.input || '') + '</td>' +
-          '<td class="' + (pass ? 'pass' : 'fail') + '">' + escHtml(r.expected || '') + '</td>' +
-          '<td class="' + (pass ? 'pass' : 'fail') + '">' + escHtml(r.got || r.error || '') + '</td>';
+          '<td>' + escHtml(r.expected || '') + '</td>' +
+          '<td class="' + (pass ? 'pass' : 'fail') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          '<td><button class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\'">Details</button>' +
+          '<div style="display:none;font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">' +
+          (r.error ? '<div>Error: ' + escHtml(r.error) + '</div>' : '') +
+          (data.stdout ? '<div>stdout: ' + escHtml(data.stdout) + '</div>' : '') +
+          '</div></td>';
         tbody.appendChild(tr);
       });
     } else {
       comparison.style.display = 'none';
+    }
+
+    var stdoutEl = document.getElementById('result-stdout');
+    var stdoutContent = document.getElementById('result-stdout-content');
+    if (data.stdout) {
+      stdoutContent.textContent = data.stdout;
+      stdoutEl.style.display = 'block';
+    } else {
+      stdoutEl.style.display = 'none';
     }
 
     var err = data.error || '';
@@ -630,9 +636,8 @@
       data.results.forEach(function(r) { if (r.error) err += r.error + '\n'; });
     }
     var errorEl = document.getElementById('result-error');
-    var errorContent = document.getElementById('result-error-content');
     if (err) {
-      errorContent.textContent = err;
+      document.getElementById('result-error-content').textContent = err;
       errorEl.style.display = 'block';
     } else {
       errorEl.style.display = 'none';
@@ -797,13 +802,11 @@
       var data = await r.json();
       window.consoleApi.appendLog('> Queued (#' + data.queue_id + ')', 'info');
       pollQueue(data.queue_id, function(qd) {
-        window.consoleApi.showResult({
-          verdict: qd.error ? 'Runtime Error' : (qd.result && qd.result.indexOf('FAIL') === -1 ? 'Accepted' : 'Wrong Answer'),
-          timing_ms: qd.timing_ms,
-          memory_kb: qd.memory_kb,
-          results: qd.result ? qd.result.split('\n').filter(function(l) { return l; }).map(function(l) { return { status: l.indexOf('PASS') >= 0 ? 'passed' : 'failed', got: l, error: qd.error }; }) : [],
-          error: qd.error,
-        });
+        var parsed = { verdict: 'Runtime Error', timing_ms: qd.timing_ms, memory_kb: qd.memory_kb, results: [], stdout: '', error: qd.error };
+        try { var jd = JSON.parse(qd.result); parsed.results = jd.results || []; parsed.stdout = jd.stdout || ''; } catch(e) {}
+        if (qd.error) { parsed.verdict = 'Runtime Error'; }
+        else { var fail = parsed.results.some(function(r) { return !r.passed; }); parsed.verdict = fail ? 'Wrong Answer' : 'Accepted'; }
+        window.consoleApi.showResult(parsed);
       });
     } catch (e) {
       window.consoleApi.showResult({ verdict: 'Runtime Error', error: e.message });
@@ -821,15 +824,11 @@
       var data = await r.json();
       window.consoleApi.appendLog('> Queued (#' + data.queue_id + ')', 'info');
       pollQueue(data.queue_id, function(qd) {
-        var verdict = qd.error ? 'Runtime Error' : (qd.result && qd.result.indexOf('FAIL') === -1 ? 'Accepted' : 'Wrong Answer');
-        window.consoleApi.showResult({
-          verdict: verdict,
-          timing_ms: qd.timing_ms,
-          memory_kb: qd.memory_kb,
-          solution_id: qd.solution_id,
-          results: qd.result ? qd.result.split('\n').filter(function(l) { return l; }).map(function(l) { return { status: l.indexOf('PASS') >= 0 ? 'passed' : 'failed', got: l, error: qd.error }; }) : [],
-          error: qd.error,
-        });
+        var parsed = { verdict: 'Runtime Error', timing_ms: qd.timing_ms, memory_kb: qd.memory_kb, results: [], stdout: '', error: qd.error, solution_id: qd.solution_id };
+        try { var jd = JSON.parse(qd.result); parsed.results = jd.results || []; parsed.stdout = jd.stdout || ''; } catch(e) {}
+        if (qd.error) { parsed.verdict = 'Runtime Error'; }
+        else { var fail = parsed.results.some(function(r) { return !r.passed; }); parsed.verdict = fail ? 'Wrong Answer' : 'Accepted'; }
+        window.consoleApi.showResult(parsed);
       });
     } catch (e) {
       window.consoleApi.showResult({ verdict: 'Runtime Error', error: e.message });

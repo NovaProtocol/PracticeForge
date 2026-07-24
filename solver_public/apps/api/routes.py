@@ -39,13 +39,14 @@ def re_run(solution_id: int):
 
 @blueprint.route("/queue-status/<int:queue_id>")
 def queue_status(queue_id: int):
-    q = query_one("SELECT id, status, result, error, timing_ms, memory_kb FROM execution_queue WHERE id = %s", (queue_id,))
+    q = query_one("SELECT id, status, result, stdout, error, timing_ms, memory_kb FROM execution_queue WHERE id = %s", (queue_id,))
     if not q:
         return jsonify({"error": "not found"}), 404
     return jsonify({
         "queue_id": q["id"],
         "status": q["status"],
         "result": q["result"] or "",
+        "stdout": q["stdout"] or "",
         "error": q["error"] or "",
         "timing_ms": q["timing_ms"],
         "memory_kb": q["memory_kb"],
