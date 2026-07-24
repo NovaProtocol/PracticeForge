@@ -93,16 +93,18 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
             args_str = "[]"
         if not expected_str:
             expected_str = '""'
+        parts.append("err = ''")
         parts.append("try:")
         parts.append("    args = json.loads(" + json.dumps(args_str) + ")")
         parts.append("    expected = json.loads(" + json.dumps(expected_str) + ")")
         parts.append("    result = method(*args)")
         parts.append("    got = json.dumps(result)")
         parts.append("    passed = got == " + json.dumps(expected_str))
-        parts.append("except Exception as ex:")
-        parts.append("    got = json.dumps(str(ex))")
+        parts.append("except Exception as _ex:")
+        parts.append("    got = json.dumps(str(_ex))")
+        parts.append("    err = repr(_ex)")
         parts.append("    passed = False")
-        parts.append("results.append({'passed': passed, 'got': got, 'error': repr(ex) if not passed else ''})")
+        parts.append("results.append({'passed': passed, 'got': got, 'error': err})")
     parts.append("print(json.dumps(results))")
     return "\n".join(parts)
 
