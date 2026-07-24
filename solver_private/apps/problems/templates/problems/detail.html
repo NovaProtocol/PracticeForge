@@ -18,7 +18,7 @@ html, body { overflow: hidden; }
 {% block content %}
 <div class="container-fluid h-100" style="padding-top: 0;">
   <div class="row h-100">
-    <div class="col-lg-5 h-100 p-0" id="description-panel" style="overflow: hidden; border-right: 1px solid var(--border);">
+    <div class="col-lg-5 h-100 p-0" id="description-panel" style="border-right: 1px solid var(--border);">
       <script>window.__sampleCases = {{ problem.sample_cases|tojson }};</script>
       {% include "problems/partials/_description.html" %}
     </div>
