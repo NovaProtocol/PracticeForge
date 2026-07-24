@@ -80,6 +80,26 @@ services:
     networks:
       - default
 
+  executor:
+    build:
+      context: ./executor
+      dockerfile: Dockerfile
+    container_name: solver_executor
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: ${MYSQL_USER:-root}
+      MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - default
+
 volumes:
   mysql_data:
 

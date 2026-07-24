@@ -752,21 +752,43 @@
   // Initialize first test case
   initTestCase(0);
 
-  // Expose polling utilities for run/submit buttons
+  function pollQueue(queueId, callback) {
+    var poll = setInterval(async function() {
+      try {
+        var r = await fetch('/api/queue-status/' + queueId);
+        var d = await r.json();
+        if (d.status === 'completed' || d.status === 'failed') {
+          clearInterval(poll);
+          if (callback) callback(d);
+        } else if (d.status === 'running') {
+          window.consoleApi.appendLog('> Running...', 'info');
+        }
+      } catch(e) { clearInterval(poll); }
+    }, 1000);
+  }
+
+  // Expose run/submit with queue polling
   window.__consoleRun = async function(code, contestId, index) {
     window.consoleApi.showSpinner('Running...');
-    var testCasesData = window.consoleApi.getTestCases();
     try {
-      var body = new URLSearchParams({ code: code, testcases: JSON.stringify(testCasesData) });
       var r = await fetch('/problem/' + contestId + '/' + index + '/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body
+        body: new URLSearchParams({ code: code })
       });
       var data = await r.json();
-      window.consoleApi.showResult(data);
+      window.consoleApi.appendLog('> Queued (#' + data.queue_id + ')', 'info');
+      pollQueue(data.queue_id, function(qd) {
+        window.consoleApi.showResult({
+          verdict: qd.error ? 'Runtime Error' : (qd.result && qd.result.indexOf('FAIL') === -1 ? 'Accepted' : 'Wrong Answer'),
+          timing_ms: qd.timing_ms,
+          memory_kb: qd.memory_kb,
+          results: qd.result ? qd.result.split('\n').filter(function(l) { return l; }).map(function(l) { return { status: l.indexOf('PASS') >= 0 ? 'passed' : 'failed', got: l, error: qd.error }; }) : [],
+          error: qd.error,
+        });
+      });
     } catch (e) {
-      window.consoleApi.showResult({ status: 'Runtime Error', error: e.message });
+      window.consoleApi.showResult({ verdict: 'Runtime Error', error: e.message });
     }
   };
 
@@ -779,9 +801,20 @@
         body: new URLSearchParams({ code: code })
       });
       var data = await r.json();
-      window.consoleApi.showSubmissionResult(data);
+      window.consoleApi.appendLog('> Queued (#' + data.queue_id + ')', 'info');
+      pollQueue(data.queue_id, function(qd) {
+        var verdict = qd.error ? 'Runtime Error' : (qd.result && qd.result.indexOf('FAIL') === -1 ? 'Accepted' : 'Wrong Answer');
+        window.consoleApi.showResult({
+          verdict: verdict,
+          timing_ms: qd.timing_ms,
+          memory_kb: qd.memory_kb,
+          solution_id: qd.solution_id,
+          results: qd.result ? qd.result.split('\n').filter(function(l) { return l; }).map(function(l) { return { status: l.indexOf('PASS') >= 0 ? 'passed' : 'failed', got: l, error: qd.error }; }) : [],
+          error: qd.error,
+        });
+      });
     } catch (e) {
-      window.consoleApi.showResult({ status: 'Runtime Error', error: e.message });
+      window.consoleApi.showResult({ verdict: 'Runtime Error', error: e.message });
     }
   };
 })();
