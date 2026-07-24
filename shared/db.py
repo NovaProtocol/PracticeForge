@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import os
+import threading
 
 import pymysql
 from pymysql.cursors import DictCursor
 
-_POOL = None
+_local = threading.local()
 
 
 def get_connection():
-    global _POOL
-    if _POOL is None:
-        _POOL = pymysql.connect(
+    if not hasattr(_local, "conn") or _local.conn is None:
+        _local.conn = pymysql.connect(
             host=os.environ["MYSQL_HOST"],
             port=int(os.environ.get("MYSQL_PORT", 3306)),
             user=os.environ.get("MYSQL_USER", "root"),
@@ -20,7 +20,7 @@ def get_connection():
             cursorclass=DictCursor,
             autocommit=True,
         )
-    return _POOL
+    return _local.conn
 
 
 def query(sql: str, params: tuple = ()) -> list[dict]:
