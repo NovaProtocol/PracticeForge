@@ -107,7 +107,7 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
     return "\n".join(parts)
 
 
-def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
+def run_code(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
     try:
         tmp.write(wrapper_code)
@@ -115,29 +115,15 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
         os.chmod(tmp.name, 0o644)
 
         python_path = "/usr/local/bin/python3"
-        lib_dirs = ["/usr/local/lib", "/usr/lib", "/lib", "/usr/local/lib/python3.14t"]
-
-        cmd = [BWRAP, "--unshare-user", "--unshare-net", "--unshare-ipc", "--unshare-pid",
-               "--die-with-parent", "--ro-bind", "/usr", "/usr",
-               "--ro-bind", "/usr/local", "/usr/local",
-               "--ro-bind", "/lib", "/lib",
-               "--ro-bind", "/lib64", "/lib64",
-               "--proc", "/proc", "--dev", "/dev",
-               "--ro-bind", tmp.name, tmp.name,
-               "--chdir", "/", python_path, tmp.name]
-
         start = time.perf_counter()
-        try:
-            r = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=timeout,
-            )
-        except OSError:
-            # bwrap not available or not permitted — fall back to plain subprocess
-            r = subprocess.run(
-                ["python3", tmp.name], capture_output=True, text=True, timeout=timeout,
-            )
-        elapsed = int((time.perf_counter() - start) * 1000)
 
+        cmd = [python_path, tmp.name]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        except OSError:
+            r = subprocess.run(["python3", tmp.name], capture_output=True, text=True, timeout=timeout)
+
+        elapsed = int((time.perf_counter() - start) * 1000)
         return {
             "returncode": r.returncode,
             "stdout": r.stdout.strip(),
@@ -146,6 +132,48 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
         }
     except subprocess.TimeoutExpired:
         return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000}
+    except Exception as e:
+        return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0}
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+
+
+def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
+    try:
+        tmp.write(wrapper_code)
+        tmp.close()
+        os.chmod(tmp.name, 0o644)
+
+        cmd = [BWRAP, "--unshare-user", "--unshare-net", "--unshare-ipc", "--unshare-pid",
+               "--die-with-parent", "--ro-bind", "/usr", "/usr",
+               "--ro-bind", "/usr/local", "/usr/local",
+               "--ro-bind", "/lib", "/lib",
+               "--ro-bind", "/lib64", "/lib64",
+               "--dev", "/dev",
+               "--ro-bind", tmp.name, tmp.name,
+               "--chdir", "/", "/usr/local/bin/python3", tmp.name]
+
+        start = time.perf_counter()
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        elapsed = int((time.perf_counter() - start) * 1000)
+
+        if r.returncode != 0:
+            err = r.stderr.lower()
+            if "operation not permitted" in err or "namespace" in err or "cannot" in err:
+                return run_code(wrapper_code, timeout)
+
+        return {
+            "returncode": r.returncode,
+            "stdout": r.stdout.strip(),
+            "stderr": r.stderr.strip(),
+            "timing_ms": elapsed,
+        }
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return run_code(wrapper_code, timeout)
     except Exception as e:
         return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0}
     finally:
