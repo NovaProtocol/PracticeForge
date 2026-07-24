@@ -42,14 +42,14 @@ def mark_running(conn, queue_id):
         )
 
 
-def mark_completed(conn, queue_id, result, error, timing_ms, memory_kb):
+def mark_completed(conn, queue_id, result, stdout, error, timing_ms, memory_kb):
     with conn.cursor() as cur:
         cur.execute(
             """UPDATE execution_queue
-               SET status = 'completed', result = %s, error = %s,
+               SET status = 'completed', result = %s, stdout = %s, error = %s,
                    timing_ms = %s, memory_kb = %s, completed_at = NOW()
                WHERE id = %s""",
-            (result, error, timing_ms, memory_kb, queue_id),
+            (result, stdout, error, timing_ms, memory_kb, queue_id),
         )
 
 
@@ -78,35 +78,72 @@ def get_problem_method(conn, problem_id):
 
 
 def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> str:
-    parts = [
-        "import json",
+    lines = [
+        "import json, sys, io",
         "from typing import List, Optional, Dict, Tuple, Set",
         user_code,
         "solution = Solution()",
         "method = getattr(solution, " + json.dumps(method_name) + ")",
+        "_capture = io.StringIO()",
+        "_old_stdout = sys.stdout",
+        "sys.stdout = _capture",
         "results = []",
     ]
     for tc in test_cases:
         args_str = tc.get("args") or tc.get("input") or ""
         expected_str = tc.get("expected") or tc.get("expected_output") or ""
+        inp_display = tc.get("args") or tc.get("input") or ""
+        exp_display = tc.get("expected") or tc.get("expected_output") or ""
         if not args_str:
             args_str = "[]"
         if not expected_str:
             expected_str = '""'
-        parts.append("err = ''")
-        parts.append("try:")
-        parts.append("    args = json.loads(" + json.dumps(args_str) + ")")
-        parts.append("    expected = json.loads(" + json.dumps(expected_str) + ")")
-        parts.append("    result = method(*args)")
-        parts.append("    got = json.dumps(result)")
-        parts.append("    passed = got == " + json.dumps(expected_str))
-        parts.append("except Exception as _ex:")
-        parts.append("    got = json.dumps(str(_ex))")
-        parts.append("    err = repr(_ex)")
-        parts.append("    passed = False")
-        parts.append("results.append({'passed': passed, 'got': got, 'error': err})")
-    parts.append("print(json.dumps(results))")
-    return "\n".join(parts)
+        lines.append("_r_input = " + json.dumps(inp_display))
+        lines.append("_r_expected = " + json.dumps(exp_display))
+        lines.append("err = ''")
+        lines.append("try:")
+        lines.append("    args = json.loads(" + json.dumps(args_str) + ")")
+        lines.append("    expected = json.loads(" + json.dumps(expected_str) + ")")
+        lines.append("    result = method(*args)")
+        lines.append("    got = json.dumps(result)")
+        lines.append("    passed = got == " + json.dumps(expected_str))
+        lines.append("except Exception as _ex:")
+        lines.append("    got = json.dumps(str(_ex))")
+        lines.append("    err = repr(_ex)")
+        lines.append("    passed = False")
+        lines.append("results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed})")
+    lines.append("sys.stdout = _old_stdout")
+    lines.append("print('__SOLVER_STDOUT__')")
+    lines.append("print(_capture.getvalue(), end='')")
+    lines.append("print('__SOLVER_RESULT__')")
+    lines.append("print(json.dumps(results))")
+    return "\n".join(lines)
+
+
+def _parse_output(stdout: str) -> dict:
+    """Separate user stdout from structured JSON result using sentinel markers."""
+    result = {
+        "user_stdout": "",
+        "results_json": "[]",
+        "raw_stdout": stdout,
+    }
+    marker_result = "__SOLVER_RESULT__"
+    marker_stdout = "__SOLVER_STDOUT__"
+
+    if marker_result in stdout:
+        parts = stdout.split(marker_result + "\n", 1)
+        before_result = parts[0]
+        if len(parts) > 1:
+            result["results_json"] = parts[1].strip()
+        if marker_stdout in before_result:
+            stdout_parts = before_result.split(marker_stdout + "\n", 1)
+            if len(stdout_parts) > 1:
+                result["user_stdout"] = stdout_parts[1].strip()
+        else:
+            result["user_stdout"] = before_result.strip()
+    else:
+        result["user_stdout"] = stdout.strip()
+    return result
 
 
 def run_code(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
@@ -126,16 +163,19 @@ def run_code(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             r = subprocess.run(["python3", tmp.name], capture_output=True, text=True, timeout=timeout)
 
         elapsed = int((time.perf_counter() - start) * 1000)
+        parsed = _parse_output(r.stdout)
         return {
             "returncode": r.returncode,
             "stdout": r.stdout.strip(),
             "stderr": r.stderr.strip(),
+            "user_stdout": parsed["user_stdout"],
+            "results_json": parsed["results_json"],
             "timing_ms": elapsed,
         }
     except subprocess.TimeoutExpired:
-        return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000}
+        return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000, "results_json": "[]"}
     except Exception as e:
-        return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0}
+        return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0, "results_json": "[]"}
     finally:
         try:
             os.unlink(tmp.name)
@@ -168,10 +208,13 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             if "operation not permitted" in err or "namespace" in err or "cannot" in err:
                 return run_code(wrapper_code, timeout)
 
+        parsed = _parse_output(r.stdout)
         return {
             "returncode": r.returncode,
             "stdout": r.stdout.strip(),
             "stderr": r.stderr.strip(),
+            "user_stdout": parsed["user_stdout"],
+            "results_json": parsed["results_json"],
             "timing_ms": elapsed,
         }
     except OSError:
@@ -228,7 +271,7 @@ def process_entry(conn, entry):
         return
 
     try:
-        tc_results = json.loads(result["stdout"])
+        tc_results = json.loads(result["results_json"])
     except json.JSONDecodeError as e:
         mark_failed(conn, qid, f"Failed to parse output: {e}\nRaw: {result['stdout']}")
         return
@@ -236,22 +279,16 @@ def process_entry(conn, entry):
     passed = sum(1 for t in tc_results if t.get("passed"))
     total = len(tc_results)
     timing_ms = result["timing_ms"]
-    memory_kb = 0  # bwrap doesn't easily report memory
+    memory_kb = 0
+    user_stdout = result.get("user_stdout", "")
 
-    result_lines = []
-    for i, t in enumerate(tc_results):
-        status = "PASS" if t.get("passed") else "FAIL"
-        got = t.get("got", "")
-        err = t.get("error", "")
-        result_lines.append(f"TC #{i+1}: {status}")
-        if not t.get("passed"):
-            result_lines.append(f"  Got: {got}")
-            if err:
-                result_lines.append(f"  Error: {err}")
-    result_text = "\n".join(result_lines)
+    result_data = json.dumps({
+        "results": tc_results,
+        "stdout": user_stdout,
+    })
 
     verdict = "Accepted" if passed == total else "Wrong Answer"
-    mark_completed(conn, qid, result_text, "", timing_ms, memory_kb)
+    mark_completed(conn, qid, result_data, user_stdout, "", timing_ms, memory_kb)
 
     if exec_type == "submit":
         sid = create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, memory_kb)
