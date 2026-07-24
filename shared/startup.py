@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS problems (
 CREATE TABLE IF NOT EXISTS test_cases (
     id INTEGER AUTO_INCREMENT PRIMARY KEY,
     problem_id INTEGER NOT NULL,
-    input TEXT NOT NULL,
-    expected_output TEXT NOT NULL,
+    input TEXT,
+    expected_output TEXT,
     is_sample BOOLEAN DEFAULT FALSE,
     args JSON,
     expected JSON,
@@ -223,6 +223,11 @@ def ensure_schema():
         stmt = statement.strip()
         if stmt:
             execute(stmt)
+    for stmt in ("ALTER TABLE test_cases MODIFY input TEXT", "ALTER TABLE test_cases MODIFY expected_output TEXT"):
+        try:
+            execute(stmt)
+        except Exception:
+            pass
 
 
 def ensure_seed_data():
