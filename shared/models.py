@@ -103,6 +103,28 @@ def get_stats():
     }
 
 
+def get_submission_status(solution_id: int):
+    solution = query_one(
+        "SELECT id, problem_id, verdict, passed_count, total_count FROM solutions WHERE id = %s",
+        (solution_id,),
+    )
+    if not solution:
+        return None
+    queue = query_one(
+        "SELECT status, result, error FROM execution_queue WHERE submission_id = %s ORDER BY id DESC LIMIT 1",
+        (solution_id,),
+    )
+    return {
+        "solution_id": solution["id"],
+        "status": queue["status"] if queue else "unknown",
+        "verdict": solution["verdict"],
+        "passed": solution["passed_count"],
+        "total": solution["total_count"],
+        "result": queue["result"] if queue else None,
+        "error": queue["error"] if queue else None,
+    }
+
+
 def get_solved():
     return query(
         """SELECT DISTINCT p.contest_id, p.problem_index, p.title, p.slug, p.difficulty_rating

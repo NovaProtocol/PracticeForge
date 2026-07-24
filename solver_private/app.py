@@ -19,7 +19,9 @@ def create_app() -> Flask:
 
     from apps.problems.routes import blueprint as problems_blueprint
     from apps.solutions.routes import blueprint as solutions_blueprint
+    from apps.api.routes import blueprint as api_blueprint
     app.register_blueprint(problems_blueprint)
     app.register_blueprint(solutions_blueprint)
+    app.register_blueprint(api_blueprint)
 
     return app
