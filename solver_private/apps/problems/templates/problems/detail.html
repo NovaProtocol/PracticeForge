@@ -1,126 +1,37 @@
 {% extends "base.html" %}
 {% block title %}{{ problem.title }} &mdash; SolveSpace{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/material-darker.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/python/python.min.js"></script>
+<style>
+html, body { overflow: hidden; }
+#workspace-panel { overflow: hidden; }
+.editor-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.editor-area .CodeMirror { flex: 1; height: auto !important; }
+</style>
+{% endblock %}
 {% block content %}
-<div class="container-fluid py-3" style="height: calc(100vh - 70px);">
+<div class="container-fluid h-100" style="padding-top: 0;">
   <div class="row h-100">
-    <div class="col-lg-5 h-100 d-flex flex-column pr-lg-2" style="overflow-y: auto;">
-      <div class="d-flex align-items-center mb-2" style="gap: 8px;">
-        <span class="tag" style="margin-bottom: 0;">{{ problem.contest_id }}{{ problem.problem_index }}</span>
-        {% if problem.difficulty_rating %}
-          {% set diff = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
-          <span class="badge-difficulty badge-{{ diff }}" style="line-height: 1.4;">{{ problem.difficulty_rating }}</span>
-        {% endif %}
-      </div>
-      <h4 style="font-weight: 700;">{{ problem.title }}</h4>
-      {% if problem.tags %}
-        <div class="mb-2">{% for tag in problem.tags %}<span class="tag" style="margin-bottom: 0;">{{ tag }}</span> {% endfor %}</div>
-      {% endif %}
-      <hr style="border-color: var(--border); margin: 0.5rem 0;">
-      <div style="font-size: 0.9rem; line-height: 1.7;">{{ problem.description_html|safe }}</div>
+    <div class="col-lg-5 h-100 p-0" id="description-panel" style="overflow: hidden; border-right: 1px solid var(--border);">
+      {% include "problems/partials/_description.html" %}
     </div>
-
-    <div class="col-lg-7 h-100 d-flex flex-column pl-lg-2">
-      <textarea id="code" class="form-control" style="flex: 1; min-height: 200px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; resize: none; tab-size: 4;" spellcheck="false">{% if saved_code %}{{ saved_code }}{% endif %}</textarea>
-
-      <div class="d-flex align-items-center py-2" style="gap: 8px;">
-        <button id="run-btn" class="btn-accent btn-sm" style="padding: 0.5rem 1.5rem;"><i class="fas fa-play mr-1"></i> Run</button>
-        <button id="submit-btn" class="btn-outline-accent btn-sm" style="padding: 0.5rem 1.5rem;" disabled><i class="fas fa-cloud-upload-alt mr-1"></i> Submit</button>
-        <span id="status-text" style="color: var(--text-secondary); font-size: 0.82rem; margin-left: 8px;"></span>
+    <div class="col-lg-7 h-100 d-flex flex-column p-0" id="workspace-panel">
+      <div class="editor-area">
+        {% include "problems/partials/_editor.html" %}
       </div>
-
-      <div style="flex: 1; min-height: 150px; display: flex; flex-direction: column; background: #0d0d14; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
-        <div id="console-tabs" class="d-flex" style="border-bottom: 1px solid var(--border); background: #0a0a0f; overflow-x: auto;">
-          <div class="ctab active" data-tab="log">Log</div>
-        </div>
-        <div id="console-log" style="flex: 1; overflow-y: auto; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; word-break: break-all;">
-          <span style="color: var(--text-secondary);">> Ready</span>
-        </div>
-      </div>
+      {% include "problems/partials/_console.html" %}
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block head_extra %}
-<style>
-#code:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
-.ctab { padding: 0.4rem 0.9rem; font-size: 0.78rem; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap; }
-.ctab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.ctab:hover { color: var(--text-primary); }
-.log-pass  { color: #4ade80; }
-.log-fail  { color: #f87171; }
-.log-info  { color: var(--text-secondary); }
-.log-error { color: #fbbf24; }
-</style>
 <script>
-const C = { contestId: {{ problem.contest_id }}, index: '{{ problem.problem_index }}', problemId: {{ problem.id }} };
-const $ = id => document.getElementById(id);
-const code = $('code'), logEl = $('console-log'), tabs = $('console-tabs'), runBtn = $('run-btn'), subBtn = $('submit-btn'), statusEl = $('status-text');
-let runId = null, poll = null, filter = 'log';
-
-function puts(text, cls) { const d = document.createElement('div'); d.className = cls||''; d.dataset.tc = ''; d.textContent = text; logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight; }
-function clearLog() { logEl.innerHTML = ''; }
-function addTab(id, label) { const t = document.createElement('div'); t.className = 'ctab'; t.dataset.tab = id; t.textContent = label; tabs.appendChild(t); }
-
-function showOnly(tabId) {
-  filter = tabId;
-  document.querySelectorAll('.ctab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
-  if (tabId === 'log') { Array.from(logEl.children).forEach(c => c.style.display = ''); return; }
-  const tcId = tabId.replace('tc-', '');
-  Array.from(logEl.children).forEach(c => c.style.display = c.dataset.tc === tcId ? '' : 'none');
-}
-
-tabs.addEventListener('click', e => { const t = e.target.closest('.ctab'); if (t) showOnly(t.dataset.tab); });
-
-// auto-save
-let st;
-code.addEventListener('input', () => { clearTimeout(st); st = setTimeout(() => { navigator.sendBeacon(`/problem/${C.contestId}/${C.index}/save`, new URLSearchParams({code: code.value})); }, 500); });
-
-// run
-runBtn.addEventListener('click', async () => {
-  clearInterval(poll); clearLog(); subBtn.disabled = true;
-  puts('> Queuing test cases...', 'log-info'); statusEl.textContent = 'Queuing...';
-  try {
-    const r = await fetch(`/problem/${C.contestId}/${C.index}/run`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({code: code.value}) });
-    const d = await r.json(); runId = d.run_id;
-    puts(`> ${d.total} test cases queued`, 'log-info'); statusEl.textContent = 'Running...';
-    clearLog(); document.querySelectorAll('.ctab:not([data-tab="log"])').forEach(t => t.remove());
-    poll = setInterval(pollRun, 1000);
-  } catch(e) { puts('Error: '+e.message, 'log-error'); statusEl.textContent = 'Error'; }
+document.querySelectorAll('script[src*="codemirror"]').forEach(s => { if (s.dataset.loaded) return; s.dataset.loaded = '1'; });
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.descriptionApi) window.descriptionApi.loadStats();
 });
-
-async function pollRun() {
-  try {
-    const r = await fetch(`/api/run-status/${runId}`); const s = await r.json();
-    s.entries.forEach(e2 => {
-      const tabId = 'tc-'+e2.test_case_id;
-      if (!document.querySelector(`.ctab[data-tab="${tabId}"]`)) addTab(tabId, 'TC #'+e2.test_case_id);
-      if (e2.status === 'running') puts(`[TC #${e2.test_case_id}] Running...`, 'log-info');
-      else if (e2.status === 'completed') {
-        const ok = e2.got === e2.expected;
-        puts(`[TC #${e2.test_case_id}] ${ok?'PASS':'FAIL'} (${e2.timing_ms||'?'}ms, ${e2.memory_kb||'?'}KB)`, ok?'log-pass':'log-fail');
-        if (!ok) { puts(`  Input: ${e2.input}`, 'log-info'); puts(`  Expected: ${e2.expected}`, 'log-info'); puts(`  Got: ${e2.got||e2.error}`, 'log-fail'); }
-      } else if (e2.status === 'failed') puts(`[TC #${e2.test_case_id}] FAIL — ${e2.error||e2.got}`, 'log-fail');
-    });
-    statusEl.textContent = `${s.passed}/${s.total} passed`;
-    if (s.status === 'completed') {
-      clearInterval(poll);
-      if (s.passed === s.total) { subBtn.disabled = false; puts('> All tests passed. Submit to save.', 'log-pass'); statusEl.textContent = 'All passed'; }
-      else { puts('> Some tests failed.', 'log-fail'); statusEl.textContent = 'Tests failed'; }
-    }
-  } catch(e) { clearInterval(poll); puts('Poll error: '+e.message, 'log-error'); }
-}
-
-// submit
-subBtn.addEventListener('click', async () => {
-  subBtn.disabled = true; statusEl.textContent = 'Submitting...';
-  try {
-    const r = await fetch(`/problem/${C.contestId}/${C.index}/submit`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({code: code.value, run_id: runId}) });
-    const d = await r.json(); puts(`> Submitted as solution #${d.solution_id}.`, 'log-pass'); statusEl.textContent = 'Accepted';
-  } catch(e) { puts('Error: '+e.message, 'log-error'); statusEl.textContent = 'Error'; }
-});
-
-// restore auto-save
-fetch(`/api/auto-save/${C.problemId}`).then(r=>r.json()).then(d=>{ if(d.code) code.value = d.code; }).catch(()=>{});
 </script>
 {% endblock %}

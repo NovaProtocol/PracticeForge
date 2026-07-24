@@ -212,6 +212,8 @@ MIGRATIONS = [
     "ALTER TABLE execution_queue MODIFY submission_id INTEGER",
     "ALTER TABLE solutions ADD COLUMN timing_ms INTEGER AFTER total_count",
     "ALTER TABLE solutions ADD COLUMN memory_kb INTEGER AFTER timing_ms",
+    "ALTER TABLE problems ADD COLUMN likes INTEGER DEFAULT 0 AFTER solved_count",
+    "ALTER TABLE problems ADD COLUMN dislikes INTEGER DEFAULT 0 AFTER likes",
 ]
 
 

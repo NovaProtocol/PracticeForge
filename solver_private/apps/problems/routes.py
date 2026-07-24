@@ -8,6 +8,8 @@ from shared.models import (
     get_all_tags,
     get_all_test_cases,
     get_problem,
+    get_problem_stats,
+    get_problem_submissions,
     get_problems_with_status,
     get_run_status,
     load_code,
@@ -30,7 +32,9 @@ def detail(contest_id: int, index: str):
     if not problem:
         return render_template("404.html"), 404
     saved = load_code(problem["id"])
-    return render_template("problems/detail.html", problem=problem, saved_code=saved)
+    submissions = get_problem_submissions(problem["id"])
+    stats = get_problem_stats(problem["id"])
+    return render_template("problems/detail.html", problem=problem, saved_code=saved, submissions=submissions, stats=stats)
 
 
 @blueprint.route("/problem/<int:contest_id>/<index>/run", methods=["POST"])
