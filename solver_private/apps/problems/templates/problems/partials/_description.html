@@ -1,0 +1,471 @@
+<style>
+.desc-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.desc-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.desc-tab {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  user-select: none;
+}
+.desc-tab:hover { color: var(--text-primary); }
+.desc-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.desc-header {
+  padding: 1rem 1.25rem 0.5rem;
+  flex-shrink: 0;
+}
+.desc-header .id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.25rem;
+}
+.desc-header h4 {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0;
+}
+.desc-header .tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 0.4rem;
+}
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 0 1.25rem;
+  flex-shrink: 0;
+}
+.stats-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.82rem;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.stats-btn:hover { color: var(--text-primary); background: rgba(136,136,160,0.1); }
+.stats-btn.liked { color: var(--accent); }
+.stats-btn.disliked { color: var(--difficulty-hard); }
+.desc-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+}
+.test-case-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+.test-case-card .tc-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.test-case-card pre {
+  margin: 0;
+  padding: 0.75rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  position: relative;
+}
+.pre-wrapper {
+  position: relative;
+}
+.copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.pre-wrapper:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+.copy-btn.copied { color: var(--difficulty-easy); border-color: var(--difficulty-easy); opacity: 1; }
+.hints-section {
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+.hints-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  user-select: none;
+}
+.hints-header .chevron {
+  transition: transform 0.2s;
+  color: var(--text-secondary);
+}
+.hints-header.open .chevron { transform: rotate(180deg); }
+.hints-body {
+  padding-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.solution-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  background: var(--bg-secondary);
+}
+.solution-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.solution-header:hover { background: rgba(136,136,160,0.05); }
+.solution-code {
+  border-top: 1px solid var(--border);
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  background: var(--bg-primary);
+  max-height: 300px;
+  overflow-y: auto;
+  display: none;
+}
+.solution-code.open { display: block; }
+.submissions-table {
+  width: 100%;
+  font-size: 0.82rem;
+  border-collapse: collapse;
+}
+.submissions-table th {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border);
+}
+.submissions-table td {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.verdict-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+.verdict-accepted { background: rgba(74,222,128,0.15); color: var(--difficulty-easy); }
+.verdict-wrong { background: rgba(248,113,113,0.15); color: var(--difficulty-hard); }
+.verdict-pending { background: rgba(136,136,160,0.15); color: var(--text-secondary); }
+.verdict-timeout { background: rgba(251,191,36,0.15); color: var(--difficulty-medium); }
+.placeholder-text {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 2rem 0;
+}
+</style>
+
+<div class="desc-panel">
+  <div class="desc-tabs">
+    <div class="desc-tab active" data-tab="description" onclick="descriptionApi.switchTab('description')">Description</div>
+    <div class="desc-tab" data-tab="editorial" onclick="descriptionApi.switchTab('editorial')">Editorial</div>
+    <div class="desc-tab" data-tab="solutions" onclick="descriptionApi.switchTab('solutions')">Solutions</div>
+    <div class="desc-tab" data-tab="submissions" onclick="descriptionApi.switchTab('submissions')">Submissions</div>
+  </div>
+
+  <div class="desc-header">
+    <div class="id-row">
+      <span class="tag" style="margin-bottom: 0;">{{ problem.contest_id }}{{ problem.problem_index }}</span>
+      {% if problem.difficulty_rating %}
+        {% set diff = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
+        <span class="badge-difficulty badge-{{ diff }}" style="line-height: 1.4;">{{ problem.difficulty_rating }}</span>
+      {% endif %}
+    </div>
+    <h4>{{ problem.title }}</h4>
+    {% if problem.tags %}
+      <div class="tags-row">
+        {% for tag in problem.tags %}
+          <span class="tag" style="margin-bottom: 0;">{{ tag }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="stats-bar" id="stats-bar">
+    <button class="stats-btn" id="like-btn" onclick="descriptionApi.toggleLike()">
+      <i class="far fa-thumbs-up"></i> <span id="like-count">0</span>
+    </button>
+    <button class="stats-btn" id="dislike-btn" onclick="descriptionApi.toggleDislike()">
+      <i class="far fa-thumbs-down"></i> <span id="dislike-count">0</span>
+    </button>
+    <span><span id="acceptance-rate">0</span>% Acceptance</span>
+    <span><span id="submissions-count">0</span> submissions</span>
+  </div>
+
+  <div class="desc-body" id="desc-body">
+    <div id="tab-description">
+      <div style="font-size: 0.9rem; line-height: 1.7;">{{ problem.description_html|safe }}</div>
+
+      {% if problem.sample_test_cases %}
+        {% for tc in problem.sample_test_cases %}
+          <div class="test-case-card">
+            <div class="tc-label">Sample {{ loop.index }}</div>
+            <div class="pre-wrapper">
+              <pre>{{ tc.input }}</pre>
+              <button class="copy-btn" data-text="{{ tc.input|e }}" onclick="descriptionApi.copyText(this)">Copy</button>
+            </div>
+            <div class="pre-wrapper" style="border-top: 1px solid var(--border);">
+              <pre>{{ tc.output }}</pre>
+              <button class="copy-btn" data-text="{{ tc.output|e }}" onclick="descriptionApi.copyText(this)">Copy</button>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if problem.constraints %}
+        <div style="margin-top: 1rem;">
+          <strong style="font-size: 0.88rem;">Constraints</strong>
+          <ul style="font-size: 0.85rem; color: var(--text-secondary); padding-left: 1.25rem; margin-top: 0.3rem;">
+            {% for constraint in problem.constraints %}
+              <li>{{ constraint }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="hints-section">
+        <div class="hints-header" onclick="descriptionApi.toggleHints(this)">
+          <span>Hints</span>
+          <i class="fas fa-chevron-down chevron"></i>
+        </div>
+        <div class="hints-body" style="display: none;">
+          <p>Hint 1: Think about the problem constraints...</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-editorial" style="display: none;">
+      <div class="placeholder-text">Loading editorial...</div>
+    </div>
+
+    <div id="tab-solutions" style="display: none;">
+      <div class="placeholder-text">Loading solutions...</div>
+    </div>
+
+    <div id="tab-submissions" style="display: none;">
+      <div class="placeholder-text">Loading submissions...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.descriptionApi = (function() {
+  const problemId = {{ problem.id }};
+
+  function switchTab(tabName) {
+    document.querySelectorAll('.desc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+    document.querySelectorAll('.desc-body > div[id^="tab-"]').forEach(d => d.style.display = 'none');
+    const target = document.getElementById('tab-' + tabName);
+    if (target) target.style.display = '';
+
+    if (tabName === 'editorial') loadEditorial();
+    else if (tabName === 'solutions') loadSolutions();
+    else if (tabName === 'submissions') loadSubmissions();
+  }
+
+  async function loadEditorial() {
+    const container = document.getElementById('tab-editorial');
+    container.innerHTML = '<div class="placeholder-text">Loading editorial...</div>';
+    try {
+      const r = await fetch('/api/editorial/' + problemId);
+      if (!r.ok) throw new Error('not found');
+      const data = await r.json();
+      container.innerHTML = '<div style="font-size: 0.9rem; line-height: 1.7;">' + (data.content || 'No editorial available yet') + '</div>';
+    } catch(e) {
+      container.innerHTML = '<div class="placeholder-text">No editorial available yet</div>';
+    }
+  }
+
+  async function loadSolutions() {
+    const container = document.getElementById('tab-solutions');
+    container.innerHTML = '<div class="placeholder-text">Loading solutions...</div>';
+    try {
+      const r = await fetch('/api/problem-submissions/' + problemId);
+      if (!r.ok) throw new Error('failed');
+      const data = await r.json();
+      if (!data.solutions || data.solutions.length === 0) {
+        container.innerHTML = '<div class="placeholder-text">No solutions yet</div>';
+        return;
+      }
+      container.innerHTML = data.solutions.map(s => {
+        const vCls = s.verdict === 'Accepted' ? 'verdict-accepted' : (s.verdict === 'Wrong Answer' ? 'verdict-wrong' : 'verdict-pending');
+        return '<div class="solution-row">' +
+          '<div class="solution-header" onclick="this.nextElementSibling.classList.toggle(\'open\')">' +
+            '<span class="verdict-tag ' + vCls + '">' + (s.verdict || 'N/A') + '</span>' +
+            '<span style="color: var(--text-secondary);">' + (s.passed || 0) + '/' + (s.total || 0) + ' tests</span>' +
+            '<span style="color: var(--text-secondary);">' + (s.runtime || '?') + 'ms</span>' +
+            '<span style="color: var(--text-secondary);">' + (s.memory || '?') + 'KB</span>' +
+            '<span style="color: var(--text-secondary); margin-left: auto; font-size: 0.75rem;">' + (s.date || '') + '</span>' +
+          '</div>' +
+          '<div class="solution-code"><pre style="margin: 0;">' + escapeHtml(s.code || '') + '</pre></div>' +
+        '</div>';
+      }).join('');
+    } catch(e) {
+      container.innerHTML = '<div class="placeholder-text">Failed to load solutions</div>';
+    }
+  }
+
+  async function loadSubmissions() {
+    const container = document.getElementById('tab-submissions');
+    container.innerHTML = '<div class="placeholder-text">Loading submissions...</div>';
+    try {
+      const r = await fetch('/api/problem-submissions/' + problemId);
+      if (!r.ok) throw new Error('failed');
+      const data = await r.json();
+      if (!data.submissions || data.submissions.length === 0) {
+        container.innerHTML = '<div class="placeholder-text">No submissions yet</div>';
+        return;
+      }
+      let html = '<table class="submissions-table"><thead><tr><th>Date</th><th>Verdict</th><th>Runtime</th><th>Memory</th></tr></thead><tbody>';
+      html += data.submissions.map(s => {
+        const vCls = s.verdict === 'Accepted' ? 'verdict-accepted' : (s.verdict === 'Wrong Answer' ? 'verdict-wrong' : 'verdict-pending');
+        return '<tr>' +
+          '<td style="color: var(--text-secondary);">' + (s.date || '') + '</td>' +
+          '<td><span class="verdict-tag ' + vCls + '">' + (s.verdict || 'N/A') + '</span></td>' +
+          '<td style="color: var(--text-secondary);">' + (s.runtime || '?') + ' ms</td>' +
+          '<td style="color: var(--text-secondary);">' + (s.memory || '?') + ' KB</td>' +
+        '</tr>';
+      }).join('');
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    } catch(e) {
+      container.innerHTML = '<div class="placeholder-text">Failed to load submissions</div>';
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const r = await fetch('/api/problem-stats/' + problemId);
+      if (!r.ok) return;
+      const data = await r.json();
+      document.getElementById('like-count').textContent = data.likes || 0;
+      document.getElementById('dislike-count').textContent = data.dislikes || 0;
+      document.getElementById('acceptance-rate').textContent = data.acceptance_rate || 0;
+      document.getElementById('submissions-count').textContent = data.total_submissions || 0;
+      if (data.user_vote === 'like') document.getElementById('like-btn').classList.add('liked');
+      else if (data.user_vote === 'dislike') document.getElementById('dislike-btn').classList.add('disliked');
+    } catch(e) {}
+  }
+
+  async function toggleLike() {
+    const likeBtn = document.getElementById('like-btn');
+    const likeCount = document.getElementById('like-count');
+    const dislikeBtn = document.getElementById('dislike-btn');
+    const dislikeCount = document.getElementById('dislike-count');
+    try {
+      const r = await fetch('/api/problem/' + problemId + '/like', { method: 'POST' });
+      if (!r.ok) throw new Error('failed');
+      const data = await r.json();
+      likeCount.textContent = data.likes;
+      dislikeCount.textContent = data.dislikes;
+      likeBtn.classList.toggle('liked', data.user_vote === 'like');
+      dislikeBtn.classList.toggle('disliked', data.user_vote === 'dislike');
+    } catch(e) {}
+  }
+
+  async function toggleDislike() {
+    const likeBtn = document.getElementById('like-btn');
+    const likeCount = document.getElementById('like-count');
+    const dislikeBtn = document.getElementById('dislike-btn');
+    const dislikeCount = document.getElementById('dislike-count');
+    try {
+      const r = await fetch('/api/problem/' + problemId + '/dislike', { method: 'POST' });
+      if (!r.ok) throw new Error('failed');
+      const data = await r.json();
+      likeCount.textContent = data.likes;
+      dislikeCount.textContent = data.dislikes;
+      likeBtn.classList.toggle('liked', data.user_vote === 'like');
+      dislikeBtn.classList.toggle('disliked', data.user_vote === 'dislike');
+    } catch(e) {}
+  }
+
+  function toggleHints(header) {
+    header.classList.toggle('open');
+    const body = header.nextElementSibling;
+    body.style.display = body.style.display === 'none' ? '' : 'none';
+  }
+
+  function copyText(btn) {
+    const text = btn.dataset.text;
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+    }).catch(() => {});
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  loadStats();
+
+  return {
+    switchTab: switchTab,
+    loadStats: loadStats,
+    toggleLike: toggleLike,
+    toggleDislike: toggleDislike,
+    toggleHints: toggleHints,
+    copyText: copyText
+  };
+})();
+</script>

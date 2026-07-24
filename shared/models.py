@@ -277,6 +277,68 @@ def get_solved():
     )
 
 
+def get_problem_stats(problem_id: int) -> dict:
+    row = query_one("SELECT likes, dislikes FROM problems WHERE id = %s", (problem_id,))
+    likes = row["likes"] if row else 0
+    dislikes = row["dislikes"] if row else 0
+    accepted = query_one(
+        "SELECT COUNT(*) AS count FROM solutions WHERE problem_id = %s AND verdict = 'Accepted'",
+        (problem_id,),
+    )
+    total_submissions = query_one(
+        "SELECT COUNT(*) AS count FROM solutions WHERE problem_id = %s",
+        (problem_id,),
+    )
+    a = accepted["count"] if accepted else 0
+    t = total_submissions["count"] if total_submissions else 0
+    rate = round((a / t) * 100, 2) if t > 0 else 0.0
+    return {
+        "likes": likes,
+        "dislikes": dislikes,
+        "accepted": a,
+        "total_submissions": t,
+        "acceptance_rate": rate,
+    }
+
+
+def like_problem(problem_id: int) -> dict:
+    execute("UPDATE problems SET likes = likes + 1 WHERE id = %s", (problem_id,))
+    row = query_one("SELECT likes, dislikes FROM problems WHERE id = %s", (problem_id,))
+    return {"likes": row["likes"], "dislikes": row["dislikes"]}
+
+
+def dislike_problem(problem_id: int) -> dict:
+    execute("UPDATE problems SET dislikes = dislikes + 1 WHERE id = %s", (problem_id,))
+    row = query_one("SELECT likes, dislikes FROM problems WHERE id = %s", (problem_id,))
+    return {"likes": row["likes"], "dislikes": row["dislikes"]}
+
+
+def get_problem_submissions(problem_id: int) -> list:
+    return query(
+        """SELECT id, verdict, passed_count, total_count, code, timing_ms, memory_kb, created_at
+           FROM solutions WHERE problem_id = %s
+           ORDER BY created_at DESC""",
+        (problem_id,),
+    )
+
+
+def get_editorial(problem_id: int) -> dict | None:
+    return None
+
+
+def create_custom_test_case(problem_id: int, input_data: str, expected_output: str) -> int:
+    execute(
+        "INSERT INTO test_cases (problem_id, input, expected_output, is_sample) VALUES (%s, %s, %s, FALSE)",
+        (problem_id, input_data, expected_output),
+    )
+    return query_one("SELECT LAST_INSERT_ID() AS id")["id"]
+
+
+def delete_custom_test_case(tc_id: int) -> bool:
+    execute("DELETE FROM test_cases WHERE id = %s", (tc_id,))
+    return True
+
+
 def re_run_solution(solution_id: int) -> str | None:
     solution = get_solution(solution_id)
     if not solution or solution["verdict"] != "Accepted":

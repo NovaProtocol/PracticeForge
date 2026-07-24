@@ -1,0 +1,808 @@
+<div id="console" class="console-panel collapsed">
+  <div id="console-resize-handle" class="console-resize-handle"></div>
+
+  <div class="console-header">
+    <div class="console-tabs">
+      <button class="console-tab active" data-tab="testcase">Testcase</button>
+      <button class="console-tab" data-tab="result">Result</button>
+    </div>
+    <button id="console-toggle" class="console-toggle" title="Toggle Console">
+      <i class="fas fa-chevron-down"></i>
+    </button>
+  </div>
+
+  <div class="console-body">
+    <div id="console-pane-testcase" class="console-pane active">
+      <div class="tc-tabs-wrapper">
+        <div id="tc-tabs" class="tc-tabs">
+          <div class="tc-tab active" data-idx="0">Case 1</div>
+          <button id="tc-add" class="tc-add" title="Add test case">+</button>
+        </div>
+      </div>
+
+      <div class="tc-content">
+        <div class="tc-toolbar">
+          <button id="tc-source-toggle" class="tc-source-btn" title="Toggle raw stdin mode"><code>&lt;/&gt;</code> Source</button>
+        </div>
+        <div class="tc-input-group">
+          <label class="tc-label">Input</label>
+          <textarea id="tc-input" class="tc-textarea" placeholder="Enter test case input..." spellcheck="false"></textarea>
+        </div>
+        <div class="tc-input-group">
+          <label class="tc-label">Expected Output</label>
+          <textarea id="tc-expected" class="tc-textarea" placeholder="Expected stdout..." spellcheck="false"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="console-pane-result" class="console-pane">
+      <div id="result-status" class="result-status">
+        <span id="result-badge" class="result-badge verdict-pending">Pending</span>
+        <span id="result-runtime" class="result-metric" style="display:none;"><i class="fas fa-clock"></i> <span id="result-runtime-val">0</span> ms</span>
+        <span id="result-memory" class="result-metric" style="display:none;"><i class="fas fa-microchip"></i> <span id="result-memory-val">0</span> KB</span>
+      </div>
+
+      <div id="result-comparison" class="result-comparison" style="display:none;">
+        <table class="result-table">
+          <thead><tr><th>#</th><th>Input</th><th>Expected</th><th>Got</th></tr></thead>
+          <tbody id="result-table-body"></tbody>
+        </table>
+      </div>
+
+      <div id="result-stdout" class="result-collapsible" style="display:none;">
+        <details>
+          <summary class="result-summary">stdout (click to expand)</summary>
+          <pre id="result-stdout-content" class="result-pre"></pre>
+        </details>
+      </div>
+
+      <div id="result-error" class="result-error" style="display:none;">
+        <pre id="result-error-content" class="result-pre error"></pre>
+      </div>
+
+      <div id="result-spinner" class="result-spinner" style="display:none;">
+        <div class="spinner"></div>
+        <span id="result-spinner-text">Running...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.console-panel {
+  background: #0d0d14;
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: flex 0.2s ease, min-height 0.2s ease;
+  flex: 0 0 0;
+  min-height: 36px;
+  overflow: hidden;
+}
+.console-panel:not(.collapsed) {
+  flex: 1 1 auto;
+  min-height: 200px;
+}
+.console-resize-handle {
+  height: 4px;
+  background: transparent;
+  cursor: ns-resize;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.console-resize-handle:hover,
+.console-resize-handle:active {
+  background: var(--accent);
+}
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  padding-right: 4px;
+}
+.console-tabs {
+  display: flex;
+}
+.console-tab {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.console-tab:hover {
+  color: var(--text-primary);
+}
+.console-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.console-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: color 0.15s, transform 0.2s;
+}
+.console-toggle:hover {
+  color: var(--text-primary);
+}
+.console-panel.collapsed .console-toggle i {
+  transform: rotate(0deg);
+}
+.console-panel:not(.collapsed) .console-toggle i {
+  transform: rotate(180deg);
+}
+.console-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.console-pane {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+.console-pane.active {
+  display: flex;
+}
+
+/* Test case tabs */
+.tc-tabs-wrapper {
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tc-tabs {
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  padding: 0 4px;
+}
+.tc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  user-select: none;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tc-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tc-tab:hover {
+  color: var(--text-primary);
+}
+.tc-tab .tc-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 0.65rem;
+  border-radius: 2px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  margin-left: 2px;
+}
+.tc-tab .tc-tab-close:hover {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+.tc-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.tc-add:hover {
+  color: var(--accent);
+}
+
+/* Test case content */
+.tc-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  gap: 0.5rem;
+  overflow-y: auto;
+}
+.tc-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.tc-source-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tc-source-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+.tc-source-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.tc-input-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.tc-input-group:last-child {
+  flex: 1;
+}
+.tc-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+}
+.tc-textarea {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  padding: 0.5rem;
+  resize: vertical;
+  outline: none;
+  min-height: 40px;
+}
+.tc-textarea:focus {
+  border-color: var(--accent);
+}
+
+/* Result pane */
+.result-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.result-badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.result-badge.accepted {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+.result-badge.wrong-answer {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+.result-badge.time-limit-exceeded {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+.result-badge.runtime-error {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+.result-badge.pending {
+  background: rgba(136, 136, 160, 0.15);
+  color: var(--text-secondary);
+}
+.result-metric {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.result-comparison {
+  overflow-y: auto;
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+.result-table th {
+  background: #0a0a0f;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.result-table td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid rgba(42, 42, 62, 0.5);
+  vertical-align: top;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-width: 200px;
+  overflow: hidden;
+}
+.result-table tr:nth-child(even) td {
+  background: rgba(18, 18, 26, 0.5);
+}
+.result-table td.pass {
+  color: #4ade80;
+}
+.result-table td.fail {
+  color: #f87171;
+}
+.result-collapsible {
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.result-summary {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+.result-summary:hover {
+  color: var(--text-primary);
+}
+.result-pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+  color: var(--text-primary);
+  background: rgba(10, 10, 15, 0.5);
+}
+.result-pre.error {
+  color: #f87171;
+}
+.result-error {
+  flex: 1;
+  overflow-y: auto;
+}
+.result-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* CSS-only spinner */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Collapsed state */
+.console-panel.collapsed .console-body {
+  display: none;
+}
+</style>
+
+<script>
+(function() {
+  var testCases = [];
+
+  function initTestCase(caseIdx) {
+    var i = testCases.findIndex(function(tc) { return tc.idx === caseIdx; });
+    if (i === -1) {
+      testCases.push({ idx: caseIdx, input: '', expected: '' });
+    }
+  }
+
+  function saveCurrentCase() {
+    var activeTab = document.querySelector('#tc-tabs .tc-tab.active');
+    if (!activeTab) return;
+    var idx = parseInt(activeTab.dataset.idx, 10);
+    initTestCase(idx);
+    var tc = testCases.find(function(t) { return t.idx === idx; });
+    tc.input = document.getElementById('tc-input').value;
+    tc.expected = document.getElementById('tc-expected').value;
+  }
+
+  function loadCase(idx) {
+    initTestCase(idx);
+    var tc = testCases.find(function(t) { return t.idx === idx; });
+    document.getElementById('tc-input').value = tc.input;
+    document.getElementById('tc-expected').value = tc.expected;
+  }
+
+  function switchTab(idx) {
+    saveCurrentCase();
+    document.querySelectorAll('#tc-tabs .tc-tab').forEach(function(t) {
+      t.classList.toggle('active', parseInt(t.dataset.idx, 10) === idx);
+    });
+    loadCase(idx);
+  }
+
+  function addCase() {
+    saveCurrentCase();
+    var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
+    var maxIdx = 0;
+    tabs.forEach(function(t) {
+      var n = parseInt(t.dataset.idx, 10);
+      if (n > maxIdx) maxIdx = n;
+    });
+    var newIdx = maxIdx + 1;
+    var tab = document.createElement('div');
+    tab.className = 'tc-tab active';
+    tab.dataset.idx = newIdx;
+    tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close">&times;</button>';
+    var addBtn = document.getElementById('tc-add');
+    addBtn.parentNode.insertBefore(tab, addBtn);
+    loadCase(newIdx);
+  }
+
+  function removeCase(idx, tabEl) {
+    var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
+    if (tabs.length <= 1) return;
+    var tc = testCases.find(function(t) { return t.idx === idx; });
+    if (tc && (tc.input || tc.expected)) {
+      if (!confirm('Delete this test case?')) return;
+    }
+    testCases = testCases.filter(function(t) { return t.idx !== idx; });
+    tabEl.remove();
+    var remaining = document.querySelectorAll('#tc-tabs .tc-tab');
+    if (remaining.length > 0) {
+      var first = remaining[0];
+      first.classList.add('active');
+      loadCase(parseInt(first.dataset.idx, 10));
+    }
+  }
+
+  function getTestCases() {
+    saveCurrentCase();
+    var result = [];
+    var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
+    tabs.forEach(function(t) {
+      var idx = parseInt(t.dataset.idx, 10);
+      var tc = testCases.find(function(tc) { return tc.idx === idx; });
+      if (tc) {
+        result.push({ input: tc.input, expected: tc.expected });
+      } else {
+        result.push({ input: '', expected: '' });
+      }
+    });
+    return result;
+  }
+
+  function showSpinner(text) {
+    document.querySelectorAll('.console-pane').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelector('.console-tab[data-tab="result"]').classList.add('active');
+    document.querySelector('.console-tab[data-tab="testcase"]').classList.remove('active');
+    document.getElementById('console-pane-result').classList.add('active');
+
+    document.getElementById('result-badge').className = 'result-badge pending';
+    document.getElementById('result-badge').textContent = 'Pending';
+    document.getElementById('result-runtime').style.display = 'none';
+    document.getElementById('result-memory').style.display = 'none';
+    document.getElementById('result-comparison').style.display = 'none';
+    document.getElementById('result-stdout').style.display = 'none';
+    document.getElementById('result-error').style.display = 'none';
+    document.getElementById('result-spinner').style.display = 'flex';
+    document.getElementById('result-spinner-text').textContent = text || 'Running...';
+
+    var panel = document.getElementById('console');
+    if (panel.classList.contains('collapsed')) {
+      panel.classList.remove('collapsed');
+    }
+  }
+
+  function statusToClass(status) {
+    switch (status) {
+      case 'accepted':
+      case 'Accepted': return 'accepted';
+      case 'wrong_answer':
+      case 'Wrong Answer': return 'wrong-answer';
+      case 'time_limit_exceeded':
+      case 'Time Limit Exceeded': return 'time-limit-exceeded';
+      case 'runtime_error':
+      case 'Runtime Error': return 'runtime-error';
+      default: return 'pending';
+    }
+  }
+
+  function statusLabel(status) {
+    switch (status) {
+      case 'accepted': case 'Accepted': return 'Accepted';
+      case 'wrong_answer': case 'Wrong Answer': return 'Wrong Answer';
+      case 'time_limit_exceeded': case 'Time Limit Exceeded': return 'Time Limit Exceeded';
+      case 'runtime_error': case 'Runtime Error': return 'Runtime Error';
+      default: return status || 'Pending';
+    }
+  }
+
+  function showResult(data) {
+    document.getElementById('result-spinner').style.display = 'none';
+
+    var badge = document.getElementById('result-badge');
+    badge.className = 'result-badge ' + statusToClass(data.status);
+    badge.textContent = statusLabel(data.status);
+
+    if (data.runtime != null) {
+      document.getElementById('result-runtime').style.display = 'inline-flex';
+      document.getElementById('result-runtime-val').textContent = data.runtime;
+    } else {
+      document.getElementById('result-runtime').style.display = 'none';
+    }
+    if (data.memory != null) {
+      document.getElementById('result-memory').style.display = 'inline-flex';
+      document.getElementById('result-memory-val').textContent = data.memory;
+    } else {
+      document.getElementById('result-memory').style.display = 'none';
+    }
+
+    var tbody = document.getElementById('result-table-body');
+    tbody.innerHTML = '';
+    var comparison = document.getElementById('result-comparison');
+
+    if (data.results && data.results.length > 0) {
+      comparison.style.display = 'block';
+      data.results.forEach(function(r, i) {
+        var tr = document.createElement('tr');
+        var pass = r.status === 'passed' || r.got === r.expected;
+        tr.innerHTML =
+          '<td>' + (i + 1) + '</td>' +
+          '<td>' + escHtml(r.input || '') + '</td>' +
+          '<td class="' + (pass ? 'pass' : 'fail') + '">' + escHtml(r.expected || '') + '</td>' +
+          '<td class="' + (pass ? 'pass' : 'fail') + '">' + escHtml(r.got || r.error || '') + '</td>';
+        tbody.appendChild(tr);
+      });
+    } else {
+      comparison.style.display = 'none';
+    }
+
+    var stdoutEl = document.getElementById('result-stdout');
+    var stdoutContent = document.getElementById('result-stdout-content');
+    if (data.stdout) {
+      stdoutContent.textContent = data.stdout;
+      stdoutEl.style.display = 'block';
+    } else {
+      stdoutEl.style.display = 'none';
+    }
+
+    var errorEl = document.getElementById('result-error');
+    var errorContent = document.getElementById('result-error-content');
+    if (data.error || data.traceback) {
+      errorContent.textContent = data.error || data.traceback;
+      errorEl.style.display = 'block';
+    } else {
+      errorEl.style.display = 'none';
+    }
+  }
+
+  function showSubmissionResult(data) {
+    showResult(data);
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function appendLog(text, className) {
+    // check if log tab exists in parent
+    var logEl = document.getElementById('console-log');
+    if (logEl) {
+      var d = document.createElement('div');
+      d.className = className || '';
+      d.textContent = text;
+      logEl.appendChild(d);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  }
+
+  window.consoleApi = {
+    showResult: showResult,
+    showSubmissionResult: showSubmissionResult,
+    showSpinner: showSpinner,
+    appendLog: appendLog,
+    getTestCases: getTestCases
+  };
+
+  // --- Event binding ---
+
+  // Console toggle
+  document.getElementById('console-toggle').addEventListener('click', function() {
+    document.getElementById('console').classList.toggle('collapsed');
+  });
+
+  // Console tab switching
+  document.querySelectorAll('.console-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.console-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      document.querySelectorAll('.console-pane').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('console-pane-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Test case tab switching (delegated)
+  document.getElementById('tc-tabs').addEventListener('click', function(e) {
+    var tab = e.target.closest('.tc-tab');
+    if (tab) {
+      var closeBtn = e.target.closest('.tc-tab-close');
+      if (closeBtn) {
+        removeCase(parseInt(tab.dataset.idx, 10), tab);
+        return;
+      }
+      switchTab(parseInt(tab.dataset.idx, 10));
+    }
+  });
+
+  // Add test case
+  document.getElementById('tc-add').addEventListener('click', addCase);
+
+  // Source mode toggle
+  var sourceToggle = document.getElementById('tc-source-toggle');
+  sourceToggle.addEventListener('click', function() {
+    sourceToggle.classList.toggle('active');
+    var label = document.querySelector('.tc-input-group .tc-label');
+    if (sourceToggle.classList.contains('active')) {
+      label.textContent = 'Raw stdin';
+    } else {
+      label.textContent = 'Input';
+    }
+  });
+
+  // Resize handle
+  var handle = document.getElementById('console-resize-handle');
+  var isResizing = false;
+  handle.addEventListener('mousedown', function(e) {
+    isResizing = true;
+    e.preventDefault();
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!isResizing) return;
+    var panel = document.getElementById('console');
+    var parent = panel.parentElement;
+    var parentRect = parent.getBoundingClientRect();
+    var newHeight = parentRect.bottom - e.clientY;
+    var minH = 100;
+    var maxH = parentRect.height - 60;
+    newHeight = Math.max(minH, Math.min(maxH, newHeight));
+    panel.style.flex = '0 0 ' + newHeight + 'px';
+    panel.style.minHeight = newHeight + 'px';
+    if (panel.classList.contains('collapsed')) {
+      panel.classList.remove('collapsed');
+    }
+  });
+  document.addEventListener('mouseup', function() {
+    if (isResizing) {
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  // Initialize first test case
+  initTestCase(0);
+
+  // Expose polling utilities for run/submit buttons
+  window.__consoleRun = async function(code, contestId, index) {
+    window.consoleApi.showSpinner('Running...');
+    var testCasesData = window.consoleApi.getTestCases();
+    try {
+      var body = new URLSearchParams({ code: code, testcases: JSON.stringify(testCasesData) });
+      var r = await fetch('/problem/' + contestId + '/' + index + '/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
+      });
+      var data = await r.json();
+      window.consoleApi.showResult(data);
+    } catch (e) {
+      window.consoleApi.showResult({ status: 'Runtime Error', error: e.message });
+    }
+  };
+
+  window.__consoleSubmit = async function(code, contestId, index) {
+    window.consoleApi.showSpinner('Submitting...');
+    var testCasesData = window.consoleApi.getTestCases();
+    try {
+      var body = new URLSearchParams({ code: code, testcases: JSON.stringify(testCasesData) });
+      var r = await fetch('/problem/' + contestId + '/' + index + '/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
+      });
+      var data = await r.json();
+      window.consoleApi.showSubmissionResult(data);
+
+      // Poll for status if submission_id is returned
+      if (data.submission_id) {
+        (function pollStatus(id) {
+          setTimeout(async function() {
+            try {
+              var pr = await fetch('/api/submission-status/' + id);
+              var pd = await pr.json();
+              window.consoleApi.showSubmissionResult(pd);
+              if (pd.status === 'pending' || pd.status === 'running') {
+                pollStatus(id);
+              }
+            } catch(e) {}
+          }, 1500);
+        })(data.submission_id);
+      }
+    } catch (e) {
+      window.consoleApi.showResult({ status: 'Runtime Error', error: e.message });
+    }
+  };
+})();
+</script>
