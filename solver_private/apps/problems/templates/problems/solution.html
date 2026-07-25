@@ -78,23 +78,28 @@
     <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Test Results</h6>
     <table class="results-table">
       <thead>
-        <tr><th>#</th><th>Status</th><th>Args</th><th>Expected</th><th>Got</th></tr>
+        <tr><th>#</th><th>Result</th><th>Args</th><th>Expected</th><th>Got</th></tr>
       </thead>
       <tbody>
         {% for r in tc_data.results %}
         <tr>
           <td>{{ loop.index }}</td>
-          <td class="{% if r.passed %}pass{% else %}fail{% endif %}">{% if r.passed %}PASS{% else %}FAIL{% endif %}</td>
+          {% set st = r.status or ('passed' if r.passed else 'failed') %}
+          {% if st == 'passed' %}<td class="pass" style="font-weight:600;">PASS</td>
+          {% elif st == 'failed' %}<td class="fail" style="font-weight:600;">FAIL</td>
+          {% elif st == 'skipped' %}<td style="color:var(--text-secondary);font-weight:600;">SKIP</td>
+          {% elif st == 'checked' %}<td style="color:var(--accent);font-weight:600;">CHECK</td>
+          {% else %}<td>{{ st }}</td>{% endif %}
           <td>{{ r.input or '' }}</td>
           <td>{{ r.expected or '' }}</td>
-          <td class="{% if not r.passed %}fail{% endif %}">{{ r.got or r.error or '' }}</td>
+          <td class="{% if st == 'failed' %}fail{% endif %}">{{ r.got or r.error or '' }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% if results_stdout %}
     <details>
-      <summary style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; margin-top: 0.75rem;">stdout</summary>
+      <summary style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; margin-top: 0.75rem;">Program output</summary>
       <div class="stdout-box">{{ results_stdout }}</div>
     </details>
     {% endif %}

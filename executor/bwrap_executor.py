@@ -86,7 +86,6 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
         user_code,
         "solution = Solution()",
         "method = getattr(solution, " + json.dumps(method_name) + ")",
-        "_old_stdout = sys.stdout",
         "results = []",
     ]
     for tc in test_cases:
@@ -94,28 +93,36 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
         expected_str = tc.get("expected") or tc.get("expected_output") or ""
         inp_display = tc.get("args") or tc.get("input") or ""
         exp_display = tc.get("expected") or tc.get("expected_output") or ""
+
         if not args_str:
-            args_str = "[]"
-        if not expected_str:
-            expected_str = '""'
+            lines.append("results.append({'input': " + json.dumps(inp_display) + ", 'expected': " + json.dumps(exp_display) + ", 'got': '', 'error': '', 'passed': True, 'stdout': '', 'status': 'skipped'})")
+            continue
+
         lines.append("_cap = io.StringIO()")
+        lines.append("_old_stdout = sys.stdout")
         lines.append("sys.stdout = _cap")
         lines.append("_r_input = " + json.dumps(inp_display))
         lines.append("_r_expected = " + json.dumps(exp_display))
         lines.append("err = ''")
         lines.append("try:")
         lines.append("    args = json.loads(" + json.dumps(args_str) + ")")
-        lines.append("    expected = json.loads(" + json.dumps(expected_str) + ")")
         lines.append("    result = method(*args)")
         lines.append("    got = json.dumps(result)")
-        lines.append("    passed = got == " + json.dumps(expected_str))
+        if expected_str:
+            lines.append("    expected = json.loads(" + json.dumps(expected_str) + ")")
+            lines.append("    passed = got == " + json.dumps(expected_str))
+            lines.append("    status = 'passed' if passed else 'failed'")
+        else:
+            lines.append("    status = 'checked'")
+            lines.append("    passed = True")
         lines.append("except Exception as _ex:")
         lines.append("    got = json.dumps(str(_ex))")
         lines.append("    err = repr(_ex)")
         lines.append("    passed = False")
+        lines.append("    status = 'failed'")
         lines.append("_tc_stdout = _cap.getvalue()")
-        lines.append("results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout})")
-    lines.append("sys.stdout = _old_stdout")
+        lines.append("sys.stdout = _old_stdout")
+        lines.append("results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout, 'status': status})")
     lines.append("print('__SOLVER_RESULT__')")
     lines.append("print(json.dumps(results))")
     return "\n".join(lines)
@@ -292,34 +299,34 @@ def process_entry(conn, entry):
 
 
 def main():
-    print("[bwrap-executor] Starting...")
+    print("[bwrap-executor] Starting...", flush=True)
     while True:
         try:
             conn = get_connection()
-            print("[bwrap-executor] Connected to MySQL.")
+            print("[bwrap-executor] Connected to MySQL.", flush=True)
             while True:
                 try:
                     entry = fetch_queued(conn)
                     if entry:
-                        print(f"[bwrap-executor] Processing queue #{entry['id']}...")
+                        print(f"[bwrap-executor] Processing queue #{entry['id']}...", flush=True)
                         try:
                             process_entry(conn, entry)
                         except Exception as e:
                             import traceback
                             traceback.print_exc(file=sys.stderr)
-                            print(f"[bwrap-executor] FATAL: queue #{entry['id']} crashed: {e}", file=sys.stderr)
+                            print(f"[bwrap-executor] FATAL: queue #{entry['id']} crashed: {e}", file=sys.stderr, flush=True)
                             try:
                                 mark_failed(conn, entry["id"], f"Executor error: {e}")
                             except Exception:
                                 pass
-                        print(f"[bwrap-executor] Queue #{entry['id']} done.")
+                        print(f"[bwrap-executor] Queue #{entry['id']} done.", flush=True)
                     else:
                         time.sleep(POLL_INTERVAL)
                 except Exception as e:
-                    print(f"[bwrap-executor] Poll error: {e}")
+                    print(f"[bwrap-executor] Poll error: {e}", flush=True)
                     time.sleep(POLL_INTERVAL)
         except Exception as e:
-            print(f"[bwrap-executor] DB connection failed: {e}, retrying in 5s...")
+            print(f"[bwrap-executor] DB connection failed: {e}, retrying in 5s...", flush=True)
             time.sleep(5)
 
 
