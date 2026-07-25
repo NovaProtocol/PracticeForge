@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS execution_queue (
     test_cases_json JSON,
     exec_type ENUM('run','submit') DEFAULT 'run',
     status ENUM('queued','running','completed','failed') DEFAULT 'queued',
-    result TEXT,
+    result LONGTEXT,
     stdout TEXT,
     error TEXT,
     timing_ms INTEGER,
@@ -252,7 +252,7 @@ def ensure_schema():
             execute(stmt)
     for stmt in ("ALTER TABLE test_cases MODIFY input TEXT", "ALTER TABLE test_cases MODIFY expected_output TEXT",
                  "ALTER TABLE execution_queue ADD COLUMN stdout TEXT AFTER result",
-                 "ALTER TABLE execution_queue MODIFY result MEDIUMTEXT",
+
                  "ALTER TABLE auto_saves ADD COLUMN last_ran TEXT AFTER code"):
         try:
             execute(stmt)
