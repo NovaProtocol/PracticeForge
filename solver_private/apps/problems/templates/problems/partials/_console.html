@@ -25,8 +25,8 @@
           <button id="tc-source-toggle" class="tc-source-btn" title="Toggle raw stdin mode"><code>&lt;/&gt;</code> Source</button>
         </div>
         <div class="tc-input-group">
-          <label class="tc-label">Input</label>
-          <textarea id="tc-input" class="tc-textarea" placeholder="Enter test case input..." spellcheck="false"></textarea>
+          <label class="tc-label">Args (JSON)</label>
+          <textarea id="tc-input" class="tc-textarea" placeholder='e.g. [5] or [2, 3]' spellcheck="false"></textarea>
         </div>
         <div class="tc-input-group">
           <label class="tc-label">Expected Output</label>
@@ -712,7 +712,7 @@
     if (sourceToggle.classList.contains('active')) {
       label.textContent = 'Raw stdin';
     } else {
-      label.textContent = 'Input';
+      label.textContent = 'Args (JSON)';
     }
   });
 

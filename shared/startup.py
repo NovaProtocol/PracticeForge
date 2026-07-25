@@ -92,7 +92,7 @@ SEED_PROBLEMS = [
         "contest_id": 1, "problem_index": "A", "title": "A + B Problem",
         "slug": "1/A-a-plus-b", "difficulty_rating": 800,
         "tags": '["math", "implementation"]',
-        "description_html": "<p>Given two integers <code>a</code> and <code>b</code>, return their sum.</p>",
+        "description_html": "<p>Given two integers <code>a</code> and <code>b</code>, return their sum. Do not print the result — the test harness will call your method and check the return value.</p>",
         "url": "https://leetcode.com/problems/two-sum/",
         "base_code": "class Solution:\n    def add(self, a: int, b: int) -> int:\n        ",
         "method_name": "add",
@@ -137,7 +137,7 @@ SEED_PROBLEMS = [
         "contest_id": 1, "problem_index": "F", "title": "Generate Primes",
         "slug": "1/F-generate-primes", "difficulty_rating": 1100,
         "tags": '["math", "number theory"]',
-        "description_html": "<p>Given an integer <code>n</code>, return a list of the first <code>n</code> prime numbers in ascending order.</p><p>A prime number is a natural number greater than 1 that has no positive divisors other than 1 and itself.</p><h6>Examples:</h6><ul><li>For <code>n = 5</code>, the first 5 primes are <code>[2, 3, 5, 7, 11]</code></li><li>For <code>n = 1</code>, the only prime is <code>[2]</code></li></ul><h6>Constraints:</h6><ul><li>1 &le; n &le; 100</li></ul>",
+        "description_html": "<p>Given an integer <code>n</code>, return a list of the first <code>n</code> prime numbers in ascending order.</p><p>A prime number is a natural number greater than 1 that has no positive divisors other than 1 and itself.</p>",
         "url": "https://codeforces.com/problemset/problem/1/F",
         "base_code": "class Solution:\n    def generatePrimes(self, n: int) -> List[int]:\n        ",
         "method_name": "generatePrimes",
@@ -252,6 +252,7 @@ def ensure_schema():
             execute(stmt)
     for stmt in ("ALTER TABLE test_cases MODIFY input TEXT", "ALTER TABLE test_cases MODIFY expected_output TEXT",
                  "ALTER TABLE execution_queue ADD COLUMN stdout TEXT AFTER result",
+                 "ALTER TABLE execution_queue MODIFY result MEDIUMTEXT",
                  "ALTER TABLE auto_saves ADD COLUMN last_ran TEXT AFTER code"):
         try:
             execute(stmt)
