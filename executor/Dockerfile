@@ -9,6 +9,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY bwrap_executor.py .
 
+ENV PYTHONUNBUFFERED=1
 ENV PYTHON_GIL=0
 
 CMD ["python3", "bwrap_executor.py"]

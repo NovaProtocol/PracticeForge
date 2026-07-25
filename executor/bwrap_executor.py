@@ -4,6 +4,7 @@ import json
 import os
 import resource
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -301,7 +302,16 @@ def main():
                     entry = fetch_queued(conn)
                     if entry:
                         print(f"[bwrap-executor] Processing queue #{entry['id']}...")
-                        process_entry(conn, entry)
+                        try:
+                            process_entry(conn, entry)
+                        except Exception as e:
+                            import traceback
+                            traceback.print_exc(file=sys.stderr)
+                            print(f"[bwrap-executor] FATAL: queue #{entry['id']} crashed: {e}", file=sys.stderr)
+                            try:
+                                mark_failed(conn, entry["id"], f"Executor error: {e}")
+                            except Exception:
+                                pass
                         print(f"[bwrap-executor] Queue #{entry['id']} done.")
                     else:
                         time.sleep(POLL_INTERVAL)
