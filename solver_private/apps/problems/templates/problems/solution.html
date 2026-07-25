@@ -58,12 +58,10 @@
         <div class="stat-value" style="color: var(--accent);">{{ solution.timing_ms }}ms</div>
         <div class="stat-label">Runtime</div>
       </div>
-      {% if solution.memory_kb %}
       <div class="stat-card">
-        <div class="stat-value" style="color: var(--accent);">{{ "{:,}".format(solution.memory_kb) }} KB</div>
+        <div class="stat-value" style="color: var(--accent);">{{ "{:,}".format(solution.memory_kb or 0) }} KB</div>
         <div class="stat-label">Memory</div>
       </div>
-      {% endif %}
       <div class="stat-card">
         <div class="stat-value" style="color: var(--text-secondary);">{{ solution.created_at.strftime('%Y-%m-%d %H:%M') if solution.created_at else 'N/A' }}</div>
         <div class="stat-label">Submitted</div>

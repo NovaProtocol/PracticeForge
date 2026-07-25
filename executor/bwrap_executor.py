@@ -185,6 +185,11 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         elapsed = int((time.perf_counter() - start) * 1000)
 
+        try:
+            mem = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        except Exception:
+            mem = 0
+
         if r.returncode != 0:
             err = r.stderr.lower()
             if "operation not permitted" in err or "namespace" in err or "cannot" in err:
@@ -197,6 +202,7 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             "stderr": r.stderr.strip(),
             "results_json": parsed["results_json"],
             "timing_ms": elapsed,
+            "memory_kb": mem,
         }
     except OSError:
         return run_code(wrapper_code, timeout)
@@ -260,7 +266,7 @@ def process_entry(conn, entry):
     passed = sum(1 for t in tc_results if t.get("passed"))
     total = len(tc_results)
     timing_ms = result["timing_ms"]
-    memory_kb = 0
+    memory_kb = result.get("memory_kb", 0) or 0
 
     all_stdout = "\n".join(t.get("stdout", "") for t in tc_results if t.get("stdout"))
 
