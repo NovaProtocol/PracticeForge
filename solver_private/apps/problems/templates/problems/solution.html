@@ -59,7 +59,7 @@
         <div class="stat-label">Runtime</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value" style="color: var(--accent);">{{ "{:,}".format(solution.memory_kb) if solution.memory_kb else 'N/A' }}</div>
+        <div class="stat-value" style="color: var(--accent);">{% if solution.memory_kb %}{% if solution.memory_kb > 1024 %}{{ "%.1f"|format(solution.memory_kb / 1024) }} MB{% else %}{{ "{:,}".format(solution.memory_kb) }} KB{% endif %}{% else %}N/A{% endif %}</div>
         <div class="stat-label">Memory</div>
       </div>
       <div class="stat-card">
