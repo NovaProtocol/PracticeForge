@@ -600,6 +600,16 @@
     var tbody = document.getElementById('result-table-body');
     tbody.innerHTML = '';
     var comparison = document.getElementById('result-comparison');
+    tbody.onclick = function(e) {
+      var btn = e.target.closest('.output-btn');
+      if (!btn) return;
+      var tr = btn.closest('tr');
+      var or = tr && tr.nextElementSibling;
+      if (or && or.classList.contains('output-row')) {
+        or.style.display = or.style.display === 'none' ? '' : 'none';
+        btn.textContent = or.style.display === 'none' ? 'Output' : 'Close';
+      }
+    };
 
     if (data.results && data.results.length > 0) {
       comparison.style.display = 'block';
@@ -614,14 +624,22 @@
           default: statusLabel = status.toUpperCase(); statusClass = 'info';
         }
         var tr = document.createElement('tr');
+        tr.dataset.tcIdx = i;
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
           '<td>' + escHtml(r.input || '') + '</td>' +
           '<td>' + escHtml(r.expected || '') + '</td>' +
           '<td class="' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
-          '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;" onclick="var d=this.nextElementSibling;d.style.display=d.style.display===\'none\'?\'\':\'none\'">Output</button><div style="display:none;font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">' + (r.stdout ? escHtml(r.stdout) : '') + (r.error && r.stdout ? '\n' : '') + (r.error ? escHtml(r.error) : '') + '</div>' : '') + '</td>';
+          '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + '</td>';
         tbody.appendChild(tr);
+        if (r.stdout || r.error) {
+          var or = document.createElement('tr');
+          or.className = 'output-row';
+          or.style.display = 'none';
+          or.innerHTML = '<td colspan="6"><pre style="background:#0d0d14;color:#e8e8f0;padding:0.75rem;margin:0;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.5;border-radius:4px;white-space:pre-wrap;word-break:break-all;">' + escHtml(r.stdout || '') + (r.stdout && r.error ? '\n' : '') + escHtml(r.error || '') + '</pre></td>';
+          tbody.appendChild(or);
+        }
       });
     } else {
       comparison.style.display = 'none';

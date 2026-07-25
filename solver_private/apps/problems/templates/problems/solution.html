@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Solution #{{ solution.id }} &mdash; {{ problem.title }}{% endblock %}
 {% block head_extra %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 <style>
 .solution-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
 .solution-body { padding: 1.25rem 1.5rem; }
@@ -70,19 +73,20 @@
 
     <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Code</h6>
     <div class="code-block" style="position: relative;" onmouseenter="this.querySelector('.cpy').style.opacity='1'" onmouseleave="this.querySelector('.cpy').style.opacity='0'">
-      <button class="cpy" onclick="var t=this; navigator.clipboard.writeText(t.parentElement.querySelector('pre').textContent).then(function(){t.textContent='Copied!';setTimeout(function(){t.textContent='Copy'},1500)})" style="position:absolute;right:0.5rem;top:0.5rem;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-secondary);font-size:0.72rem;padding:0.15rem 0.5rem;border-radius:4px;cursor:pointer;opacity:0;transition:opacity 0.15s;">Copy</button>
-      <pre>{{- solution.code -}}</pre>
+      <button class="cpy" onclick="var t=this; navigator.clipboard.writeText(t.parentElement.querySelector('code').textContent).then(function(){t.textContent='Copied!';setTimeout(function(){t.textContent='Copy'},1500)})" style="position:absolute;right:0.5rem;top:0.5rem;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-secondary);font-size:0.72rem;padding:0.15rem 0.5rem;border-radius:4px;cursor:pointer;opacity:0;transition:opacity 0.15s;">Copy</button>
+      <pre><code class="language-python">{{- solution.code -}}</code></pre>
     </div>
+    <script>hljs.highlightAll();</script>
 
     {% if tc_data.results %}
     <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Test Results</h6>
     <table class="results-table">
       <thead>
-        <tr><th>#</th><th>Result</th><th>Args</th><th>Expected</th><th>Got</th></tr>
+        <tr><th>#</th><th>Result</th><th>Args</th><th>Expected</th><th>Got</th><th></th></tr>
       </thead>
       <tbody>
         {% for r in tc_data.results %}
-        <tr>
+        <tr class="tc-row">
           <td>{{ loop.index }}</td>
           {% set st = r.status or ('passed' if r.passed else 'failed') %}
           {% if st == 'passed' %}<td class="pass" style="font-weight:600;">PASS</td>
@@ -93,16 +97,28 @@
           <td>{{ r.input or '' }}</td>
           <td>{{ r.expected or '' }}</td>
           <td class="{% if st == 'failed' %}fail{% endif %}">{{ r.got or r.error or '' }}</td>
+          <td>{% if r.stdout or r.error %}<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>{% endif %}</td>
         </tr>
+        {% if r.stdout or r.error %}
+        <tr class="output-row" style="display:none;">
+          <td colspan="6"><pre style="background:#0d0d14;color:#e8e8f0;padding:0.75rem;margin:0;font-family:'JetBrains Mono',monospace;font-size:0.78rem;line-height:1.5;border-radius:4px;white-space:pre-wrap;word-break:break-all;">{{ r.stdout or '' }}{{ '\n' if r.stdout and r.error }}{{ r.error or '' }}</pre></td>
+        </tr>
+        {% endif %}
         {% endfor %}
+        <script>
+        document.querySelector('.results-table')?.addEventListener('click', function(e) {
+          var btn = e.target.closest('.output-btn');
+          if (!btn) return;
+          var tr = btn.closest('tr');
+          var or = tr && tr.nextElementSibling;
+          if (or && or.classList.contains('output-row')) {
+            or.style.display = or.style.display === 'none' ? '' : 'none';
+            btn.textContent = or.style.display === 'none' ? 'Output' : 'Close';
+          }
+        });
+        </script>
       </tbody>
     </table>
-    {% if results_stdout %}
-    <details>
-      <summary style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; margin-top: 0.75rem;">Program output</summary>
-      <div class="stdout-box">{{ results_stdout }}</div>
-    </details>
-    {% endif %}
     {% endif %}
 
     <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
