@@ -18,7 +18,9 @@
   background: #1e1e1e; border: 1px solid var(--border);
   border-radius: 8px; padding: 1rem; font-family: 'JetBrains Mono', monospace;
   font-size: 0.82rem; line-height: 1.5; overflow-x: auto; margin-bottom: 1.5rem;
+  color: #d4d4d4;
 }
+.code-block pre { margin: 0; white-space: pre-wrap; tab-size: 4; color: #d4d4d4; }
 .results-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .results-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--text-secondary); font-size: 0.75rem; font-weight: 600; border-bottom: 1px solid var(--border); }
 .results-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
@@ -56,10 +58,12 @@
         <div class="stat-value" style="color: var(--accent);">{{ solution.timing_ms }}ms</div>
         <div class="stat-label">Runtime</div>
       </div>
+      {% if solution.memory_kb %}
       <div class="stat-card">
-        <div class="stat-value" style="color: var(--accent);">{{ "{:,}".format(solution.memory_kb or 0) }} KB</div>
+        <div class="stat-value" style="color: var(--accent);">{{ "{:,}".format(solution.memory_kb) }} KB</div>
         <div class="stat-label">Memory</div>
       </div>
+      {% endif %}
       <div class="stat-card">
         <div class="stat-value" style="color: var(--text-secondary);">{{ solution.created_at.strftime('%Y-%m-%d %H:%M') if solution.created_at else 'N/A' }}</div>
         <div class="stat-label">Submitted</div>
@@ -69,7 +73,7 @@
     <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Code</h6>
     <div class="code-block" style="position: relative;" onmouseenter="this.querySelector('.cpy').style.opacity='1'" onmouseleave="this.querySelector('.cpy').style.opacity='0'">
       <button class="cpy" onclick="var t=this; navigator.clipboard.writeText(t.parentElement.querySelector('pre').textContent).then(function(){t.textContent='Copied!';setTimeout(function(){t.textContent='Copy'},1500)})" style="position:absolute;right:0.5rem;top:0.5rem;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-secondary);font-size:0.72rem;padding:0.15rem 0.5rem;border-radius:4px;cursor:pointer;opacity:0;transition:opacity 0.15s;">Copy</button>
-      <pre style="margin:0;white-space:pre;overflow-x:auto;">{{- solution.code -}}</pre>
+      <pre>{{- solution.code -}}</pre>
     </div>
 
     {% if tc_data.results %}
