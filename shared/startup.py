@@ -133,6 +133,15 @@ SEED_PROBLEMS = [
         "base_code": "class Solution:\n    def factorial(self, n: int) -> int:\n        ",
         "method_name": "factorial",
     },
+    {
+        "contest_id": 1, "problem_index": "F", "title": "Generate Primes",
+        "slug": "1/F-generate-primes", "difficulty_rating": 1100,
+        "tags": '["math", "number theory"]',
+        "description_html": "<p>Given an integer <code>n</code>, return a list of the first <code>n</code> prime numbers in ascending order.</p><p>A prime number is a natural number greater than 1 that has no positive divisors other than 1 and itself.</p><h6>Examples:</h6><ul><li>For <code>n = 5</code>, the first 5 primes are <code>[2, 3, 5, 7, 11]</code></li><li>For <code>n = 1</code>, the only prime is <code>[2]</code></li></ul><h6>Constraints:</h6><ul><li>1 &le; n &le; 100</li></ul>",
+        "url": "https://codeforces.com/problemset/problem/1/F",
+        "base_code": "class Solution:\n    def generatePrimes(self, n: int) -> List[int]:\n        ",
+        "method_name": "generatePrimes",
+    },
 ]
 
 SEED_TEST_CASES = [
@@ -217,6 +226,22 @@ SEED_TEST_CASES = [
     (5, False, '[2]', '2'),
     (5, False, '[3]', '6'),
     (5, False, '[4]', '24'),
+    # Problem 6: Generate Primes — [n] → [list of primes]
+    (6, True, '[5]', '[2, 3, 5, 7, 11]'),
+    (6, True, '[1]', '[2]'),
+    (6, False, '[2]', '[2, 3]'),
+    (6, False, '[3]', '[2, 3, 5]'),
+    (6, False, '[4]', '[2, 3, 5, 7]'),
+    (6, False, '[6]', '[2, 3, 5, 7, 11, 13]'),
+    (6, False, '[7]', '[2, 3, 5, 7, 11, 13, 17]'),
+    (6, False, '[8]', '[2, 3, 5, 7, 11, 13, 17, 19]'),
+    (6, False, '[10]', '[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]'),
+    (6, False, '[12]', '[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]'),
+    (6, False, '[15]', '[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]'),
+    (6, False, '[18]', '[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61]'),
+    (6, False, '[20]', '[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71]'),
+    (6, False, '[25]', '[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]'),
+    (6, False, '[30]', '[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113]'),
 ]
 
 
