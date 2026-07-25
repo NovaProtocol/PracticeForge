@@ -101,7 +101,19 @@
         </tr>
         {% if r.stdout or r.error %}
         <tr class="output-row" style="display:none;">
-          <td colspan="6"><pre style="background:#0d0d14;color:#e8e8f0;padding:0.75rem;margin:0;font-family:'JetBrains Mono',monospace;font-size:0.78rem;line-height:1.5;border-radius:4px;white-space:pre-wrap;word-break:break-all;">{{ r.stdout or '' }}{{ '\n' if r.stdout and r.error }}{{ r.error or '' }}</pre></td>
+          <td colspan="6">
+            <div style="background:#0d0d14;border:1px solid #2a2a3e;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:0.78rem;line-height:1.6;">
+              <div style="padding:0.35rem 0.75rem;background:#0a0a0f;border-bottom:1px solid #2a2a3e;color:#64ffda;font-size:0.72rem;">
+                <span style="color:#f92672;">bwrap</span><span style="color:#888;">@</span><span style="color:#a6e22e;">ProjectNova</span><span style="color:#888;">:</span> python3 /tmp/temp.py
+              </div>
+              <pre style="padding:0.75rem;margin:0;color:#e8e8f0;white-space:pre-wrap;word-break:break-all;">{{ r.stdout or '' }}{{ '\n' if r.stdout and r.error }}{{ r.error or '' }}</pre>
+              <div style="padding:0.35rem 0.75rem;border-top:1px solid #2a2a3e;font-size:0.72rem;">
+                <span style="color:#888;">─ Process exited — Return Code: {{ '0' if r.passed else '1' }}</span>
+                {% if r.timing_ms %} <span style="color:#888;">· Finished at {{ r.timing_ms }}ms</span>{% endif %}
+                {% if r.memory_kb %} <span style="color:#888;">· Peak memory: {{ (r.memory_kb / 1024)|round(1) if r.memory_kb > 1024 else r.memory_kb }}{{ 'MB' if r.memory_kb > 1024 else 'KB' }}</span>{% endif %}
+              </div>
+            </div>
+          </td>
         </tr>
         {% endif %}
         {% endfor %}
