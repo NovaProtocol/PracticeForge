@@ -81,7 +81,7 @@ def get_problem_method(conn, problem_id):
 
 def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> str:
     lines = [
-        "import json, sys, io",
+        "import json, sys, io, time",
         "from typing import List, Optional, Dict, Tuple, Set",
         user_code,
         "solution = Solution()",
@@ -104,6 +104,7 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
         lines.append("_r_input = " + json.dumps(inp_display))
         lines.append("_r_expected = " + json.dumps(exp_display))
         lines.append("err = ''")
+        lines.append("_t0 = time.perf_counter()")
         lines.append("try:")
         lines.append("    args = json.loads(" + json.dumps(args_str) + ")")
         lines.append("    result = method(*args)")
@@ -122,7 +123,8 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
         lines.append("    status = 'failed'")
         lines.append("_tc_stdout = _cap.getvalue()")
         lines.append("sys.stdout = _old_stdout")
-        lines.append("results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout, 'status': status})")
+        lines.append("_timing = int((time.perf_counter() - _t0) * 1000)")
+        lines.append("results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout, 'status': status, 'timing_ms': _timing})")
     lines.append("print('__SOLVER_RESULT__')")
     lines.append("print(json.dumps(results))")
     return "\n".join(lines)
