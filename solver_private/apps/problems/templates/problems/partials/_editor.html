@@ -48,12 +48,20 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   window.editor = CodeMirror.fromTextArea(textarea, {
     lineNumbers: true, autoCloseBrackets: true, matchBrackets: true,
     tabSize: 4, indentUnit: 4, mode: 'python', theme: 'material-darker',
-    indentWithTabs: false, electricChars: true,
+    indentWithTabs: false, electricChars: true, smartIndent: true,
     extraKeys: {
+      'Tab': function(cm) { cm.replaceSelection('    '); },
+      'Shift-Tab': function(cm) { cm.execCommand('indentLess'); },
       'Ctrl-Enter': function() { var b=$('run-btn'); if(b) b.click(); },
       'Cmd-Enter': function() { var b=$('run-btn'); if(b) b.click(); },
       'Ctrl-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); },
-      'Cmd-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); }
+      'Cmd-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); },
+      'Ctrl-/': function(cm) { cm.toggleComment({ lineComment: '#', blockComment: ['"""', '"""'] }); },
+      'Cmd-/': function(cm) { cm.toggleComment({ lineComment: '#', blockComment: ['"""', '"""'] }); },
+      'Ctrl-D': function(cm) { cm.execCommand('deleteLine'); },
+      'Cmd-D': function(cm) { cm.execCommand('deleteLine'); },
+      'Ctrl-S': function() { navigator.sendBeacon('/problem/' + C.contestId + '/' + C.index + '/save', new URLSearchParams({code: window.editor.getValue()})); },
+      'Cmd-S': function() { navigator.sendBeacon('/problem/' + C.contestId + '/' + C.index + '/save', new URLSearchParams({code: window.editor.getValue()})); }
     }
   });
 
