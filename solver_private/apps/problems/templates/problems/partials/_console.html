@@ -638,7 +638,7 @@
           or.className = 'output-row';
           or.style.display = 'none';
           var tcNum = parseInt(tr.dataset.tcIdx || 0) + 1;
-          var timing = r.timing_ms ? r.timing_ms + 'ms' : '';
+          var timing = r.timing_ms != null ? r.timing_ms + 'ms' : '';
           var mem = r.memory_kb ? (r.memory_kb > 1024 ? (r.memory_kb/1024).toFixed(1) + 'MB' : r.memory_kb + 'KB') : '';
           var footer = '<span style="color:#888;">\u2500 Process exited \u2014 Return Code: ' + (r.passed ? '0' : '1') + '</span>';
           if (timing) footer += ' <span style="color:#888;">\u00b7 Finished at ' + timing + '</span>';
