@@ -637,7 +637,19 @@
           var or = document.createElement('tr');
           or.className = 'output-row';
           or.style.display = 'none';
-          or.innerHTML = '<td colspan="6"><pre style="background:#0d0d14;color:#e8e8f0;padding:0.75rem;margin:0;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.5;border-radius:4px;white-space:pre-wrap;word-break:break-all;">' + escHtml(r.stdout || '') + (r.stdout && r.error ? '\n' : '') + escHtml(r.error || '') + '</pre></td>';
+          var tcNum = parseInt(tr.dataset.tcIdx || 0) + 1;
+          var timing = r.timing_ms ? r.timing_ms + 'ms' : '';
+          var mem = r.memory_kb ? (r.memory_kb > 1024 ? (r.memory_kb/1024).toFixed(1) + 'MB' : r.memory_kb + 'KB') : '';
+          var footer = '<span style="color:#888;">\u2500 Process exited \u2014 Return Code: ' + (r.passed ? '0' : '1') + '</span>';
+          if (timing) footer += ' <span style="color:#888;">\u00b7 Finished at ' + timing + '</span>';
+          if (mem) footer += ' <span style="color:#888;">\u00b7 Peak memory: ' + mem + '</span>';
+          or.innerHTML = '<td colspan="6"><div style="background:#0d0d14;border:1px solid #2a2a3e;border-radius:6px;overflow:hidden;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.6;">' +
+            '<div style="padding:0.35rem 0.75rem;background:#0a0a0f;border-bottom:1px solid #2a2a3e;color:#64ffda;font-size:0.72rem;">' +
+            '<span style="color:#f92672;">bwrap</span><span style="color:#888;">@</span><span style="color:#a6e22e;">ProjectNova</span><span style="color:#888;">:</span> python3 /tmp/temp.py' +
+            '</div>' +
+            '<pre style="padding:0.75rem;margin:0;color:#e8e8f0;white-space:pre-wrap;word-break:break-all;">' + escHtml(r.stdout || '') + (r.stdout && r.error ? '\n' : '') + escHtml(r.error || '') + '</pre>' +
+            '<div style="padding:0.35rem 0.75rem;border-top:1px solid #2a2a3e;font-size:0.72rem;">' + footer + '</div>' +
+            '</div></td>';
           tbody.appendChild(or);
         }
       });
