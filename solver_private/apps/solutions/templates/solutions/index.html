@@ -40,7 +40,7 @@
                         <td class="text-secondary">{{ solution.passed_count }}/{{ solution.total_count }}</td>
                         <td class="text-secondary">{{ solution.created_at.strftime('%Y-%m-%d') if solution.created_at else '' }}</td>
                         <td>
-                            <a href="{{ url_for('solutions_blueprint.detail', solution_id=solution.id) }}" class="btn-outline-accent btn-sm" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">View</a>
+                            <a href="/problem/{{ solution.contest_id }}/{{ solution.problem_index }}/solution/{{ solution.id }}" class="btn-outline-accent btn-sm" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">View</a>
                         </td>
                     </tr>
                     {% else %}
