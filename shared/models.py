@@ -25,6 +25,7 @@ def get_problems_with_status():
                   COUNT(s.id) AS submission_count
            FROM problems p
            LEFT JOIN solutions s ON s.problem_id = p.id
+           WHERE p.scrape_status = 'scraped'
            GROUP BY p.id
            ORDER BY p.contest_id, p.problem_index"""
     )
@@ -193,6 +194,10 @@ def get_stats():
         "by_difficulty": {r["difficulty"]: r["count"] for r in by_difficulty},
         "recent_solutions": recent,
     }
+
+
+def requeue_scrape(problem_id: int):
+    execute("UPDATE problems SET scrape_status = NULL WHERE id = %s", (problem_id,))
 
 
 def get_solved():

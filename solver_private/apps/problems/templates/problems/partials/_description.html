@@ -60,6 +60,7 @@
           {% set d = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
           <span class="badge-difficulty badge-{{ d }}" style="line-height: 1.4; font-size: 0.72rem;">{{ problem.difficulty_rating }}</span>
         {% endif %}
+        <button id="resync-btn" title="Re-scrape problem data" class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;margin-left:auto;">Resync</button>
       </div>
       <h4>{{ problem.title }}</h4>
       {% if problem.tags %}
@@ -178,4 +179,15 @@ document.querySelectorAll('.desc-tab').forEach(function(tab) {
     if (tab.dataset.tab === 'submissions') window.descriptionApi.reloadSubmissions();
   });
 });
+
+var resyncBtn = document.getElementById('resync-btn');
+if (resyncBtn) {
+  resyncBtn.addEventListener('click', function() {
+    if (!confirm('Re-sync this problem from Codeforces?')) return;
+    resyncBtn.disabled = true; resyncBtn.textContent = 'Queued';
+    fetch('/api/requeue-scrape/{{ problem.id }}', { method: 'POST' }).then(function() {
+      resyncBtn.textContent = 'Queued'; setTimeout(function() { resyncBtn.disabled = false; resyncBtn.textContent = 'Resync'; }, 3000);
+    }).catch(function() { resyncBtn.disabled = false; resyncBtn.textContent = 'Error'; });
+  });
+}
 </script>
