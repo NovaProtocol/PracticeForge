@@ -62,7 +62,7 @@
       {% endif %}
     </div>
 
-    <div class="section-header open" onclick="toggleSection('desc-text')">
+    <div class="section-header open" data-section="desc-text">
       <span>Description</span>
       <span class="chevron">▾</span>
     </div>
@@ -70,7 +70,7 @@
       {{ problem.description_html|safe }}
     </div>
 
-    <div class="section-header open" onclick="toggleSection('desc-examples')">
+    <div class="section-header open" data-section="desc-examples">
       <span>Examples</span>
       <span class="chevron">▾</span>
     </div>
@@ -96,7 +96,7 @@
       {% endfor %}
     </div>
 
-    <div class="section-header open" onclick="toggleSection('desc-constraints')">
+    <div class="section-header open" data-section="desc-constraints">
       <span>Constraints</span>
       <span class="chevron">▾</span>
     </div>
@@ -106,7 +106,7 @@
       </ul>
     </div>
 
-    <div class="section-header" onclick="toggleSection('desc-hints')">
+    <div class="section-header" data-section="desc-hints">
       <span>Hints</span>
       <span class="chevron">▾</span>
     </div>
@@ -138,13 +138,17 @@ function copyText(btn) {
     setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
   }).catch(function() {});
 }
-function toggleSection(id) {
-  var el = document.getElementById(id);
-  var hdr = el && el.previousElementSibling;
-  if (!el || !hdr) return;
-  el.classList.toggle('collapsed');
-  hdr.classList.toggle('open');
-}
+
+document.querySelectorAll('.section-header').forEach(function(hdr) {
+  hdr.addEventListener('click', function() {
+    var id = hdr.dataset.section;
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('collapsed');
+    hdr.classList.toggle('open');
+  });
+});
+
 window.descriptionApi = window.descriptionApi || {};
 window.descriptionApi.reloadSubmissions = function() {
   var el = document.getElementById('desc-submissions');
@@ -152,14 +156,14 @@ window.descriptionApi.reloadSubmissions = function() {
   fetch('/api/submissions/{{ problem.id }}').then(function(r) { return r.json(); }).then(function(subs) {
     el.innerHTML = subs.map(function(s) {
       var vc = s.verdict === 'Accepted' ? 'verdict-accepted' : 'verdict-wrong';
-      return '<div class=\"submission-item\"><span class=\"' + vc + '\">' + s.verdict + '</span>' +
-        '<span class=\"text-secondary\"> \u2014 ' + s.passed_count + '/' + s.total_count + '</span>' +
-        (s.timing_ms ? '<span class=\"text-secondary\"> \u00b7 ' + s.timing_ms + 'ms</span>' : '') +
-        (s.memory_kb ? '<span class=\"text-secondary\"> \u00b7 ' + s.memory_kb.toLocaleString() + 'KB</span>' : '') +
-        '<span class=\"text-secondary\" style=\"float:right;font-size:0.78rem;\">' + (s.created_at || '') + '</span>' +
-        '<div class=\"code-toggle\" onclick=\"this.nextElementSibling.style.display=this.nextElementSibling.style.display===\\'block\\'?\\'none\\':\\'block\\'\">View code</div>' +
-        '<pre style=\"display:none;font-size:0.78rem;margin-top:0.3rem;\">' + (s.code || '') + '</pre></div>';
-    }).join('') || '<p class=\"text-secondary\" style=\"font-size:0.85rem;padding:1rem 1.25rem;\">No submissions yet.</p>';
+      return '<div class="submission-item"><span class="' + vc + '">' + s.verdict + '</span>' +
+        '<span class="text-secondary"> \u2014 ' + s.passed_count + '/' + s.total_count + '</span>' +
+        (s.timing_ms ? '<span class="text-secondary"> \u00b7 ' + s.timing_ms + 'ms</span>' : '') +
+        (s.memory_kb ? '<span class="text-secondary"> \u00b7 ' + s.memory_kb.toLocaleString() + 'KB</span>' : '') +
+        '<span class="text-secondary" style="float:right;font-size:0.78rem;">' + (s.created_at || '') + '</span>' +
+        '<div class="code-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'block\'?\'none\':\'block\'">View code</div>' +
+        '<pre style="display:none;font-size:0.78rem;margin-top:0.3rem;">' + (s.code || '') + '</pre></div>';
+    }).join('') || '<p class="text-secondary" style="font-size:0.85rem;padding:1rem 1.25rem;">No submissions yet.</p>';
   }).catch(function() {});
 };
 document.querySelectorAll('.desc-tab').forEach(function(tab) {
