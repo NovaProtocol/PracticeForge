@@ -9,6 +9,7 @@ from shared.models import (
     get_editorial,
     get_problem_submissions,
     load_code,
+    requeue_scrape,
 )
 
 
@@ -67,3 +68,9 @@ def queue_status(queue_id: int):
 def auto_save_get(problem_id: int):
     data = load_code(problem_id)
     return jsonify({"code": data["code"] or "", "last_ran": data["last_ran"] or ""})
+
+
+@blueprint.route("/requeue-scrape/<int:problem_id>", methods=["POST"])
+def requeue_scrape_endpoint(problem_id: int):
+    requeue_scrape(problem_id)
+    return jsonify({"status": "ok"})
