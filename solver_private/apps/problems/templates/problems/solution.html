@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Solution #{{ solution.id }} &mdash; {{ problem.title }}{% endblock %}
+{% block head_extra %}
+<style>
+.solution-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+.solution-body { padding: 1.25rem 1.5rem; }
+.solution-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.75rem; text-align: center;
+}
+.stat-card .stat-value { font-size: 1.2rem; font-weight: 700; }
+.stat-card .stat-label { font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.2rem; }
+.code-block {
+  background: #1e1e1e; border: 1px solid var(--border);
+  border-radius: 8px; padding: 1rem; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; line-height: 1.5; overflow-x: auto; margin-bottom: 1.5rem;
+}
+.results-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.results-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--text-secondary); font-size: 0.75rem; font-weight: 600; border-bottom: 1px solid var(--border); }
+.results-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+.results-table tr:hover { background: var(--bg-secondary); }
+.pass { color: #4ade80; }
+.fail { color: #f87171; }
+.stdout-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; margin-top: 1rem; white-space: pre-wrap; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 960px;">
+  <div class="solution-header">
+    <div class="d-flex align-items-center mb-2" style="gap: 8px;">
+      <a href="{{ url_for('problems_blueprint.detail', contest_id=problem.contest_id, index=problem.problem_index) }}" class="tag" style="margin-bottom: 0; text-decoration: none;">{{ problem.contest_id }}{{ problem.problem_index }}</a>
+      {% if problem.difficulty_rating %}
+        {% set d = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
+        <span class="badge-difficulty badge-{{ d }}" style="font-size: 0.72rem;">{{ problem.difficulty_rating }}</span>
+      {% endif %}
+      <span class="text-secondary" style="font-size: 0.85rem;">&mdash;</span>
+      <h4 style="font-weight: 700; margin: 0;">{{ problem.title }}</h4>
+    </div>
+    <div class="d-flex align-items-center" style="gap: 8px;">
+      <span class="{% if solution.verdict == 'Accepted' %}verdict-accepted{% else %}verdict-wrong{% endif %}" style="font-size: 1rem; font-weight: 600;">{{ solution.verdict }}</span>
+      <span class="text-secondary" style="font-size: 0.85rem;">Solution #{{ solution.id }}</span>
+    </div>
+  </div>
+
+  <div class="solution-body">
+    <div class="solution-stats">
+      <div class="stat-card">
+        <div class="stat-value {% if solution.verdict == 'Accepted' %}pass{% else %}fail{% endif %}">{{ solution.passed_count }}/{{ solution.total_count }}</div>
+        <div class="stat-label">Test Cases Passed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--accent);">{{ solution.timing_ms }}ms</div>
+        <div class="stat-label">Runtime</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--accent);">{{ "{:,}".format(solution.memory_kb or 0) }} KB</div>
+        <div class="stat-label">Memory</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--text-secondary);">{{ solution.created_at.strftime('%Y-%m-%d %H:%M') if solution.created_at else 'N/A' }}</div>
+        <div class="stat-label">Submitted</div>
+      </div>
+    </div>
+
+    <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Code</h6>
+    <div class="code-block">{{ solution.code }}</div>
+
+    {% if tc_data.results %}
+    <h6 style="font-weight: 600; margin-bottom: 0.5rem;">Test Results</h6>
+    <table class="results-table">
+      <thead>
+        <tr><th>#</th><th>Status</th><th>Input</th><th>Expected</th><th>Got</th></tr>
+      </thead>
+      <tbody>
+        {% for r in tc_data.results %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td class="{% if r.passed %}pass{% else %}fail{% endif %}">{% if r.passed %}PASS{% else %}FAIL{% endif %}</td>
+          <td>{{ r.input or '' }}</td>
+          <td>{{ r.expected or '' }}</td>
+          <td class="{% if not r.passed %}fail{% endif %}">{{ r.got or r.error or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if results_stdout %}
+    <details>
+      <summary style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; margin-top: 0.75rem;">stdout</summary>
+      <div class="stdout-box">{{ results_stdout }}</div>
+    </details>
+    {% endif %}
+    {% endif %}
+
+    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+      <button id="rerun-btn" class="btn-accent btn-sm" style="padding: 0.5rem 1.5rem;">
+        <i class="fas fa-redo mr-1"></i> Re-run
+      </button>
+      <a href="{{ url_for('problems_blueprint.detail', contest_id=problem.contest_id, index=problem.problem_index) }}" class="btn-outline-accent btn-sm" style="padding: 0.5rem 1.5rem; text-decoration: none; margin-left: 8px;">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Problem
+      </a>
+      <span id="rerun-status" style="color: var(--text-secondary); font-size: 0.85rem; margin-left: 8px;"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('rerun-btn').addEventListener('click', async function() {
+  var btn = this; var status = document.getElementById('rerun-status');
+  btn.disabled = true; status.textContent = 'Queuing...';
+  try {
+    var r = await fetch('/api/re-run/{{ solution.id }}', { method: 'POST' });
+    var d = await r.json();
+    status.textContent = 'Queued (#' + d.queue_id + '). Reload to see results.';
+    setTimeout(function() { btn.disabled = false; }, 3000);
+  } catch(e) { status.textContent = 'Error: ' + e.message; btn.disabled = false; }
+});
+</script>
+{% endblock %}

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from flask import jsonify, render_template, request
 
 from apps.problems import blueprint
@@ -10,6 +12,8 @@ from shared.models import (
     get_problems_with_status,
     get_sample_cases,
     get_sample_cases_json,
+    get_solution,
+    get_solution_results,
     load_code,
     save_code,
     save_last_ran,
@@ -94,6 +98,24 @@ def queue_status(queue_id: int):
         "memory_kb": q["memory_kb"],
         "solution_id": q["solution_id"],
     })
+
+
+@blueprint.route("/problem/<int:contest_id>/<index>/solution/<int:solution_id>")
+def solution_view(contest_id: int, index: str, solution_id: int):
+    problem = get_problem(contest_id, index)
+    if not problem:
+        return render_template("404.html"), 404
+    solution = get_solution(solution_id)
+    if not solution or solution["problem_id"] != problem["id"]:
+        return render_template("404.html"), 404
+    raw = get_solution_results(solution_id)
+    tc_data = {}
+    if raw["result"] and raw["result"] != "{}":
+        try:
+            tc_data = json.loads(raw["result"])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return render_template("problems/solution.html", problem=problem, solution=solution, tc_data=tc_data, results_stdout=raw["stdout"])
 
 
 @blueprint.route("/problem/<int:contest_id>/<index>/save", methods=["POST"])

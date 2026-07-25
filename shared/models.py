@@ -106,6 +106,15 @@ def get_solution(solution_id: int):
     return query_one("SELECT * FROM solutions WHERE id = %s", (solution_id,))
 
 
+def get_solution_results(solution_id: int) -> str:
+    """Get the stored JSON result from the execution queue for a solution."""
+    row = query_one(
+        "SELECT result, stdout FROM execution_queue WHERE solution_id = %s ORDER BY id DESC LIMIT 1",
+        (solution_id,),
+    )
+    return {"result": row["result"] if row else "{}", "stdout": row["stdout"] if row else ""}
+
+
 def get_solutions_for_problem(problem_id: int):
     return query(
         """SELECT s.* FROM solutions s

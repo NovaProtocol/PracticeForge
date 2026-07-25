@@ -123,8 +123,7 @@
       {% if sub.timing_ms %}<span class="text-secondary"> · {{ sub.timing_ms }}ms</span>{% endif %}
       {% if sub.memory_kb %}<span class="text-secondary"> · {{ "{:,}".format(sub.memory_kb) }}KB</span>{% endif %}
       <span class="text-secondary" style="float: right; font-size: 0.78rem;">{{ sub.created_at.strftime('%Y-%m-%d %H:%M') if sub.created_at else '' }}</span>
-      <div class="code-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">View code</div>
-      <pre style="display: none; font-size: 0.78rem; margin-top: 0.3rem;">{{ sub.code }}</pre>
+      <a href="/problem/{{ problem.contest_id }}/{{ problem.problem_index }}/solution/{{ sub.id }}" class="btn-outline-accent btn-sm" style="padding: 0.15rem 0.6rem; font-size: 0.72rem; text-decoration: none;">View solution</a>
     </div>
     {% else %}
     <p class="text-secondary" style="font-size: 0.85rem; padding: 1rem 1.25rem;">No submissions yet.</p>
@@ -161,8 +160,7 @@ window.descriptionApi.reloadSubmissions = function() {
         (s.timing_ms ? '<span class="text-secondary"> \u00b7 ' + s.timing_ms + 'ms</span>' : '') +
         (s.memory_kb ? '<span class="text-secondary"> \u00b7 ' + s.memory_kb.toLocaleString() + 'KB</span>' : '') +
         '<span class="text-secondary" style="float:right;font-size:0.78rem;">' + (s.created_at || '') + '</span>' +
-        '<div class="code-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'block\'?\'none\':\'block\'">View code</div>' +
-        '<pre style="display:none;font-size:0.78rem;margin-top:0.3rem;">' + (s.code || '') + '</pre></div>';
+        '<a href=\"/problem/{{ problem.contest_id }}/{{ problem.problem_index }}/solution/' + s.id + '\" class=\"btn-outline-accent btn-sm" style=\"padding:0.15rem 0.6rem;font-size:0.72rem;text-decoration:none;\">View solution</a></div>';
     }).join('') || '<p class="text-secondary" style="font-size:0.85rem;padding:1rem 1.25rem;">No submissions yet.</p>';
   }).catch(function() {});
 };
