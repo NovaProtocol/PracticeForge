@@ -146,6 +146,10 @@ def run_code(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             r = subprocess.run(["python3", tmp.name], capture_output=True, text=True, timeout=timeout)
 
         elapsed = int((time.perf_counter() - start) * 1000)
+        try:
+            mem = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        except Exception:
+            mem = 0
         parsed = _parse_output(r.stdout)
         return {
             "returncode": r.returncode,
@@ -153,11 +157,12 @@ def run_code(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             "stderr": r.stderr.strip(),
             "results_json": parsed["results_json"],
             "timing_ms": elapsed,
+            "memory_kb": mem,
         }
     except subprocess.TimeoutExpired:
-        return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000, "results_json": "[]"}
+        return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000, "results_json": "[]", "memory_kb": 0}
     except Exception as e:
-        return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0, "results_json": "[]"}
+        return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0, "results_json": "[]", "memory_kb": 0}
     finally:
         try:
             os.unlink(tmp.name)
