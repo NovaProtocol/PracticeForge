@@ -235,35 +235,39 @@ def ensure_schema():
 
 
 def ensure_seed_data():
-    tc_count = query_one("SELECT COUNT(*) AS c FROM test_cases")
-    if tc_count and tc_count["c"] > 0:
-        return
+    execute("SELECT GET_LOCK('solver_seed', 10)")
+    try:
+        tc_count = query_one("SELECT COUNT(*) AS c FROM test_cases")
+        if tc_count and tc_count["c"] > 0:
+            return
 
-    problem_ids = {}
-    for p in SEED_PROBLEMS:
-        execute(
-            """INSERT IGNORE INTO problems (contest_id, problem_index, title, slug, difficulty_rating, tags, description_html, url, base_code, method_name)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            (p["contest_id"], p["problem_index"], p["title"], p["slug"],
-             p["difficulty_rating"], p["tags"], p["description_html"], p["url"],
-             p["base_code"], p["method_name"]),
-        )
-
-    for p in SEED_PROBLEMS:
-        row = query_one(
-            "SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
-            (p["contest_id"], p["problem_index"]),
-        )
-        if row:
-            problem_ids[(p["contest_id"], p["problem_index"])] = row["id"]
-
-    for problem_index, is_sample, args_json, expected_json in SEED_TEST_CASES:
-        pid = problem_ids.get((1, chr(64 + problem_index)))
-        if pid:
+        problem_ids = {}
+        for p in SEED_PROBLEMS:
             execute(
-                "INSERT INTO test_cases (problem_id, is_sample, args, expected) VALUES (%s, %s, %s, %s)",
-                (pid, is_sample, args_json, expected_json),
+                """INSERT IGNORE INTO problems (contest_id, problem_index, title, slug, difficulty_rating, tags, description_html, url, base_code, method_name)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (p["contest_id"], p["problem_index"], p["title"], p["slug"],
+                 p["difficulty_rating"], p["tags"], p["description_html"], p["url"],
+                 p["base_code"], p["method_name"]),
             )
+
+        for p in SEED_PROBLEMS:
+            row = query_one(
+                "SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
+                (p["contest_id"], p["problem_index"]),
+            )
+            if row:
+                problem_ids[(p["contest_id"], p["problem_index"])] = row["id"]
+
+        for problem_index, is_sample, args_json, expected_json in SEED_TEST_CASES:
+            pid = problem_ids.get((1, chr(64 + problem_index)))
+            if pid:
+                execute(
+                    "INSERT IGNORE INTO test_cases (problem_id, is_sample, args, expected) VALUES (%s, %s, %s, %s)",
+                    (pid, is_sample, args_json, expected_json),
+                )
+    finally:
+        execute("SELECT RELEASE_LOCK('solver_seed')")
 
 
 def run():
