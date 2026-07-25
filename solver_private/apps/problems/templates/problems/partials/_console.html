@@ -672,7 +672,9 @@
 
   // Console toggle
   document.getElementById('console-toggle').addEventListener('click', function() {
-    document.getElementById('console').classList.toggle('collapsed');
+    var panel = document.getElementById('console');
+    panel.classList.toggle('collapsed');
+    panel.style.flex = '';
   });
 
   // Console tab switching
@@ -820,6 +822,9 @@
         if (qd.error) { parsed.verdict = 'Runtime Error'; }
         else { var fail = parsed.results.some(function(r) { return !r.passed; }); parsed.verdict = fail ? 'Wrong Answer' : 'Accepted'; }
         window.consoleApi.showResult(parsed);
+        if (qd.solution_id && window.descriptionApi && window.descriptionApi.reloadSubmissions) {
+          window.descriptionApi.reloadSubmissions();
+        }
       });
     } catch (e) {
       window.consoleApi.showResult({ verdict: 'Runtime Error', error: e.message });

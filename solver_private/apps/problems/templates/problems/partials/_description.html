@@ -144,12 +144,30 @@ function toggleSection(id) {
   el.classList.toggle('hidden');
   hdr.classList.toggle('open');
 }
+window.descriptionApi = window.descriptionApi || {};
+window.descriptionApi.reloadSubmissions = function() {
+  var el = document.getElementById('desc-submissions');
+  if (!el || el.style.display === 'none') return;
+  fetch('/api/submissions/{{ problem.id }}').then(function(r) { return r.json(); }).then(function(subs) {
+    el.innerHTML = subs.map(function(s) {
+      var vc = s.verdict === 'Accepted' ? 'verdict-accepted' : 'verdict-wrong';
+      return '<div class=\"submission-item\"><span class=\"' + vc + '\">' + s.verdict + '</span>' +
+        '<span class=\"text-secondary\"> \u2014 ' + s.passed_count + '/' + s.total_count + '</span>' +
+        (s.timing_ms ? '<span class=\"text-secondary\"> \u00b7 ' + s.timing_ms + 'ms</span>' : '') +
+        (s.memory_kb ? '<span class=\"text-secondary\"> \u00b7 ' + s.memory_kb.toLocaleString() + 'KB</span>' : '') +
+        '<span class=\"text-secondary\" style=\"float:right;font-size:0.78rem;\">' + (s.created_at || '') + '</span>' +
+        '<div class=\"code-toggle\" onclick=\"this.nextElementSibling.style.display=this.nextElementSibling.style.display===\\'block\\'?\\'none\\':\\'block\\'\">View code</div>' +
+        '<pre style=\"display:none;font-size:0.78rem;margin-top:0.3rem;\">' + (s.code || '') + '</pre></div>';
+    }).join('') || '<p class=\"text-secondary\" style=\"font-size:0.85rem;padding:1rem 1.25rem;\">No submissions yet.</p>';
+  }).catch(function() {});
+};
 document.querySelectorAll('.desc-tab').forEach(function(tab) {
   tab.addEventListener('click', function() {
     document.querySelectorAll('.desc-tab').forEach(function(t) { t.classList.remove('active'); });
     tab.classList.add('active');
     document.getElementById('desc-content').style.display = tab.dataset.tab === 'description' ? 'block' : 'none';
     document.getElementById('desc-submissions').style.display = tab.dataset.tab === 'submissions' ? 'block' : 'none';
+    if (tab.dataset.tab === 'submissions') window.descriptionApi.reloadSubmissions();
   });
 });
 </script>
