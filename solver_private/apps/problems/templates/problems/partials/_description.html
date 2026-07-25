@@ -22,7 +22,7 @@
 .section-header .chevron { font-size: 0.7rem; transition: transform 0.2s; color: var(--text-secondary); }
 .section-header.open .chevron { transform: rotate(180deg); }
 .section-content { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); }
-.section-content.hidden { display: none; }
+.section-content.collapsed { display: none; }
 .sample-card {
   background: var(--bg-secondary); border: 1px solid var(--border);
   border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; position: relative;
@@ -110,7 +110,7 @@
       <span>Hints</span>
       <span class="chevron">▾</span>
     </div>
-    <div id="desc-hints" class="section-content hidden" style="font-size: 0.85rem;">
+    <div id="desc-hints" class="section-content collapsed" style="font-size: 0.85rem;">
       <p class="text-secondary" style="margin: 0;">Hint 1: Think about the problem constraints and edge cases.</p>
     </div>
   </div>
@@ -140,8 +140,9 @@ function copyText(btn) {
 }
 function toggleSection(id) {
   var el = document.getElementById(id);
-  var hdr = el.previousElementSibling;
-  el.classList.toggle('hidden');
+  var hdr = el && el.previousElementSibling;
+  if (!el || !hdr) return;
+  el.classList.toggle('collapsed');
   hdr.classList.toggle('open');
 }
 window.descriptionApi = window.descriptionApi || {};
