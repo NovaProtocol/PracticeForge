@@ -44,7 +44,7 @@
 
       <div id="result-comparison" class="result-comparison" style="display:none;">
         <table class="result-table">
-          <thead><tr><th>#</th><th>Input</th><th>Expected</th><th>Got</th></tr></thead>
+          <thead><tr><th>#</th><th>Result</th><th>Args</th><th>Expected</th><th>Got</th><th></th></tr></thead>
           <tbody id="result-table-body"></tbody>
         </table>
       </div>
@@ -604,18 +604,23 @@
     if (data.results && data.results.length > 0) {
       comparison.style.display = 'block';
       data.results.forEach(function(r, i) {
-        var pass = r.passed === true;
+        var status = r.status || (r.passed ? 'passed' : 'failed');
+        var statusLabel, statusClass;
+        switch (status) {
+          case 'passed': statusLabel = 'PASS'; statusClass = 'pass'; break;
+          case 'failed': statusLabel = 'FAIL'; statusClass = 'fail'; break;
+          case 'skipped': statusLabel = 'SKIP'; statusClass = 'info'; break;
+          case 'checked': statusLabel = 'CHECK'; statusClass = 'pass'; break;
+          default: statusLabel = status.toUpperCase(); statusClass = 'info';
+        }
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td class="' + (pass ? 'pass' : 'fail') + '" style="font-weight:600;">' + (pass ? 'PASS' : 'FAIL') + '</td>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
           '<td>' + escHtml(r.input || '') + '</td>' +
           '<td>' + escHtml(r.expected || '') + '</td>' +
-          '<td class="' + (pass ? 'pass' : 'fail') + '">' + escHtml(r.got || r.error || '') + '</td>' +
-          '<td><button class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\'">Details</button>' +
-          '<div style="display:none;font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">' +
-          (r.error ? '<div>Error: ' + escHtml(r.error) + '</div>' : '') +
-          (r.stdout ? '<div>stdout: ' + escHtml(r.stdout) + '</div>' : '') +
-          '</div></td>';
+          '<td class="' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;" onclick="var d=this.nextElementSibling;d.style.display=d.style.display===\'none\'?\'\':\'none\'">Output</button><div style="display:none;font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">' + (r.stdout ? escHtml(r.stdout) : '') + (r.error && r.stdout ? '\n' : '') + (r.error ? escHtml(r.error) : '') + '</div>' : '') + '</td>';
         tbody.appendChild(tr);
       });
     } else {
