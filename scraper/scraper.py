@@ -84,7 +84,15 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
     try:
         r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
         r.encoding = "utf-8"
-    except Exception:
+    except Exception as e:
+        print(f"  FAILED: request error — {e}", flush=True)
+        problem.status = "failed"
+        problem.last_scraped_at = datetime.now(timezone.utc)
+        return False
+
+    # Check for Cloudflare block
+    if len(r.text) < 2000 and ("cloudflare" in r.text.lower() or "just a moment" in r.text.lower()):
+        print(f"  FAILED: Cloudflare blocked (response {len(r.text)} bytes)", flush=True)
         problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
@@ -93,20 +101,22 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
 
     stmt = soup.select_one("div.problem-statement")
     if not stmt:
+        print(f"  FAILED: no problem-statement div found (page might be login-walled)", flush=True)
         problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     title_el = stmt.select_one("div.header div.title")
     if not title_el:
+        print(f"  FAILED: no title element found", flush=True)
         problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     scraped_title = title_el.text.strip()
     if problem.title.lower() not in scraped_title.lower():
+        print(f"  FAILED: title mismatch — DB='{problem.title}' vs page='{scraped_title}'", flush=True)
         problem.status = "failed"
-        print(f"  Title mismatch: '{problem.title}' vs '{scraped_title}'")
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
