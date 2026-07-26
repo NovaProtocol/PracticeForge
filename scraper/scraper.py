@@ -184,7 +184,7 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
             )
             session.add(tc)
 
-    problem.status = "scraped"
+    # Don't set status here — wait for AI enrichment to succeed
     problem.last_scraped_at = datetime.now(timezone.utc)
 
     problem_text = stmt.get_text().lower()
@@ -245,6 +245,8 @@ def ai_enrich_problem(session: Session, problem: Problem) -> bool:
         container = soup.select_one("div.problem-statement")
     if not container:
         print("  AI: could not locate problem statement container", flush=True)
+        problem.status = "failed"
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     # Preserve MathJax / TeX formulas
@@ -266,14 +268,19 @@ def ai_enrich_problem(session: Session, problem: Problem) -> bool:
 
     if not html_content.strip():
         print("  AI: empty HTML after cleaning", flush=True)
+        problem.status = "failed"
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     if not ZEN_API_KEY:
         print("  No ZEN_API_KEY set, skipping AI enrichment", flush=True)
+        problem.status = "failed"
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     if not check_token_limit(session, ESTIMATED_TOKENS_PER_CALL):
         print("  Token limit reached, skipping AI enrichment", flush=True)
+        # Don't mark as failed — it'll retry when tokens reset
         return False
 
     system_prompt = r"""You are an expert Python educational coding platform engine for high school students. Extract problem data from the HTML into this exact JSON structure:
@@ -333,11 +340,15 @@ Guidelines (Strictly Python-Centric):
         import traceback
         print(f"  AI API error: {e}", flush=True)
         traceback.print_exc()
+        problem.status = "failed"
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     content = response.choices[0].message.content
     if not content:
         print("  AI returned empty content", flush=True)
+        problem.status = "failed"
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     try:
@@ -345,6 +356,8 @@ Guidelines (Strictly Python-Centric):
     except json.JSONDecodeError as e:
         print(f"  AI JSON parse error: {e}", flush=True)
         print(f"  Raw: {content[:1000]}", flush=True)
+        problem.status = "failed"
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     total_tokens = response.usage.total_tokens
@@ -516,17 +529,15 @@ def main():
                 success = scrape_problem_detail(db, queued)
                 scrapes.append(now)
                 if success:
-                    db.commit()
                     print(f"[scraper]   Scrape OK", flush=True)
                     if len(ai_calls) < AI_RATE_LIMIT:
                         print(f"[scraper]   AI enriching...", flush=True)
                         ai_success = ai_enrich_problem(db, queued)
                         if ai_success:
                             ai_calls.append(now)
-                            db.commit()
+                        db.commit()
                     else:
                         print(f"[scraper]   AI rate limit reached, deferring enrichment", flush=True)
-                        queued.status = "scraped"
                         db.commit()
                 else:
                     db.commit()
