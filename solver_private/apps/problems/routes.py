@@ -15,8 +15,6 @@ from shared.models import (
     get_problem,
     get_problem_submissions,
     get_problems_with_status,
-    get_sample_cases,
-    get_sample_cases_json,
     get_solution,
     get_solution_results,
     load_code,
@@ -58,7 +56,27 @@ def detail(contest_id: int, index: str):
     saved_data = load_code(problem["id"])
     saved = saved_data["code"]
     last_ran = saved_data["last_ran"]
-    problem["sample_cases"] = get_sample_cases_json(problem["id"]) or get_sample_cases(problem["id"])
+    # Use AI-generated examples from examples_json column instead of test_cases table
+    examples = []
+    raw = problem.get("examples_json")
+    if isinstance(raw, str):
+        try:
+            examples = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    elif isinstance(raw, list):
+        examples = raw
+    constraints = []
+    raw_c = problem.get("constraints_json")
+    if isinstance(raw_c, str):
+        try:
+            constraints = json.loads(raw_c)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    elif isinstance(raw_c, list):
+        constraints = raw_c
+    problem["examples"] = examples
+    problem["constraints"] = constraints
     submissions = get_problem_submissions(problem["id"])
     base_code = problem.get("base_code") or "class Solution:\n    def run(self, input: str) -> str:\n        "
     return render_template("problems/detail.html", problem=problem, saved_code=saved, last_ran=last_ran, submissions=submissions, base_code=base_code)

@@ -19,7 +19,7 @@ html, body { overflow: hidden; }
 <div class="container-fluid" style="height: calc(100vh - 70px); padding-top: 0;">
   <div class="row" style="height: 100%;">
     <div class="col-lg-5 p-0" id="description-panel" style="height: 100%; border-right: 1px solid var(--border);">
-      <script>window.__sampleCases = {{ problem.sample_cases|tojson }}; window.__baseCode = {{ base_code|tojson }};</script>
+      <script>window.__sampleCases = {{ problem.examples|tojson }}; window.__baseCode = {{ base_code|tojson }};</script>
       {% include "problems/partials/_description.html" %}
     </div>
     <div class="col-lg-7 d-flex flex-column p-0" id="workspace-panel" style="height: 100%;">

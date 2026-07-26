@@ -92,14 +92,14 @@
       <span class="chevron">▾</span>
     </div>
     <div id="desc-examples" class="section-content">
-      {% for sample in problem.sample_cases or [] %}
+      {% for sample in problem.examples or [] %}
       <div class="sample-card">
-        <button class="copy-btn" data-text="{{ sample.input or sample.args or '' }}" onclick="copyText(this)">Copy</button>
+        <button class="copy-btn" data-text='{{ sample.input|tojson }}' onclick="copyText(this)">Copy</button>
         <strong style="font-size: 0.78rem; color: var(--text-secondary);">Input:</strong>
-        <pre>{{ sample.input or sample.args or '' }}</pre>
-        <button class="copy-btn" data-text="{{ sample.expected_output or sample.expected or '' }}" onclick="copyText(this)" style="top: auto; bottom: 3.5rem;">Copy</button>
+        <pre>{{ sample.input|tojson }}</pre>
+        <button class="copy-btn" data-text='{{ sample.output|tojson }}' onclick="copyText(this)" style="top: auto; bottom: 3.5rem;">Copy</button>
         <strong style="font-size: 0.78rem; color: var(--text-secondary);">Output:</strong>
-        <pre>{{ sample.expected_output or sample.expected or '' }}</pre>
+        <pre>{{ sample.output|tojson }}</pre>
       </div>
       {% endfor %}
     </div>
@@ -109,9 +109,15 @@
       <span class="chevron">▾</span>
     </div>
     <div id="desc-constraints" class="section-content" style="font-size: 0.85rem;">
+      {% if problem.constraints %}
       <ul style="padding-left: 1.25rem; margin: 0; font-size: 0.85rem;">
-        <li>1 &le; n &le; 100</li>
+        {% for c in problem.constraints %}
+        <li>{{ c }}</li>
+        {% endfor %}
       </ul>
+      {% else %}
+      <p class="text-secondary" style="font-size: 0.85rem; margin: 0;">No constraints specified.</p>
+      {% endif %}
     </div>
 
     <div class="section-header" data-section="desc-hints">
