@@ -10,16 +10,8 @@ from shared.models import (
     get_editorial,
     get_problem_submissions,
     load_code,
-    requeue_scrape,
     upsert_problem,
 )
-
-
-@blueprint.route("/sample-cases/<int:problem_id>")
-def sample_cases(problem_id: int):
-    from shared.models import get_sample_cases_json
-    cases = get_sample_cases_json(problem_id)
-    return jsonify(cases)
 
 
 @blueprint.route("/submissions/<int:problem_id>")
@@ -70,34 +62,6 @@ def queue_status(queue_id: int):
 def auto_save_get(problem_id: int):
     data = load_code(problem_id)
     return jsonify({"code": data["code"] or "", "last_ran": data["last_ran"] or ""})
-
-
-@blueprint.route("/requeue-scrape/<int:problem_id>", methods=["POST"])
-def requeue_scrape_endpoint(problem_id: int):
-    requeue_scrape(problem_id)
-    return jsonify({"status": "ok"})
-
-
-@blueprint.route("/regenerate/<int:problem_id>", methods=["POST"])
-def regenerate_problem(problem_id: int):
-    data = request.get_json() or {}
-    feedback = data.get("feedback", "")
-
-    row = query_one(
-        "SELECT id, regeneration_count FROM problems WHERE id = %s",
-        (problem_id,),
-    )
-    if not row:
-        return jsonify({"error": "not found"}), 404
-
-    if row["regeneration_count"] >= 5:
-        return jsonify({"error": "max regeneration attempts reached", "count": row["regeneration_count"]}), 400
-
-    execute(
-        "UPDATE problems SET status = 'need-regeneration', regeneration_feedback = %s, regeneration_count = regeneration_count + 1 WHERE id = %s",
-        (feedback, problem_id),
-    )
-    return jsonify({"status": "ok", "count": row["regeneration_count"] + 1})
 
 
 @blueprint.route("/problems/upload", methods=["POST"])

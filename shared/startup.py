@@ -18,19 +18,9 @@ CREATE TABLE IF NOT EXISTS problems (
     memory_limit VARCHAR(100),
     input_spec MEDIUMTEXT,
     output_spec MEDIUMTEXT,
-    notes_html MEDIUMTEXT,
-    problem_html MEDIUMTEXT,
-    status VARCHAR(20),
-    last_scraped_at TIMESTAMP NULL,
-    url VARCHAR(255),
-    regeneration_count INTEGER DEFAULT 0,
-    regeneration_feedback TEXT,
-    is_interactive BOOLEAN DEFAULT FALSE,
     examples_json JSON,
     constraints_json JSON,
-    ai_description_html MEDIUMTEXT,
-    ai_base_code TEXT,
-    ai_method_name VARCHAR(100),
+    url VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(contest_id, problem_index)
 );
@@ -89,15 +79,6 @@ CREATE TABLE IF NOT EXISTS auto_saves (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (problem_id),
     FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS api_usage (
-    id INTEGER AUTO_INCREMENT PRIMARY KEY,
-    tokens_used INTEGER DEFAULT 0,
-    window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    window_seconds INTEGER DEFAULT 18000,
-    token_limit INTEGER DEFAULT 1000000,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 """
 
