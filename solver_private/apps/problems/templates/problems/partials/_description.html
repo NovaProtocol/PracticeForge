@@ -60,7 +60,12 @@
           {% set d = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
           <span class="badge-difficulty badge-{{ d }}" style="line-height: 1.4; font-size: 0.72rem;">{{ problem.difficulty_rating }}</span>
         {% endif %}
-        <button id="resync-btn" title="Re-scrape problem data" class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;margin-left:auto;">Resync</button>
+        <div style="margin-left: auto; display: flex; gap: 4px;">
+          {% if problem.url %}
+          <a href="{{ problem.url }}" target="_blank" title="View on Codeforces" class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;text-decoration:none;"><i class="fas fa-external-link-alt"></i></a>
+          {% endif %}
+          <button id="resync-btn" title="Re-scrape problem data" class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;">Resync</button>
+        </div>
       </div>
       <h4>{{ problem.title }}</h4>
       {% if problem.tags %}
@@ -135,10 +140,23 @@
 </div>
 <script>
 function copyText(btn) {
-  navigator.clipboard.writeText(btn.dataset.text).then(function() {
-    btn.textContent = 'Copied!'; btn.classList.add('copied');
-    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
-  }).catch(function() {});
+  var text = btn.dataset.text;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        btn.textContent = 'Copied!'; btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+      }).catch(function() { fallbackCopy(text, btn); });
+    } else { fallbackCopy(text, btn); }
+  } catch(e) { fallbackCopy(text, btn); }
+}
+function fallbackCopy(text, btn) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); btn.textContent = 'Copied!'; } catch(e) {}
+  document.body.removeChild(ta);
+  setTimeout(function() { if (btn) btn.textContent = 'Copy'; }, 1500);
 }
 
 document.querySelectorAll('.section-header').forEach(function(hdr) {
