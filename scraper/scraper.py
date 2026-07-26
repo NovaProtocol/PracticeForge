@@ -218,7 +218,7 @@ def sync_from_api(session: Session) -> tuple[int, int]:
                 title=name,
                 slug=slug,
                 difficulty_rating=rating,
-                tags=json.dumps(tags),
+                tags=tags,
                 url=f"https://codeforces.com/problemset/problem/{cid}/{idx}",
                 base_code="class Solution:\n    def run(self, input: str) -> str:\n        ",
                 method_name="run",
@@ -234,8 +234,8 @@ def sync_from_api(session: Session) -> tuple[int, int]:
             if existing.difficulty_rating != rating:
                 existing.difficulty_rating = rating
                 changed = True
-            if json.loads(existing.tags or "[]") != tags:
-                existing.tags = json.dumps(tags)
+            if existing.tags != tags:
+                existing.tags = tags
                 changed = True
             if changed:
                 existing.scrape_status = None
