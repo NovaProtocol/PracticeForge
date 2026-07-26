@@ -4,7 +4,7 @@ import json
 import os
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 from bs4 import BeautifulSoup
@@ -81,7 +81,7 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
         r.encoding = "utf-8"
     except Exception:
         problem.scrape_status = "failed"
-        problem.last_scraped_at = datetime.utcnow()
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     soup = BeautifulSoup(r.text, "html.parser")
@@ -89,20 +89,20 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
     stmt = soup.select_one("div.problem-statement")
     if not stmt:
         problem.scrape_status = "failed"
-        problem.last_scraped_at = datetime.utcnow()
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     title_el = stmt.select_one("div.header div.title")
     if not title_el:
         problem.scrape_status = "failed"
-        problem.last_scraped_at = datetime.utcnow()
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     scraped_title = title_el.text.strip()
     if problem.title.lower() not in scraped_title.lower():
         problem.scrape_status = "failed"
         print(f"  Title mismatch: '{problem.title}' vs '{scraped_title}'")
-        problem.last_scraped_at = datetime.utcnow()
+        problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     # Save raw HTML
@@ -167,7 +167,7 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
             session.add(tc)
 
     problem.scrape_status = "scraped"
-    problem.last_scraped_at = datetime.utcnow()
+    problem.last_scraped_at = datetime.now(timezone.utc)
     return True
 
 
@@ -256,14 +256,14 @@ def sync_from_api(session: Session) -> tuple[int, int]:
 
 def main():
     print("[scraper] Starting...", flush=True)
-    last_api_call = datetime.utcnow() - timedelta(seconds=API_INTERVAL)
+    last_api_call = datetime.now(timezone.utc) - timedelta(seconds=API_INTERVAL)
     scrapes = []
     db = SessionLocal()
 
     while True:
         try:
             # Remove old timestamps from the window
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             cutoff = now - timedelta(seconds=SCRAPE_WINDOW)
             scrapes = [t for t in scrapes if t > cutoff]
 
