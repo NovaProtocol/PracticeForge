@@ -190,7 +190,8 @@ def check_token_limit(session: Session, estimated_tokens: int) -> bool:
         session.add(row)
         session.flush()
 
-    if (datetime.now(timezone.utc) - row.window_start).total_seconds() > row.window_seconds:
+    ws = row.window_start.replace(tzinfo=timezone.utc) if row.window_start.tzinfo is None else row.window_start
+    if (datetime.now(timezone.utc) - ws).total_seconds() > row.window_seconds:
         row.tokens_used = 0
         row.window_start = datetime.now(timezone.utc)
 
