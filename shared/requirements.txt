@@ -9,3 +9,4 @@ cachetools>=5.5
 SQLAlchemy>=2.0
 beautifulsoup4>=4.12
 openai>=1.0
+cloudscraper>=1.2

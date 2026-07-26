@@ -6,6 +6,7 @@ import re
 import time
 from datetime import datetime, timedelta, timezone
 
+import cloudscraper
 import requests
 from bs4 import BeautifulSoup
 from sqlalchemy import create_engine, func
@@ -16,9 +17,13 @@ from shared.sqlalchemy_models import ApiUsage, Base, Problem, TestCase
 # ── Config ──
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0",
     "Accept-Language": "en",
 }
+
+# Cloudflare-bypassing session for Codeforces pages
+cf_session = cloudscraper.create_scraper()
 
 API_PROBLEMS = "https://codeforces.com/api/problemset.problems"
 ZEN_API_KEY = os.environ.get("ZEN_API_KEY", "")
@@ -83,7 +88,7 @@ def extract_section(stmt, soup, section_title: str) -> str:
 def scrape_problem_detail(session: Session, problem: Problem) -> bool:
     url = f"https://codeforces.com/problemset/problem/{problem.contest_id}/{problem.problem_index}"
     try:
-        r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        r = cf_session.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
         r.encoding = "utf-8"
     except Exception as e:
         import traceback
@@ -229,7 +234,7 @@ def ai_enrich_problem(session: Session, problem: Problem) -> bool:
     # Get the raw problem HTML — use the cleaned HTML from scrape, not just text
     url = f"https://codeforces.com/problemset/problem/{problem.contest_id}/{problem.problem_index}"
     try:
-        r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        r = cf_session.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
         r.encoding = "utf-8"
     except Exception as e:
         import traceback
