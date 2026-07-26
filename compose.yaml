@@ -103,26 +103,6 @@ services:
     networks:
       - default
 
-  scraper:
-    build:
-      context: .
-      dockerfile: scraper/Dockerfile
-    container_name: solver_scraper
-    restart: unless-stopped
-    environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: "3306"
-      MYSQL_USER: ${MYSQL_USER:-root}
-      MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
-      ZEN_API_KEY: ${ZEN_API_KEY:-}
-      CF_CLEARANCE: ${CF_CLEARANCE:-}
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - default
-
 volumes:
   mysql_data:
 

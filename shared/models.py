@@ -202,6 +202,40 @@ def requeue_scrape(problem_id: int):
     execute("UPDATE problems SET status = NULL WHERE id = %s", (problem_id,))
 
 
+def upsert_problem(data: dict) -> int:
+    """Insert or update a problem from uploaded data. Returns problem id."""
+    slug = f"{data['contest_id']}/{data['problem_index']}-{data['title'].lower().replace(' ', '-')}"
+    execute(
+        """INSERT INTO problems (contest_id, problem_index, title, slug, difficulty_rating, tags,
+            base_code, method_name, description_html, time_limit, memory_limit,
+            input_spec, output_spec, examples_json, constraints_json, ai_description_html,
+            ai_base_code, ai_method_name, notes_html, url, status, is_interactive)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ready', %s)
+           ON DUPLICATE KEY UPDATE
+            title=VALUES(title), slug=VALUES(slug), difficulty_rating=VALUES(difficulty_rating),
+            tags=VALUES(tags), base_code=VALUES(base_code), method_name=VALUES(method_name),
+            description_html=VALUES(description_html), time_limit=VALUES(time_limit),
+            memory_limit=VALUES(memory_limit), input_spec=VALUES(input_spec),
+            output_spec=VALUES(output_spec), examples_json=VALUES(examples_json),
+            constraints_json=VALUES(constraints_json), ai_description_html=VALUES(ai_description_html),
+            ai_base_code=VALUES(ai_base_code), ai_method_name=VALUES(ai_method_name),
+            notes_html=VALUES(notes_html), url=VALUES(url), status='ready', is_interactive=VALUES(is_interactive)""",
+        (data["contest_id"], data["problem_index"], data["title"], slug,
+         data.get("difficulty_rating"), data.get("tags"),
+         data.get("base_code"), data.get("method_name"),
+         data.get("description_html"), data.get("time_limit"),
+         data.get("memory_limit"), data.get("input_spec"),
+         data.get("output_spec"), data.get("examples_json"),
+         data.get("constraints_json"), data.get("ai_description_html"),
+         data.get("ai_base_code"), data.get("ai_method_name"),
+         data.get("notes_html"), data.get("url"),
+         data.get("is_interactive", False)),
+    )
+    row = query_one("SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
+                     (data["contest_id"], data["problem_index"]))
+    return row["id"] if row else None
+
+
 def get_solved():
     return query(
         """SELECT DISTINCT p.contest_id, p.problem_index, p.title, p.slug, p.difficulty_rating
