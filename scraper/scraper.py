@@ -24,6 +24,10 @@ HEADERS = {
 
 # Cloudflare-bypassing session for Codeforces pages
 cf_session = cloudscraper.create_scraper()
+cf_clearance = os.environ.get("CF_CLEARANCE", "")
+if cf_clearance:
+    cf_session.cookies.set("cf_clearance", cf_clearance, domain=".codeforces.com")
+    print(f"[scraper] Using CF clearance cookie", flush=True)
 
 API_PROBLEMS = "https://codeforces.com/api/problemset.problems"
 ZEN_API_KEY = os.environ.get("ZEN_API_KEY", "")

@@ -116,6 +116,7 @@ services:
       MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
       ZEN_API_KEY: ${ZEN_API_KEY:-}
+      CF_CLEARANCE: ${CF_CLEARANCE:-}
     depends_on:
       mysql:
         condition: service_healthy
