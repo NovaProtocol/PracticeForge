@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import Session, sessionmaker
 
-from shared.sqlalchemy_models import Base, Problem, TestCase
+from shared.sqlalchemy_models import ApiUsage, Base, Problem, TestCase
 
 # ── Config ──
 
@@ -21,8 +21,13 @@ HEADERS = {
 }
 
 API_PROBLEMS = "https://codeforces.com/api/problemset.problems"
+ZEN_API_URL = "https://opencode.ai/zen/v1/chat/completions"
+ZEN_MODEL = "deepseek-v4-flash-free"
 SCRAPE_RATE = 3          # max scrapes per window
 SCRAPE_WINDOW = 60       # window in seconds
+AI_RATE_LIMIT = 10       # max AI calls per minute
+AI_WINDOW = 60           # window in seconds for AI
+ESTIMATED_TOKENS_PER_CALL = 3000
 API_INTERVAL = 600       # API refresh every 10 minutes
 RETRY_AFTER = 300        # retry failed problems after 5 minutes
 REQUEST_TIMEOUT = 30
@@ -80,7 +85,7 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
         r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
         r.encoding = "utf-8"
     except Exception:
-        problem.scrape_status = "failed"
+        problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
@@ -88,19 +93,19 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
 
     stmt = soup.select_one("div.problem-statement")
     if not stmt:
-        problem.scrape_status = "failed"
+        problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     title_el = stmt.select_one("div.header div.title")
     if not title_el:
-        problem.scrape_status = "failed"
+        problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     scraped_title = title_el.text.strip()
     if problem.title.lower() not in scraped_title.lower():
-        problem.scrape_status = "failed"
+        problem.status = "failed"
         print(f"  Title mismatch: '{problem.title}' vs '{scraped_title}'")
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
@@ -166,8 +171,166 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
             )
             session.add(tc)
 
-    problem.scrape_status = "scraped"
+    problem.status = "scraped"
     problem.last_scraped_at = datetime.now(timezone.utc)
+
+    problem_text = stmt.get_text().lower()
+    if "interactive problem" in problem_text or "protect" in problem_text:
+        problem.is_interactive = True
+
+    return True
+
+
+# ── AI Enrichment ──
+
+def check_token_limit(session: Session, estimated_tokens: int) -> bool:
+    row = session.query(ApiUsage).first()
+    if not row:
+        row = ApiUsage(tokens_used=0)
+        session.add(row)
+        session.flush()
+
+    if (datetime.now(timezone.utc) - row.window_start).total_seconds() > row.window_seconds:
+        row.tokens_used = 0
+        row.window_start = datetime.now(timezone.utc)
+
+    if row.tokens_used + estimated_tokens > row.token_limit:
+        return False
+    row.tokens_used += estimated_tokens
+    session.commit()
+    return True
+
+
+def update_tokens(session: Session, token_count: int):
+    row = session.query(ApiUsage).first()
+    if not row:
+        row = ApiUsage(tokens_used=token_count)
+        session.add(row)
+    else:
+        row.tokens_used = (row.tokens_used or 0) + token_count
+    session.commit()
+
+
+def ai_enrich_problem(session: Session, problem: Problem) -> bool:
+    text = problem.problem_html or problem.description_html or ""
+    if not text.strip():
+        return False
+
+    api_key = os.environ.get("ZEN_API_KEY", "")
+    if not api_key:
+        print("  No ZEN_API_KEY set, skipping AI enrichment", flush=True)
+        return False
+
+    if not check_token_limit(session, ESTIMATED_TOKENS_PER_CALL):
+        print("  Token limit reached, skipping AI enrichment", flush=True)
+        return False
+
+    prompt = f"""Return ONLY valid JSON. Do NOT include markdown, explanations, reasoning, or code fences.
+
+Extract from this Codeforces problem, using these EXACT field names:
+- title
+- time_limit (e.g., "1 second")
+- memory_limit (e.g., "256 megabytes")
+- ai_description_html (the problem statement, fix LaTeX: $$$ → \\( \\) and $$$$ → \\[ \\])
+- input_spec (include "Input:" prefix)
+- output_spec (include "Output:" prefix)
+- examples_json (array of {{input, output}}, at least 3)
+- constraints_json (array of strings like "1 ≤ n ≤ 10^5")
+- ai_base_code (Python class Solution with method def run(self, input: str) -> str:)
+- ai_method_name (default "run")
+- note (or empty string)
+
+Raw problem:
+{text[:6000]}"""
+
+    try:
+        r = requests.post(
+            ZEN_API_URL,
+            json={
+                "model": ZEN_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are a precise Codeforces problem parser. Return ONLY valid JSON."},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.1,
+                "max_tokens": 4096,
+            },
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            timeout=90,
+        )
+        r.raise_for_status()
+    except Exception as e:
+        print(f"  AI API error: {e}", flush=True)
+        return False
+
+    try:
+        body = r.json()
+    except json.JSONDecodeError:
+        print("  AI API returned non-JSON response", flush=True)
+        return False
+
+    usage = body.get("usage", {})
+    total_tokens = usage.get("total_tokens", 0)
+    if total_tokens:
+        update_tokens(session, total_tokens)
+
+    content = ""
+    choices = body.get("choices", [])
+    if choices:
+        content = choices[0].get("message", {}).get("content", "")
+
+    if not content:
+        print("  AI returned empty content", flush=True)
+        return False
+
+    content = content.strip()
+    if content.startswith("```"):
+        content = re.sub(r'^```(?:json)?\s*', '', content)
+        content = re.sub(r'\s*```$', '', content)
+
+    try:
+        ai_data = json.loads(content)
+    except json.JSONDecodeError as e:
+        print(f"  AI JSON parse error: {e}", flush=True)
+        return False
+
+    if not isinstance(ai_data, dict):
+        print("  AI returned non-dict JSON", flush=True)
+        return False
+
+    problem.ai_description_html = ai_data.get("ai_description_html") or ai_data.get("description_html")
+    problem.description_html = problem.ai_description_html or problem.description_html
+
+    if ai_data.get("examples_json"):
+        problem.examples_json = ai_data["examples_json"]
+    if ai_data.get("constraints_json"):
+        problem.constraints_json = ai_data["constraints_json"]
+    if ai_data.get("ai_base_code"):
+        problem.ai_base_code = ai_data["ai_base_code"]
+        if not problem.base_code or problem.base_code.startswith("class Solution:\n    def run"):
+            problem.base_code = ai_data["ai_base_code"]
+    if ai_data.get("ai_method_name"):
+        problem.ai_method_name = ai_data["ai_method_name"]
+        problem.method_name = ai_data["ai_method_name"] or "run"
+    if ai_data.get("note"):
+        problem.notes_html = ai_data["note"]
+    if ai_data.get("input_spec"):
+        problem.input_spec = ai_data["input_spec"]
+    if ai_data.get("output_spec"):
+        problem.output_spec = ai_data["output_spec"]
+
+    text_lower = text.lower()
+    if "interactive problem" in text_lower or "protect" in text_lower:
+        problem.is_interactive = True
+        problem.status = "interactive"
+    else:
+        problem.status = "scraped"
+
+    session.commit()
+    print(f"  AI enrichment OK", flush=True)
     return True
 
 
@@ -222,7 +385,7 @@ def sync_from_api(session: Session) -> tuple[int, int]:
                 url=f"https://codeforces.com/problemset/problem/{cid}/{idx}",
                 base_code="class Solution:\n    def run(self, input: str) -> str:\n        ",
                 method_name="run",
-                scrape_status=None,
+                status=None,
             )
             session.add(prob)
         else:
@@ -238,7 +401,7 @@ def sync_from_api(session: Session) -> tuple[int, int]:
                 existing.tags = tags
                 changed = True
             if changed:
-                existing.scrape_status = None
+                existing.status = None
                 existing.description_html = None
                 existing.time_limit = None
                 existing.memory_limit = None
@@ -258,6 +421,7 @@ def main():
     print("[scraper] Starting...", flush=True)
     last_api_call = datetime.now(timezone.utc) - timedelta(seconds=API_INTERVAL)
     scrapes = []
+    ai_calls = []
     db = SessionLocal()
 
     while True:
@@ -267,14 +431,22 @@ def main():
             cutoff = now - timedelta(seconds=SCRAPE_WINDOW)
             scrapes = [t for t in scrapes if t > cutoff]
 
+            # Remove old AI timestamps from the window
+            ai_cutoff = now - timedelta(seconds=AI_WINDOW)
+            ai_calls = [t for t in ai_calls if t > ai_cutoff]
+
             # Try to scrape a queued problem
             retry_cutoff = now - timedelta(seconds=RETRY_AFTER)
             queued = (
                 db.query(Problem)
                 .filter(
-                    (Problem.scrape_status == None)
+                    (Problem.status == None)
                     | (
-                        (Problem.scrape_status == "failed")
+                        (Problem.status == "failed")
+                        & (Problem.last_scraped_at <= retry_cutoff)
+                    )
+                    | (
+                        (Problem.status == "need-regeneration")
                         & (Problem.last_scraped_at <= retry_cutoff)
                     )
                 )
@@ -283,17 +455,48 @@ def main():
             )
 
             if queued and len(scrapes) < SCRAPE_RATE:
-                print(f"[scraper] Scraping {queued.contest_id}/{queued.problem_index} — {queued.title}", flush=True)
+                is_regen = queued.status == "need-regeneration"
+                print(f"[scraper] {'Re-generating' if is_regen else 'Scraping'} {queued.contest_id}/{queued.problem_index} — {queued.title}", flush=True)
                 success = scrape_problem_detail(db, queued)
                 scrapes.append(now)
                 if success:
                     db.commit()
-                    print(f"[scraper]   OK", flush=True)
+                    print(f"[scraper]   Scrape OK", flush=True)
+                    if len(ai_calls) < AI_RATE_LIMIT:
+                        print(f"[scraper]   AI enriching...", flush=True)
+                        ai_success = ai_enrich_problem(db, queued)
+                        if ai_success:
+                            ai_calls.append(now)
+                            db.commit()
+                    else:
+                        print(f"[scraper]   AI rate limit reached, deferring enrichment", flush=True)
+                        queued.status = "scraped"
+                        db.commit()
                 else:
                     db.commit()
-                    print(f"[scraper]   FAILED", flush=True)
+                    print(f"[scraper]   Scrape FAILED", flush=True)
                 time.sleep(1.5)
                 continue
+
+            # Check if there are scraped-but-not-AI-enriched problems
+            if len(ai_calls) < AI_RATE_LIMIT:
+                needs_ai = (
+                    db.query(Problem)
+                    .filter(
+                        Problem.status == "scraped",
+                        Problem.ai_description_html == None,
+                        Problem.problem_html != None,
+                    )
+                    .order_by(Problem.id)
+                    .first()
+                )
+                if needs_ai:
+                    print(f"[scraper] AI enriching {needs_ai.contest_id}/{needs_ai.problem_index} — {needs_ai.title}", flush=True)
+                    ai_success = ai_enrich_problem(db, needs_ai)
+                    if ai_success:
+                        ai_calls.append(now)
+                    time.sleep(1.5)
+                    continue
 
             # Check if API refresh is due
             if (now - last_api_call).total_seconds() >= API_INTERVAL:

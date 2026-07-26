@@ -115,6 +115,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-root}
       MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
+      ZEN_API_KEY: ${ZEN_API_KEY:-}
     depends_on:
       mysql:
         condition: service_healthy

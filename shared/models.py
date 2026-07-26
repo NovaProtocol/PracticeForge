@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+from datetime import datetime, timedelta
 
 from shared.db import execute, query, query_one
 
@@ -25,7 +26,8 @@ def get_problems_with_status():
                   COUNT(s.id) AS submission_count
            FROM problems p
            LEFT JOIN solutions s ON s.problem_id = p.id
-           WHERE p.scrape_status = 'scraped'
+            WHERE p.status = 'scraped'
+              AND p.is_interactive = FALSE
            GROUP BY p.id
            ORDER BY p.contest_id, p.problem_index"""
     )
@@ -197,7 +199,7 @@ def get_stats():
 
 
 def requeue_scrape(problem_id: int):
-    execute("UPDATE problems SET scrape_status = NULL WHERE id = %s", (problem_id,))
+    execute("UPDATE problems SET status = NULL WHERE id = %s", (problem_id,))
 
 
 def get_solved():
@@ -237,6 +239,26 @@ def create_custom_test_case(problem_id: int, input_data: str, expected_output: s
 def delete_custom_test_case(tc_id: int) -> bool:
     execute("DELETE FROM test_cases WHERE id = %s", (tc_id,))
     return True
+
+
+def update_tokens(token_count: int) -> bool:
+    row = query_one("SELECT * FROM api_usage WHERE id = %s", (1,))
+    if not row:
+        execute(
+            "INSERT INTO api_usage (id, tokens_used, window_start) VALUES (1, %s, NOW())",
+            (token_count,),
+        )
+        return True
+    window_end = row["window_start"] + timedelta(seconds=row["window_seconds"])
+    if datetime.now() > window_end:
+        execute(
+            "UPDATE api_usage SET tokens_used = %s, window_start = NOW() WHERE id = 1",
+            (token_count,),
+        )
+        return True
+    new_total = (row["tokens_used"] or 0) + token_count
+    execute("UPDATE api_usage SET tokens_used = %s WHERE id = 1", (new_total,))
+    return new_total <= (row["token_limit"] or 1000000)
 
 
 

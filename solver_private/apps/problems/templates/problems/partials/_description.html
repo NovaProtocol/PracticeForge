@@ -64,7 +64,7 @@
           {% if problem.url %}
           <a href="{{ problem.url }}" target="_blank" title="View on Codeforces" class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;text-decoration:none;"><i class="fas fa-external-link-alt"></i></a>
           {% endif %}
-          <button id="resync-btn" title="Re-scrape problem data" class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;">Resync</button>
+          <button id="regenerate-btn" title="Regenerate AI solution" class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;">Regenerate</button>
         </div>
       </div>
       <h4>{{ problem.title }}</h4>
@@ -138,6 +138,37 @@
     {% endfor %}
   </div>
 </div>
+
+<div id="regenerate-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+  <div class="modal-card" style="background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; max-width:440px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <h4 style="margin-bottom:1rem; font-size:1rem;">Regenerate Solution</h4>
+    <p class="text-secondary" style="font-size:0.82rem; margin-bottom:1rem;">Request AI to regenerate the base code and test cases for this problem.</p>
+    <div style="margin-bottom:0.75rem;">
+      <label class="d-block" style="font-size:0.82rem; margin-bottom:0.5rem; font-weight:500;">Reason for regeneration:</label>
+      <label class="d-block" style="font-size:0.82rem; cursor:pointer; margin-bottom:0.4rem;">
+        <input type="radio" name="regen-reason" value="Solution not working" checked> Solution not working
+      </label>
+      <label class="d-block" style="font-size:0.82rem; cursor:pointer; margin-bottom:0.4rem;">
+        <input type="radio" name="regen-reason" value="Test cases fail"> Test cases fail
+      </label>
+      <label class="d-block" style="font-size:0.82rem; cursor:pointer; margin-bottom:0.4rem;">
+        <input type="radio" name="regen-reason" value="Base code errors"> Base code errors
+      </label>
+      <label class="d-block" style="font-size:0.82rem; cursor:pointer; margin-bottom:0.4rem;">
+        <input type="radio" name="regen-reason" value="Other"> Other
+      </label>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label class="d-block" style="font-size:0.82rem; margin-bottom:0.3rem; font-weight:500;">What's wrong?</label>
+      <textarea id="regen-feedback" class="form-control" rows="3" style="font-size:0.82rem; resize:vertical;" placeholder="Describe the issue..."></textarea>
+    </div>
+    <div class="d-flex justify-content-end" style="gap:8px;">
+      <button id="regen-cancel" class="btn-outline-accent btn-sm" style="font-size:0.82rem; padding:0.35rem 1rem;">Cancel</button>
+      <button id="regen-submit" class="btn-accent btn-sm" style="font-size:0.82rem; padding:0.35rem 1.2rem;">Submit</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function copyText(btn) {
   var text = btn.dataset.text;
@@ -195,14 +226,49 @@ document.querySelectorAll('.desc-tab').forEach(function(tab) {
   });
 });
 
-var resyncBtn = document.getElementById('resync-btn');
-if (resyncBtn) {
-  resyncBtn.addEventListener('click', function() {
-    if (!confirm('Re-sync this problem from Codeforces?')) return;
-    resyncBtn.disabled = true; resyncBtn.textContent = 'Queued';
-    fetch('/api/requeue-scrape/{{ problem.id }}', { method: 'POST' }).then(function() {
-      resyncBtn.textContent = 'Queued'; setTimeout(function() { resyncBtn.disabled = false; resyncBtn.textContent = 'Resync'; }, 3000);
-    }).catch(function() { resyncBtn.disabled = false; resyncBtn.textContent = 'Error'; });
+var regenerateBtn = document.getElementById('regenerate-btn');
+var regenModal = document.getElementById('regenerate-modal');
+var regenCancel = document.getElementById('regen-cancel');
+var regenSubmit = document.getElementById('regen-submit');
+var regenFeedback = document.getElementById('regen-feedback');
+
+if (regenerateBtn) {
+  regenerateBtn.addEventListener('click', function() {
+    regenModal.style.display = 'flex';
+  });
+}
+if (regenCancel) {
+  regenCancel.addEventListener('click', function() {
+    regenModal.style.display = 'none';
+  });
+}
+regenModal.addEventListener('click', function(e) {
+  if (e.target === regenModal) regenModal.style.display = 'none';
+});
+if (regenSubmit) {
+  regenSubmit.addEventListener('click', function() {
+    var reason = document.querySelector('input[name="regen-reason"]:checked');
+    var reasonText = reason ? reason.value : 'Solution not working';
+    var feedback = (regenFeedback.value || '').trim();
+    var full = reasonText;
+    if (feedback) full += ': ' + feedback;
+    regenSubmit.disabled = true;
+    regenSubmit.textContent = 'Sending...';
+    fetch('/api/regenerate/{{ problem.id }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback: full })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      regenModal.style.display = 'none';
+      if (data.error) { alert('Error: ' + data.error); }
+      else { regenerateBtn.textContent = 'Queued'; regenerateBtn.disabled = true; setTimeout(function() { regenerateBtn.disabled = false; regenerateBtn.textContent = 'Regenerate'; }, 5000); }
+      regenSubmit.disabled = false;
+      regenSubmit.textContent = 'Submit';
+    }).catch(function() {
+      alert('Failed to send request');
+      regenSubmit.disabled = false;
+      regenSubmit.textContent = 'Submit';
+    });
   });
 }
 </script>
