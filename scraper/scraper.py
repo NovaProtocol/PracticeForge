@@ -239,10 +239,8 @@ def ai_enrich_problem(session: Session, problem: Problem) -> bool:
 
     soup = BeautifulSoup(r.text, "html.parser")
 
-    # Use the same container selection as the test script
-    container = soup.select_one("body > div#body > div#content > div.content-style > div.problem-statement")
-    if not container:
-        container = soup.select_one("div.problemindexholder div.ttypography div")
+    # Use robust container selection matching scrape_problem_detail
+    container = soup.select_one("div.problemindexholder")
     if not container:
         container = soup.select_one("div.problem-statement")
     if not container:
