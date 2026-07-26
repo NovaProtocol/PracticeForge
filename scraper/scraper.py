@@ -21,8 +21,9 @@ HEADERS = {
 }
 
 API_PROBLEMS = "https://codeforces.com/api/problemset.problems"
-ZEN_API_URL = "https://opencode.ai/zen/v1/chat/completions"
-ZEN_MODEL = "deepseek-v4-flash-free"
+ZEN_API_KEY = os.environ.get("ZEN_API_KEY", "")
+ZEN_BASE_URL = "https://opencode.ai/zen/go/v1"
+ZEN_MODEL = "deepseek-v4-flash"
 SCRAPE_RATE = 3          # max scrapes per window
 SCRAPE_WINDOW = 60       # window in seconds
 AI_RATE_LIMIT = 10       # max AI calls per minute
@@ -225,12 +226,51 @@ def update_tokens(session: Session, token_count: int):
 
 
 def ai_enrich_problem(session: Session, problem: Problem) -> bool:
-    text = problem.problem_html or problem.description_html or ""
-    if not text.strip():
+    # Get the raw problem HTML — use the cleaned HTML from scrape, not just text
+    url = f"https://codeforces.com/problemset/problem/{problem.contest_id}/{problem.problem_index}"
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        r.encoding = "utf-8"
+    except Exception as e:
+        import traceback
+        print(f"  AI fetch error: {e}", flush=True)
+        traceback.print_exc()
         return False
 
-    api_key = os.environ.get("ZEN_API_KEY", "")
-    if not api_key:
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    # Use the same container selection as the test script
+    container = soup.select_one("body > div#body > div#content > div.content-style > div.problem-statement")
+    if not container:
+        container = soup.select_one("div.problemindexholder div.ttypography div")
+    if not container:
+        container = soup.select_one("div.problem-statement")
+    if not container:
+        print("  AI: could not locate problem statement container", flush=True)
+        return False
+
+    # Preserve MathJax / TeX formulas
+    for script_el in container.select("script[type='math/tex']"):
+        latex_text = f"${script_el.string}$"
+        script_el.replace_with(soup.new_string(latex_text))
+    for script_el in container.select("script[type='math/tex; mode=display']"):
+        latex_text = f"$${script_el.string}$$"
+        script_el.replace_with(soup.new_string(latex_text))
+    for span_el in container.select(".MathJax"):
+        math_script = span_el.find("script", {"type": "math/tex"})
+        if math_script:
+            span_el.replace_with(soup.new_string(f"${math_script.string}$"))
+
+    for element in container.select("style, .alert, .diff-notifier"):
+        element.decompose()
+
+    html_content = str(container)
+
+    if not html_content.strip():
+        print("  AI: empty HTML after cleaning", flush=True)
+        return False
+
+    if not ZEN_API_KEY:
         print("  No ZEN_API_KEY set, skipping AI enrichment", flush=True)
         return False
 
@@ -238,115 +278,109 @@ def ai_enrich_problem(session: Session, problem: Problem) -> bool:
         print("  Token limit reached, skipping AI enrichment", flush=True)
         return False
 
-    prompt = f"""Return ONLY valid JSON. Do NOT include markdown, explanations, reasoning, or code fences.
+    system_prompt = r"""You are an expert Python educational coding platform engine for high school students. Extract problem data from the HTML into this exact JSON structure:
+{
+  "title": "",
+  "time_limit": "",
+  "memory_limit": "",
+  "input": "",
+  "output": "",
+  "description": "",
+  "input_specification": "",
+  "output_specification": "",
+  "examples": [
+    {
+      "input": [],
+      "output": 0
+    }
+  ],
+  "constraints": [],
+  "hints": [],
+  "is_interactive": false,
+  "base_code": "",
+  "solution_code": "",
+  "generator_code": ""
+}
 
-Extract from this Codeforces problem, using these EXACT field names:
-- title
-- time_limit (e.g., "1 second")
-- memory_limit (e.g., "256 megabytes")
-- ai_description_html (the problem statement, fix LaTeX: $$$ → \\( \\) and $$$$ → \\[ \\])
-- input_spec (include "Input:" prefix)
-- output_spec (include "Output:" prefix)
-- examples_json (array of {{input, output}}, at least 3)
-- constraints_json (array of strings like "1 ≤ n ≤ 10^5")
-- ai_base_code (Python class Solution with method def run(self, input: str) -> str:)
-- ai_method_name (default "run")
-- note (or empty string)
-
-Raw problem:
-{text[:6000]}"""
+Guidelines (Strictly Python-Centric):
+1. MATH CONVERSION: Ensure all mathematical variables and expressions are cleanly formatted using standard LaTeX (e.g., $n$, $n \times m$, $998\,244\,353$) so they render properly on the frontend.
+2. DESCRIPTION: Rewrite the problem description so it reads like a clean, standalone coding challenge (like LeetCode). Strip out all competitive programming I/O boilerplate (e.g., ignore mentions of "the first line contains t test cases", "standard input", or raw stream reading). Focus entirely on explaining the core logical task using the input variables provided to the function.
+3. CONSTRAINTS: Bulleted list of constraints inferred or stated.
+4. HINTS: Python-friendly logic tips and algorithmic hints.
+5. IS_INTERACTIVE: Set to true if the problem requires real-time interaction (flushing stdout/reading queries interactively), otherwise false.
+6. EXAMPLES: Parse raw sample test cases into an array (`examples`). NEVER use newline strings (`\n`). Every individual test case must have its inputs fully parsed into native JSON types (integers, floats, lists, or lists of lists matching the problem parameters, excluding the global test case count $t$), and the output must be cast to its correct primitive type.
+7. BASE_CODE: Provide a friendly LeetCode-style starter code for students. Do NOT use a generic `parsed_input: list`. Instead, write explicit parameter names with clear type hints matching the problem's inputs (e.g., `def run(self, h: int, n: int, damage: list, cooldown: list) -> int:`).
+   Example template style:
+   class Solution:
+       def run(self, h: int, n: int, damage: list, cooldown: list) -> int:
+           # Write your code here
+           pass
+8. SOLUTION_CODE: Provide the working reference solution matching the base code signature for student review when stuck.
+9. GENERATOR_CODE: Provide a Python script (using the random module) that dynamically generates valid test cases conforming to the problem's constraints. It should output a string or list representing test cases.
+10. Return ONLY pure JSON."""
 
     try:
-        r = requests.post(
-            ZEN_API_URL,
-            json={
-                "model": ZEN_MODEL,
-                "messages": [
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": 0.1,
-                "max_tokens": 4096,
-            },
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "User-Agent": "SolveSpace/1.0",
-            },
-            timeout=(15, 300),
+        from openai import OpenAI
+        client = OpenAI(api_key=ZEN_API_KEY, base_url=ZEN_BASE_URL)
+        response = client.chat.completions.create(
+            model=ZEN_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": html_content},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.0,
         )
-        r.raise_for_status()
     except Exception as e:
         import traceback
         print(f"  AI API error: {e}", flush=True)
         traceback.print_exc()
         return False
 
-    try:
-        body = r.json()
-    except json.JSONDecodeError:
-        print(f"  AI API returned non-JSON response ({r.status_code}), body: {r.text[:500]}", flush=True)
-        return False
-
-    usage = body.get("usage", {})
-    total_tokens = usage.get("total_tokens", 0)
-    if total_tokens:
-        update_tokens(session, total_tokens)
-
-    content = ""
-    choices = body.get("choices", [])
-    if choices:
-        content = choices[0].get("message", {}).get("content", "")
-
+    content = response.choices[0].message.content
     if not content:
-        print(f"  AI returned empty content. Full response: {json.dumps(body)[:2000]}", flush=True)
+        print("  AI returned empty content", flush=True)
         return False
-
-    content = content.strip()
-    if content.startswith("```"):
-        content = re.sub(r'^```(?:json)?\s*', '', content)
-        content = re.sub(r'\s*```$', '', content)
 
     try:
         ai_data = json.loads(content)
     except json.JSONDecodeError as e:
         print(f"  AI JSON parse error: {e}", flush=True)
+        print(f"  Raw: {content[:1000]}", flush=True)
         return False
 
-    if not isinstance(ai_data, dict):
-        print("  AI returned non-dict JSON", flush=True)
-        return False
+    total_tokens = response.usage.total_tokens
+    if total_tokens:
+        update_tokens(session, total_tokens)
+    print(f"  AI enrichment OK ({total_tokens} tokens)", flush=True)
 
-    problem.ai_description_html = ai_data.get("ai_description_html") or ai_data.get("description_html")
-    problem.description_html = problem.ai_description_html or problem.description_html
+    # Map AI fields to our schema
+    problem.ai_description_html = ai_data.get("description") or ""
+    if problem.ai_description_html:
+        problem.description_html = problem.ai_description_html
+    problem.time_limit = ai_data.get("time_limit") or problem.time_limit
+    problem.memory_limit = ai_data.get("memory_limit") or problem.memory_limit
+    problem.input_spec = ai_data.get("input_specification") or ai_data.get("input") or ""
+    problem.output_spec = ai_data.get("output_specification") or ai_data.get("output") or ""
+    if ai_data.get("examples"):
+        problem.examples_json = ai_data["examples"]
+    if ai_data.get("constraints"):
+        problem.constraints_json = ai_data["constraints"]
+    if ai_data.get("base_code"):
+        problem.ai_base_code = ai_data["base_code"]
+        problem.base_code = ai_data["base_code"]
+    if ai_data.get("solution_code"):
+        problem.ai_method_name = "run"
 
-    if ai_data.get("examples_json"):
-        problem.examples_json = ai_data["examples_json"]
-    if ai_data.get("constraints_json"):
-        problem.constraints_json = ai_data["constraints_json"]
-    if ai_data.get("ai_base_code"):
-        problem.ai_base_code = ai_data["ai_base_code"]
-        if not problem.base_code or problem.base_code.startswith("class Solution:\n    def run"):
-            problem.base_code = ai_data["ai_base_code"]
-    if ai_data.get("ai_method_name"):
-        problem.ai_method_name = ai_data["ai_method_name"]
-        problem.method_name = ai_data["ai_method_name"] or "run"
-    if ai_data.get("note"):
-        problem.notes_html = ai_data["note"]
-    if ai_data.get("input_spec"):
-        problem.input_spec = ai_data["input_spec"]
-    if ai_data.get("output_spec"):
-        problem.output_spec = ai_data["output_spec"]
-
-    text_lower = text.lower()
-    if "interactive problem" in text_lower or "protect" in text_lower:
+    # Detect interactive
+    text_lower = html_content.lower()
+    if ai_data.get("is_interactive") or "interactive problem" in text_lower or "protect" in text_lower:
         problem.is_interactive = True
         problem.status = "interactive"
     else:
         problem.status = "scraped"
 
     session.commit()
-    print(f"  AI enrichment OK", flush=True)
     return True
 
 
