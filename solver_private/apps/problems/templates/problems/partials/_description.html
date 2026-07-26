@@ -66,6 +66,12 @@
       {% if problem.tags %}
         <div class="tags-row">{% for tag in problem.tags %}<span class="tag" style="margin-bottom: 0; font-size: 0.72rem;">{{ tag }}</span>{% endfor %}</div>
       {% endif %}
+      {% if problem.time_limit or problem.memory_limit %}
+        <div class="d-flex align-items-center mt-1" style="gap: 12px; font-size: 0.78rem; color: var(--text-secondary);">
+          {% if problem.time_limit %}<span><i class="far fa-clock mr-1"></i>{{ problem.time_limit|replace('time limit per test', '') }}</span>{% endif %}
+          {% if problem.memory_limit %}<span><i class="fas fa-memory mr-1"></i>{{ problem.memory_limit|replace('memory limit per test', '') }}</span>{% endif %}
+        </div>
+      {% endif %}
     </div>
 
     <div class="section-header open" data-section="desc-text">
