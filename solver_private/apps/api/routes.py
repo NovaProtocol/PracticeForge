@@ -11,6 +11,7 @@ from shared.models import (
     get_problem_submissions,
     load_code,
     requeue_scrape,
+    upsert_problem,
 )
 
 
@@ -97,3 +98,15 @@ def regenerate_problem(problem_id: int):
         (feedback, problem_id),
     )
     return jsonify({"status": "ok", "count": row["regeneration_count"] + 1})
+
+
+@blueprint.route("/problems/upload", methods=["POST"])
+def upload_problem():
+    data = request.get_json()
+    if not data or "contest_id" not in data or "problem_index" not in data or "title" not in data:
+        return jsonify({"error": "missing required fields: contest_id, problem_index, title"}), 400
+    try:
+        pid = upsert_problem(data)
+        return jsonify({"status": "ok", "id": pid})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
