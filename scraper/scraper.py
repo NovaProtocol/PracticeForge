@@ -85,14 +85,16 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
         r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
         r.encoding = "utf-8"
     except Exception as e:
+        import traceback
         print(f"  FAILED: request error — {e}", flush=True)
+        traceback.print_exc()
         problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     # Check for Cloudflare block
     if len(r.text) < 2000 and ("cloudflare" in r.text.lower() or "just a moment" in r.text.lower()):
-        print(f"  FAILED: Cloudflare blocked (response {len(r.text)} bytes)", flush=True)
+        print(f"  FAILED: Cloudflare blocked (HTTP {r.status_code}, response {len(r.text)} bytes)", flush=True)
         problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
@@ -101,14 +103,14 @@ def scrape_problem_detail(session: Session, problem: Problem) -> bool:
 
     stmt = soup.select_one("div.problem-statement")
     if not stmt:
-        print(f"  FAILED: no problem-statement div found (page might be login-walled)", flush=True)
+        print(f"  FAILED: no problem-statement div found (HTTP {r.status_code}, response {len(r.text)} bytes)", flush=True)
         problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
 
     title_el = stmt.select_one("div.header div.title")
     if not title_el:
-        print(f"  FAILED: no title element found", flush=True)
+        print(f"  FAILED: no title element found (HTTP {r.status_code})", flush=True)
         problem.status = "failed"
         problem.last_scraped_at = datetime.now(timezone.utc)
         return False
@@ -274,13 +276,15 @@ Raw problem:
         )
         r.raise_for_status()
     except Exception as e:
+        import traceback
         print(f"  AI API error: {e}", flush=True)
+        traceback.print_exc()
         return False
 
     try:
         body = r.json()
     except json.JSONDecodeError:
-        print("  AI API returned non-JSON response", flush=True)
+        print(f"  AI API returned non-JSON response ({r.status_code}), body: {r.text[:500]}", flush=True)
         return False
 
     usage = body.get("usage", {})
@@ -351,9 +355,17 @@ def sync_from_api(session: Session) -> tuple[int, int]:
     """Fetch the full problemset API and sync to DB. Returns (new, updated)."""
     try:
         r = requests.get(API_PROBLEMS, headers=HEADERS, timeout=30)
+        r.raise_for_status()
         data = r.json()
+    except json.JSONDecodeError:
+        import traceback
+        print(f"[api] Non-JSON response ({r.status_code}), body: {r.text[:500]}", flush=True)
+        traceback.print_exc()
+        return 0, 0
     except Exception as e:
-        print(f"[api] Request failed: {e}")
+        import traceback
+        print(f"[api] Request failed: {e}", flush=True)
+        traceback.print_exc()
         return 0, 0
 
     if data.get("status") != "OK":
