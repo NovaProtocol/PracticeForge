@@ -3,6 +3,7 @@ from __future__ import annotations
 from flask import jsonify, request
 
 from apps.api import blueprint
+from shared.db import execute, query_one
 from shared.models import (
     create_custom_test_case,
     delete_custom_test_case,
@@ -74,3 +75,25 @@ def auto_save_get(problem_id: int):
 def requeue_scrape_endpoint(problem_id: int):
     requeue_scrape(problem_id)
     return jsonify({"status": "ok"})
+
+
+@blueprint.route("/regenerate/<int:problem_id>", methods=["POST"])
+def regenerate_problem(problem_id: int):
+    data = request.get_json() or {}
+    feedback = data.get("feedback", "")
+
+    row = query_one(
+        "SELECT id, regeneration_count FROM problems WHERE id = %s",
+        (problem_id,),
+    )
+    if not row:
+        return jsonify({"error": "not found"}), 404
+
+    if row["regeneration_count"] >= 5:
+        return jsonify({"error": "max regeneration attempts reached", "count": row["regeneration_count"]}), 400
+
+    execute(
+        "UPDATE problems SET status = 'need-regeneration', regeneration_feedback = %s, regeneration_count = regeneration_count + 1 WHERE id = %s",
+        (feedback, problem_id),
+    )
+    return jsonify({"status": "ok", "count": row["regeneration_count"] + 1})

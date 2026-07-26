@@ -26,9 +26,17 @@ class Problem(Base):
     output_spec = Column(Text(length=16777215))
     notes_html = Column(Text(length=16777215))
     problem_html = Column(Text(length=16777215))
-    scrape_status = Column(String(20))
+    status = Column(String(20))
     last_scraped_at = Column(DateTime)
     url = Column(String(255))
+    regeneration_count = Column(Integer, default=0)
+    regeneration_feedback = Column(Text)
+    is_interactive = Column(Boolean, default=False)
+    examples_json = Column(JSON)
+    constraints_json = Column(JSON)
+    ai_description_html = Column(Text(length=16777215))
+    ai_base_code = Column(Text)
+    ai_method_name = Column(String(100))
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
     __table_args__ = (UniqueConstraint("contest_id", "problem_index"),)
@@ -97,4 +105,15 @@ class AutoSave(Base):
     problem_id = Column(Integer, ForeignKey("problems.id", ondelete="CASCADE"), primary_key=True)
     code = Column(Text, nullable=False)
     last_ran = Column(Text)
+    updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+
+class ApiUsage(Base):
+    __tablename__ = "api_usage"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tokens_used = Column(Integer, default=0)
+    window_start = Column(DateTime, server_default=func.current_timestamp())
+    window_seconds = Column(Integer, default=18000)
+    token_limit = Column(Integer, default=1000000)
     updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
