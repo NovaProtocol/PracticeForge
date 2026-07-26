@@ -389,7 +389,7 @@ Guidelines (Strictly Python-Centric):
         problem.is_interactive = True
         problem.status = "interactive"
     else:
-        problem.status = "scraped"
+        problem.status = "ready"
 
     session.commit()
     return True
@@ -550,7 +550,7 @@ def main():
                 needs_ai = (
                     db.query(Problem)
                     .filter(
-                        Problem.status == "scraped",
+                        Problem.status == "ready",
                         Problem.ai_description_html == None,
                         Problem.problem_html != None,
                     )

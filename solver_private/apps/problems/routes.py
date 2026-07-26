@@ -264,7 +264,7 @@ def test_single(problem_id: int):
 @blueprint.route("/api/test-all", methods=["POST"])
 def test_all():
     rows = db_query(
-        "SELECT id, examples_json, ai_base_code, base_code, status, title FROM problems WHERE status = 'scraped' AND is_interactive = FALSE AND examples_json IS NOT NULL"
+        "SELECT id, examples_json, ai_base_code, base_code, status, title FROM problems WHERE status = 'ready' AND is_interactive = FALSE AND examples_json IS NOT NULL"
     )
     all_results = []
     for row in rows:
@@ -302,7 +302,7 @@ def test_all():
 @blueprint.route("/api/test-and-fix", methods=["POST"])
 def test_and_fix():
     rows = db_query(
-        "SELECT id, examples_json, ai_base_code, base_code, status, title FROM problems WHERE status = 'scraped' AND is_interactive = FALSE AND examples_json IS NOT NULL"
+        "SELECT id, examples_json, ai_base_code, base_code, status, title FROM problems WHERE status = 'ready' AND is_interactive = FALSE AND examples_json IS NOT NULL"
     )
     all_results = []
     for row in rows:

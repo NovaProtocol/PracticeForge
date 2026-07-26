@@ -26,7 +26,7 @@ def get_problems_with_status():
                   COUNT(s.id) AS submission_count
            FROM problems p
            LEFT JOIN solutions s ON s.problem_id = p.id
-            WHERE p.status = 'scraped'
+            WHERE p.status = 'ready'
               AND p.is_interactive = FALSE
            GROUP BY p.id
            ORDER BY p.contest_id, p.problem_index"""
