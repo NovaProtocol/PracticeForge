@@ -82,7 +82,7 @@ def get_all_test_cases_json(problem_id: int):
 
 def get_sample_cases_json(problem_id: int):
     return query(
-        "SELECT id, args, expected FROM test_cases WHERE problem_id = %s AND is_sample = TRUE AND args IS NOT NULL ORDER BY id",
+        "SELECT * FROM test_cases WHERE problem_id = %s AND is_sample = TRUE AND args IS NOT NULL ORDER BY id",
         (problem_id,),
     )
 
