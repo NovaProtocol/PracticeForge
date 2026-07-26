@@ -262,7 +262,6 @@ Raw problem:
             json={
                 "model": ZEN_MODEL,
                 "messages": [
-                    {"role": "system", "content": "You are a precise Codeforces problem parser. Return ONLY valid JSON."},
                     {"role": "user", "content": prompt},
                 ],
                 "temperature": 0.1,
@@ -271,8 +270,10 @@ Raw problem:
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "SolveSpace/1.0",
             },
-            timeout=90,
+            timeout=(15, 300),
         )
         r.raise_for_status()
     except Exception as e:
@@ -298,7 +299,7 @@ Raw problem:
         content = choices[0].get("message", {}).get("content", "")
 
     if not content:
-        print("  AI returned empty content", flush=True)
+        print(f"  AI returned empty content. Full response: {json.dumps(body)[:2000]}", flush=True)
         return False
 
     content = content.strip()
