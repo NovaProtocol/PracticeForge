@@ -74,3 +74,12 @@ def upload_problem():
         return jsonify({"status": "ok", "id": pid})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@blueprint.route("/problems/exists/<int:contest_id>/<index>")
+def problem_exists(contest_id: int, index: str):
+    row = query_one(
+        "SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
+        (contest_id, index),
+    )
+    return jsonify({"exists": row is not None, "id": row["id"] if row else None})
