@@ -62,8 +62,11 @@ class CodeforcesScraper:
                 payload = self.uploader.build_payload(cf_data, ai_data)
                 pid = self.uploader.upload(payload)
                 if pid:
-                    self.db.mark_uploaded(cid, idx)
                     ok += 1
+                    if self.uploader.verify_upload(payload):
+                        self.db.mark_uploaded(cid, idx)
+                    else:
+                        log.warn(f"Upload verification failed for {cid}/{idx}, will retry next run")
                 else:
                     self.db.mark(cid, idx, status="upload-failed")
 

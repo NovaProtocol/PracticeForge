@@ -49,3 +49,33 @@ class Uploader:
         except Exception as e:
             log.error(f"Upload error: {e}")
         return None
+
+    def verify_upload(self, data: dict) -> bool:
+        """Verify uploaded data matches what's stored on the server."""
+        cid = data["contest_id"]
+        idx = data["problem_index"]
+        try:
+            r = requests.get(f"{API_BASE}/api/problems/{cid}/{idx}", timeout=15)
+            if r.status_code != 200:
+                log.error(f"Verify failed — server returned {r.status_code}")
+                return False
+            stored = r.json()
+        except Exception as e:
+            log.error(f"Verify request failed: {e}")
+            return False
+
+        # Check key fields match
+        checks = [
+            ("title", data["title"], stored.get("title")),
+            ("difficulty_rating", data.get("difficulty_rating"), stored.get("difficulty_rating")),
+            ("time_limit", data.get("time_limit"), stored.get("time_limit")),
+            ("memory_limit", data.get("memory_limit"), stored.get("memory_limit")),
+        ]
+        all_ok = True
+        for field, expected, got in checks:
+            if expected != got:
+                log.error(f"  Verify mismatch — {field}: expected={expected!r}, got={got!r}")
+                all_ok = False
+        if all_ok:
+            log.info(f"  Verify OK — {cid}/{idx} data matches server")
+        return all_ok
