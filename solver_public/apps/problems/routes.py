@@ -11,6 +11,8 @@ def _sanitize_html(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup.find_all("script"):
         tag.decompose()
+    for tag in soup.find_all("style"):
+        tag.decompose()
     return str(soup)
 
 
