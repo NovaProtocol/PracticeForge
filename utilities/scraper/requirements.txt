@@ -1,0 +1,5 @@
+selenium>=4.0
+webdriver-manager>=4.0
+requests>=2.32
+beautifulsoup4>=4.12
+openai>=1.0

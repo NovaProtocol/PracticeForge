@@ -8,3 +8,5 @@ venv/
 docs/
 .agents/
 test_zone/
+utilities/scraper/*.db
+utilities/scraper/browser_profile/
