@@ -152,16 +152,34 @@ def run_code(contest_id: int, index: str):
     return jsonify({"queue_id": qid, "status": "queued"})
 
 
+@blueprint.route("/brute-force/<int:contest_id>/<index>", methods=["POST"])
+def brute_force(contest_id: int, index: str):
+    try:
+        problem = get_problem(contest_id, index)
+        if not problem:
+            return jsonify({"error": "not found"}), 404
+        code = request.form.get("code", "")
+        method_name = problem.get("method_name") or "run"
+        save_last_ran(problem["id"], code)
+        qid = _queue_execution(problem["id"], code, method_name, "brute_force")
+        return jsonify({"queue_id": qid, "status": "queued"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @blueprint.route("/submit/<int:contest_id>/<index>", methods=["POST"])
 def submit_code(contest_id: int, index: str):
-    problem = get_problem(contest_id, index)
-    if not problem:
-        return jsonify({"error": "not found"}), 404
-    code = request.form.get("code", "")
-    method_name = problem.get("method_name") or "run"
-    save_last_ran(problem["id"], code)
-    qid = _queue_execution(problem["id"], code, method_name, "submit")
-    return jsonify({"queue_id": qid, "status": "queued"})
+    try:
+        problem = get_problem(contest_id, index)
+        if not problem:
+            return jsonify({"error": "not found"}), 404
+        code = request.form.get("code", "")
+        method_name = problem.get("method_name") or "run"
+        save_last_ran(problem["id"], code)
+        qid = _queue_execution(problem["id"], code, method_name, "submit_brute")
+        return jsonify({"queue_id": qid, "status": "queued"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @blueprint.route("/queue-status/<int:queue_id>")

@@ -480,8 +480,10 @@
   function switchTab(idx) {
     saveCurrentCase();
     document.querySelectorAll('#tc-tabs .tc-tab').forEach(function(t) {
-      t.classList.toggle('active', parseInt(t.dataset.idx, 10) === idx);
+      t.classList.remove('active');
     });
+    var target = document.querySelector('#tc-tabs .tc-tab[data-idx="' + idx + '"]');
+    if (target) target.classList.add('active');
     loadCase(idx);
   }
 
@@ -490,6 +492,7 @@
     var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
     var maxIdx = 0;
     tabs.forEach(function(t) {
+      t.classList.remove('active');
       var n = parseInt(t.dataset.idx, 10);
       if (n > maxIdx) maxIdx = n;
     });
@@ -514,6 +517,7 @@
     tabEl.remove();
     var remaining = document.querySelectorAll('#tc-tabs .tc-tab');
     if (remaining.length > 0) {
+      remaining.forEach(function(t) { t.classList.remove('active'); });
       var first = remaining[0];
       first.classList.add('active');
       loadCase(parseInt(first.dataset.idx, 10));
@@ -602,12 +606,20 @@
     var comparison = document.getElementById('result-comparison');
     tbody.onclick = function(e) {
       var btn = e.target.closest('.output-btn');
-      if (!btn) return;
-      var tr = btn.closest('tr');
-      var or = tr && tr.nextElementSibling;
-      if (or && or.classList.contains('output-row')) {
-        or.style.display = or.style.display === 'none' ? '' : 'none';
-        btn.textContent = or.style.display === 'none' ? 'Output' : 'Close';
+      if (btn) {
+        var tr = btn.closest('tr');
+        var or = tr && tr.nextElementSibling;
+        if (or && or.classList.contains('output-row')) {
+          or.style.display = or.style.display === 'none' ? '' : 'none';
+          btn.textContent = or.style.display === 'none' ? 'Output' : 'Close';
+        }
+        return;
+      }
+      var addBtn = e.target.closest('.add-tc-btn');
+      if (addBtn) {
+        var input = addBtn.dataset.args;
+        var expected = addBtn.dataset.expected;
+        addTestCaseFromResult(input, expected);
       }
     };
 
@@ -625,13 +637,14 @@
         }
         var tr = document.createElement('tr');
         tr.dataset.tcIdx = i;
+        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-args="' + escHtml(r.input) + '" data-expected="' + escHtml(r.expected || '') + '">+TC</button>' : '';
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
           '<td>' + escHtml(r.input || '') + '</td>' +
           '<td>' + escHtml(r.expected || '') + '</td>' +
           '<td class="' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
-          '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + '</td>';
+          '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
         tbody.appendChild(tr);
         if (r.stdout || r.error) {
           var or = document.createElement('tr');
@@ -806,6 +819,29 @@
   }
   initTestCase(0);
 
+  function addTestCaseFromResult(args, expected) {
+    saveCurrentCase();
+    var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
+    var maxIdx = 0;
+    tabs.forEach(function(t) {
+      t.classList.remove('active');
+      var n = parseInt(t.dataset.idx, 10);
+      if (n > maxIdx) maxIdx = n;
+    });
+    var newIdx = maxIdx + 1;
+    var tab = document.createElement('div');
+    tab.className = 'tc-tab active';
+    tab.dataset.idx = newIdx;
+    tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close">&times;</button>';
+    var addBtn = document.getElementById('tc-add');
+    addBtn.parentNode.insertBefore(tab, addBtn);
+    testCases.push({ idx: newIdx, args: args, expected: expected || '' });
+    loadCase(newIdx);
+    var panel = document.getElementById('console');
+    if (panel.classList.contains('collapsed')) panel.classList.remove('collapsed');
+    document.querySelector('.console-tab[data-tab="testcase"]').click();
+  }
+
   function pollQueue(queueId, callback) {
     var attempts = 0;
     var poll = setInterval(async function() {
@@ -837,6 +873,28 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
+      });
+      var data = await r.json();
+      window.consoleApi.appendLog('> Queued (#' + data.queue_id + ')', 'info');
+      pollQueue(data.queue_id, function(qd) {
+        var parsed = { verdict: 'Runtime Error', timing_ms: qd.timing_ms, memory_kb: qd.memory_kb, results: [], stdout: '', error: qd.error };
+        try { var jd = JSON.parse(qd.result); parsed.results = jd.results || []; parsed.stdout = jd.stdout || ''; } catch(e) {}
+        if (qd.error) { parsed.verdict = 'Runtime Error'; }
+        else { var fail = parsed.results.some(function(r) { return !r.passed; }); parsed.verdict = fail ? 'Wrong Answer' : 'Accepted'; }
+        window.consoleApi.showResult(parsed);
+      });
+    } catch (e) {
+      window.consoleApi.showResult({ verdict: 'Runtime Error', error: e.message });
+    }
+  };
+
+  window.__consoleRunBruteForce = async function(code, contestId, index) {
+    window.consoleApi.showSpinner('Brute forcing...');
+    try {
+      var r = await fetch('/api/brute-force/' + contestId + '/' + index, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ code: code })
       });
       var data = await r.json();
       window.consoleApi.appendLog('> Queued (#' + data.queue_id + ')', 'info');
