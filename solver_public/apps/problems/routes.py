@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 from flask import render_template
+from bs4 import BeautifulSoup
 
 from apps.problems import blueprint
 from shared.models import get_problems_with_status, get_all_tags, get_problem, load_code, get_solutions_for_problem
+
+
+def _sanitize_html(html: str) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup.find_all("script"):
+        tag.decompose()
+    return str(soup)
 
 
 @blueprint.route("/")
@@ -27,6 +35,8 @@ def detail(contest_id: int, index: str):
     problem = get_problem(contest_id, index)
     if not problem:
         return render_template("404.html"), 404
+    raw_desc = problem.get("description_html") or ""
+    problem["description_html"] = _sanitize_html(raw_desc)
     saved = load_code(problem["id"])
     problem_solutions = get_solutions_for_problem(problem["id"])
     return render_template("public/detail.html", problem=problem, saved_code=saved, solutions=problem_solutions)
