@@ -79,11 +79,11 @@ def get_problem_method(conn, problem_id):
         return row["method_name"] if row and row.get("method_name") else "run"
 
 
-def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> str:
+def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict]) -> str:
     lines = [
         "import json, sys, io, time, traceback",
         "from typing import List, Optional, Dict, Tuple, Set",
-        user_code,
+        f"exec(compile(open({json.dumps(user_code_path)}).read(), {json.dumps(user_code_path)}, 'exec'))",
         "solution = Solution()",
         "method = getattr(solution, " + json.dumps(method_name) + ")",
         "results = []",
@@ -140,7 +140,7 @@ def _parse_output(stdout: str) -> dict:
     return result
 
 
-def run_code(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
+def run_code(wrapper_code: str, user_code_path: str | None = None, timeout: int = TIMEOUT) -> dict:
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
     try:
         tmp.write(wrapper_code)
@@ -179,23 +179,32 @@ def run_code(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             os.unlink(tmp.name)
         except OSError:
             pass
+        if user_code_path:
+            try:
+                os.unlink(user_code_path)
+            except OSError:
+                pass
 
 
-def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
+def run_bwrap(wrapper_code: str, user_code_path: str | None = None, timeout: int = TIMEOUT) -> dict:
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
     try:
         tmp.write(wrapper_code)
         tmp.close()
         os.chmod(tmp.name, 0o644)
 
-        cmd = [BWRAP, "--unshare-user", "--unshare-net", "--unshare-ipc", "--unshare-pid",
+        bwrap_args = [BWRAP, "--unshare-user", "--unshare-net", "--unshare-ipc", "--unshare-pid",
                "--die-with-parent", "--ro-bind", "/usr", "/usr",
                "--ro-bind", "/usr/local", "/usr/local",
                "--ro-bind", "/lib", "/lib",
                "--ro-bind", "/lib64", "/lib64",
                "--dev", "/dev",
-               "--ro-bind", tmp.name, tmp.name,
-               "--chdir", "/", "/usr/local/bin/python3", tmp.name]
+               "--ro-bind", tmp.name, tmp.name]
+        if user_code_path:
+            bwrap_args.extend(["--ro-bind", user_code_path, user_code_path])
+        bwrap_args.extend(["--chdir", "/", "/usr/local/bin/python3", tmp.name])
+
+        cmd = bwrap_args
 
         start = time.perf_counter()
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -209,7 +218,7 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
         if r.returncode != 0:
             err = r.stderr.lower()
             if "operation not permitted" in err or "namespace" in err or "cannot" in err:
-                return run_code(wrapper_code, timeout)
+                return run_code(wrapper_code, user_code_path, timeout)
 
         parsed = _parse_output(r.stdout)
         return {
@@ -221,7 +230,7 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             "memory_kb": mem,
         }
     except OSError:
-        return run_code(wrapper_code, timeout)
+        return run_code(wrapper_code, user_code_path, timeout)
     except subprocess.TimeoutExpired:
         return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000}
     except Exception as e:
@@ -231,6 +240,11 @@ def run_bwrap(wrapper_code: str, timeout: int = TIMEOUT) -> dict:
             os.unlink(tmp.name)
         except OSError:
             pass
+        if user_code_path:
+            try:
+                os.unlink(user_code_path)
+            except OSError:
+                pass
 
 
 def create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, memory_kb):
@@ -266,8 +280,16 @@ def process_entry(conn, entry):
         mark_failed(conn, qid, "No test cases found")
         return
 
-    wrapper = build_wrapper(code, method_name, test_cases)
-    result = run_bwrap(wrapper)
+    user_code_path = f"/tmp/solver_user_{qid}.py"
+    try:
+        with open(user_code_path, "w") as f:
+            f.write(code)
+    except OSError as e:
+        mark_failed(conn, qid, f"Failed to write user code: {e}")
+        return
+
+    wrapper = build_wrapper(user_code_path, method_name, test_cases)
+    result = run_bwrap(wrapper, user_code_path)
 
     if result["returncode"] != 0:
         mark_failed(conn, qid, result["stderr"] or result["stdout"])
