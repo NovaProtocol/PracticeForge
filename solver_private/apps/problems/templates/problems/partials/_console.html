@@ -807,17 +807,23 @@
   initTestCase(0);
 
   function pollQueue(queueId, callback) {
+    var attempts = 0;
     var poll = setInterval(async function() {
+      attempts++;
       try {
         var r = await fetch('/api/queue-status/' + queueId);
+        if (!r.ok) { clearInterval(poll); if (callback) callback({ status: 'failed', error: 'Queue not found' }); return; }
         var d = await r.json();
         if (d.status === 'completed' || d.status === 'failed') {
           clearInterval(poll);
           if (callback) callback(d);
         } else if (d.status === 'running') {
           window.consoleApi.appendLog('> Running...', 'info');
+        } else if (attempts > 120) {
+          clearInterval(poll);
+          if (callback) callback({ status: 'failed', error: 'Timed out' });
         }
-      } catch(e) { clearInterval(poll); }
+      } catch(e) { clearInterval(poll); if (callback) callback({ status: 'failed', error: e.message }); }
     }, 1000);
   }
 

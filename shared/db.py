@@ -52,4 +52,6 @@ def execute(sql: str, params: tuple = ()) -> int:
     sql2, params2 = _convert(sql, params)
     with _Session.begin() as sess:
         result = sess.execute(text(sql2), params2)
+        if result.lastrowid is not None:
+            return result.lastrowid
         return result.rowcount

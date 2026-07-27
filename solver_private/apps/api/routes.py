@@ -132,12 +132,11 @@ def get_solution_api(solution_id: int):
 # ── Code execution ──
 
 def _queue_execution(problem_id: int, code: str, method_name: str, exec_type: str, test_cases_json: str = "[]") -> int:
-    execute(
+    return execute(
         """INSERT INTO execution_queue (problem_id, code, method_name, test_cases_json, exec_type, status)
            VALUES (%s, %s, %s, %s, %s, 'queued')""",
         (problem_id, code, method_name, test_cases_json, exec_type),
     )
-    return query_one("SELECT LAST_INSERT_ID() AS id")["id"]
 
 
 @blueprint.route("/run/<int:contest_id>/<index>", methods=["POST"])
