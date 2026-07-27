@@ -134,7 +134,7 @@
       <span class="{% if sub.verdict == 'Accepted' %}verdict-accepted{% else %}verdict-wrong{% endif %}">{{ sub.verdict }}</span>
       <span class="text-secondary"> — {{ sub.passed_count }}/{{ sub.total_count }}</span>
       {% if sub.timing_ms %}<span class="text-secondary"> · {{ sub.timing_ms }}ms</span>{% endif %}
-      {% if sub.memory_kb %}<span class="text-secondary"> · {{ "{:,}".format(sub.memory_kb) }}KB</span>{% endif %}
+      {% if sub.memory_kb %}<span class="text-secondary"> · {% if sub.memory_kb > 1024 %}{{ "%.1f"|format(sub.memory_kb / 1024) }} MB{% else %}{{ "{:,}".format(sub.memory_kb) }} KB{% endif %}</span>{% endif %}
       <span class="text-secondary" style="float: right; font-size: 0.78rem;">{{ sub.created_at.strftime('%Y-%m-%d %H:%M') if sub.created_at else '' }}</span>
       <a href="/problem/{{ problem.contest_id }}/{{ problem.problem_index }}/solution/{{ sub.id }}" class="btn-outline-accent btn-sm" style="padding: 0.15rem 0.6rem; font-size: 0.72rem; text-decoration: none;">View solution</a>
     </div>
@@ -185,7 +185,7 @@ window.descriptionApi.reloadSubmissions = function() {
       return '<div class="submission-item"><span class="' + vc + '">' + s.verdict + '</span>' +
         '<span class="text-secondary"> \u2014 ' + s.passed_count + '/' + s.total_count + '</span>' +
         (s.timing_ms ? '<span class="text-secondary"> \u00b7 ' + s.timing_ms + 'ms</span>' : '') +
-        (s.memory_kb ? '<span class="text-secondary"> \u00b7 ' + s.memory_kb.toLocaleString() + 'KB</span>' : '') +
+        (s.memory_kb ? '<span class="text-secondary"> \u00b7 ' + (s.memory_kb > 1024 ? (s.memory_kb/1024).toFixed(1) + 'MB' : s.memory_kb.toLocaleString() + 'KB') + '</span>' : '') +
         '<span class="text-secondary" style="float:right;font-size:0.78rem;">' + (s.created_at || '') + '</span>' +
         '<a href="/problem/{{ problem.contest_id }}/{{ problem.problem_index }}/solution/' + s.id + '" class="btn-outline-accent btn-sm" style="padding:0.15rem 0.6rem;font-size:0.72rem;text-decoration:none;">View solution</a></div>';
     }).join('') || '<p class="text-secondary" style="font-size:0.85rem;padding:1rem 1.25rem;">No submissions yet.</p>';
