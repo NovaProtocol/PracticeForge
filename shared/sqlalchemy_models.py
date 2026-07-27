@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, JSON, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
@@ -24,10 +22,12 @@ class Problem(Base):
     memory_limit = Column(String(100))
     input_spec = Column(Text(length=16777215))
     output_spec = Column(Text(length=16777215))
-    notes_html = Column(Text(length=16777215))
-    url = Column(String(255))
     examples_json = Column(JSON)
     constraints_json = Column(JSON)
+    solution_code = Column(Text)
+    generator_code = Column(Text)
+    hints = Column(JSON)
+    url = Column(String(255))
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
     __table_args__ = (UniqueConstraint("contest_id", "problem_index"),)
