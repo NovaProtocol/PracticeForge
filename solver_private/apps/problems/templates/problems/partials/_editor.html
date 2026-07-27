@@ -60,8 +60,8 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
       'Cmd-/': function(cm) { cm.toggleComment({ lineComment: '#', blockComment: ['"""', '"""'] }); },
       'Ctrl-D': function(cm) { cm.execCommand('deleteLine'); },
       'Cmd-D': function(cm) { cm.execCommand('deleteLine'); },
-      'Ctrl-S': function() { navigator.sendBeacon('/problem/' + C.contestId + '/' + C.index + '/save', new URLSearchParams({code: window.editor.getValue()})); },
-      'Cmd-S': function() { navigator.sendBeacon('/problem/' + C.contestId + '/' + C.index + '/save', new URLSearchParams({code: window.editor.getValue()})); }
+      'Ctrl-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); },
+      'Cmd-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); }
     }
   });
 
@@ -102,7 +102,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   window.editor.on('change', function() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function() {
-      navigator.sendBeacon('/problem/' + C.contestId + '/' + C.index + '/save', new URLSearchParams({code: window.editor.getValue()}));
+      navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()}));
     }, 500);
   });
 
