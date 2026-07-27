@@ -784,7 +784,11 @@
   });
 
   // Load sample test cases from server-embedded data
-  var sampleCases = (window.__sampleCases || []).map(function(tc) { return { args: tc.input, expected: tc.output || tc.expected || '' }; });
+  var sampleCases = (window.__sampleCases || []).map(function(tc) {
+    var args = tc.input;
+    if (typeof args !== 'string') args = JSON.stringify(args);
+    return { args: args, expected: tc.output || tc.expected || '' };
+  });
   if (sampleCases.length > 0) {
     testCases = [];
     document.querySelectorAll('#tc-tabs .tc-tab').forEach(function(t) { t.remove(); });
