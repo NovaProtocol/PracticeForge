@@ -148,6 +148,9 @@ function setView(mode) {
 document.getElementById('view-cards')?.addEventListener('click', () => setView('cards'));
 document.getElementById('view-list')?.addEventListener('click', () => setView('list'));
 
-loadProblems();
+loadProblems().catch(function(e) {
+  console.error('loadProblems failed:', e);
+  document.getElementById('problem-list').innerHTML = '<div class="loading" style="width:100%;color:#f87171;">Error: ' + e.message + '</div>';
+});
 </script>
 {% endblock %}
