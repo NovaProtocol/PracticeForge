@@ -2,6 +2,7 @@ import json
 
 from .config import AI_KEY, AI_MODEL, AI_URL
 from . import log
+from .tokens import check_and_track
 
 
 class AIEnricher:
@@ -21,6 +22,12 @@ class AIEnricher:
     def enrich(self, problem_text: str) -> dict | None:
         if not AI_KEY:
             log.warn("ZEN_API_KEY not set — skipping AI enrichment")
+            return None
+
+        # Rough estimate: ~4 chars per token for input + output
+        estimated = max(1000, (len(problem_text) // 4) * 3)
+        if not check_and_track(estimated):
+            log.warn("Token limit hit — skipping AI enrichment")
             return None
 
         prompt = (
@@ -43,8 +50,12 @@ class AIEnricher:
             if not content:
                 log.error("AI returned empty response")
                 return None
-            tokens = resp.usage.total_tokens if resp.usage else 0
-            log.info(f"AI OK ({tokens} tokens)")
+
+            # Update with actual token count
+            actual = resp.usage.total_tokens if resp.usage else estimated
+            check_and_track(actual - estimated)  # correct the estimate
+
+            log.info(f"AI OK ({actual} tokens)")
             return json.loads(content)
         except Exception as e:
             log.error(f"AI request failed: {e}")
