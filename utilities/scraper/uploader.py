@@ -36,6 +36,10 @@ class Uploader:
             "output_spec": ai_data.get("output_specification", ""),
             "examples_json": json.dumps(ai_data.get("examples", [])),
             "constraints_json": json.dumps(ai_data.get("constraints", [])),
+            # Reference data (stored but not displayed yet)
+            "solution_code": ai_data.get("solution_code", ""),
+            "generator_code": ai_data.get("generator_code", ""),
+            "hints": json.dumps(ai_data.get("hints", [])),
         }
 
     def upload(self, data: dict) -> int | None:
