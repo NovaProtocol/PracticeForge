@@ -3,12 +3,13 @@ from __future__ import annotations
 from flask import render_template
 
 from apps.solutions import blueprint
-from shared.models import get_solution
+from shared.models import get_solution, get_solutions
 
 
 @blueprint.route("/solutions/")
 def index():
-    return render_template("solutions/index.html")
+    solutions = get_solutions()
+    return render_template("solutions/index.html", solutions=solutions)
 
 
 @blueprint.route("/solution/<int:solution_id>/")

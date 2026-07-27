@@ -9,10 +9,11 @@ from shared.db import execute, query, query_one
 from shared.models import (
     create_custom_test_case,
     delete_custom_test_case,
+    get_all_tags,
     get_editorial,
     get_problem,
     get_problem_submissions,
-    get_problems_with_status,
+    get_problems_summary,
     get_solution,
     get_solution_results,
     get_solutions,
@@ -27,8 +28,7 @@ from shared.models import (
 
 @blueprint.route("/problems")
 def list_problems():
-    problems = get_problems_with_status()
-    return jsonify(problems)
+    return jsonify(get_problems_summary())
 
 
 @blueprint.route("/problems/<int:contest_id>/<index>")
