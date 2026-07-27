@@ -2,7 +2,7 @@ import json
 
 from .config import AI_KEY, AI_MODEL, AI_URL
 from . import log
-from .tokens import check_and_track
+from .tokens import record
 
 SYSTEM_PROMPT = r"""You are an expert Python educational coding platform engine for high school students. Extract problem data from the HTML into this exact JSON structure:
 {
@@ -65,8 +65,6 @@ class AIEnricher:
             log.warn("ZEN_API_KEY not set — skipping AI enrichment")
             return None
 
-        estimated = max(1000, (len(problem_text) // 4) * 3)
-        check_and_track(estimated)
 
         log.info(f"Sending to AI ({len(problem_text)} chars)")
         try:
@@ -84,10 +82,10 @@ class AIEnricher:
                 log.error("AI returned empty response")
                 return None
 
-            actual = resp.usage.total_tokens if resp.usage else estimated
-            check_and_track(actual - estimated)
-
-            log.info(f"AI OK ({actual} tokens)")
+            tokens = resp.usage.total_tokens if resp.usage else 0
+            if tokens:
+                record(tokens)
+            log.info(f"AI OK ({tokens} tokens)")
             return json.loads(content)
         except Exception as e:
             log.error(f"AI request failed: {e}")
