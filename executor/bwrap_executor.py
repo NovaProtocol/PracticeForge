@@ -81,7 +81,7 @@ def get_problem_method(conn, problem_id):
 
 def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> str:
     lines = [
-        "import json, sys, io, time",
+        "import json, sys, io, time, traceback",
         "from typing import List, Optional, Dict, Tuple, Set",
         user_code,
         "solution = Solution()",
@@ -118,7 +118,7 @@ def build_wrapper(user_code: str, method_name: str, test_cases: list[dict]) -> s
             lines.append("    passed = True")
         lines.append("except Exception as _ex:")
         lines.append("    got = json.dumps(str(_ex))")
-        lines.append("    err = repr(_ex)")
+        lines.append("    err = traceback.format_exc()")
         lines.append("    passed = False")
         lines.append("    status = 'failed'")
         lines.append("_tc_stdout = _cap.getvalue()")
