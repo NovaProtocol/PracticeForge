@@ -9,17 +9,26 @@ from pymysql.cursors import DictCursor
 _local = threading.local()
 
 
+def _create_conn():
+    return pymysql.connect(
+        host=os.environ["MYSQL_HOST"],
+        port=int(os.environ.get("MYSQL_PORT", 3306)),
+        user=os.environ.get("MYSQL_USER", "root"),
+        password=os.environ["MYSQL_PASS"],
+        database=os.environ["MYSQL_DATABASE"],
+        cursorclass=DictCursor,
+        autocommit=True,
+    )
+
+
 def get_connection():
     if not hasattr(_local, "conn") or _local.conn is None:
-        _local.conn = pymysql.connect(
-            host=os.environ["MYSQL_HOST"],
-            port=int(os.environ.get("MYSQL_PORT", 3306)),
-            user=os.environ.get("MYSQL_USER", "root"),
-            password=os.environ["MYSQL_PASS"],
-            database=os.environ["MYSQL_DATABASE"],
-            cursorclass=DictCursor,
-            autocommit=True,
-        )
+        _local.conn = _create_conn()
+    else:
+        try:
+            _local.conn.ping(reconnect=True)
+        except Exception:
+            _local.conn = _create_conn()
     return _local.conn
 
 
