@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, JSON, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
@@ -77,10 +78,10 @@ class ExecutionQueue(Base):
     code = Column(Text, nullable=False)
     method_name = Column(String(100))
     test_cases_json = Column(JSON)
-    exec_type = Column(Enum("run", "submit"), default="run")
+    exec_type = Column(Enum("run", "submit", "brute_force", "submit_brute"), default="run")
     status = Column(Enum("queued", "running", "completed", "failed"), default="queued")
     result = Column(Text(length=4294967295))
-    stdout = Column(Text)
+    stdout = Column(Text().with_variant(LONGTEXT, "mysql"))
     error = Column(Text)
     timing_ms = Column(Integer)
     memory_kb = Column(Integer)

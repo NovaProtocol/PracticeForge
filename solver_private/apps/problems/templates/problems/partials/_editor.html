@@ -29,6 +29,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   <div class="editor-wrapper" id="editor-wrapper"></div>
   <div class="editor-actions">
     <button id="run-btn" class="btn-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-play mr-1"></i>Run</button>
+    <button id="brute-force-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-bolt mr-1"></i>Run Brute Force</button>
     <button id="submit-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-cloud-upload-alt mr-1"></i>Submit</button>
     <span id="status-text" style="color:var(--text-secondary);font-size:0.8rem;margin-left:4px;"></span>
   </div>
@@ -108,6 +109,9 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
 
   $('run-btn').addEventListener('click', function() {
     if (window.__consoleRun) window.__consoleRun(window.editor.getValue(), C.contestId, C.index);
+  });
+  $('brute-force-btn').addEventListener('click', function() {
+    if (window.__consoleRunBruteForce) window.__consoleRunBruteForce(window.editor.getValue(), C.contestId, C.index);
   });
   $('submit-btn').addEventListener('click', function() {
     if (window.__consoleSubmit) window.__consoleSubmit(window.editor.getValue(), C.contestId, C.index);

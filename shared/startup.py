@@ -61,10 +61,10 @@ CREATE TABLE IF NOT EXISTS execution_queue (
     code TEXT NOT NULL,
     method_name VARCHAR(100),
     test_cases_json JSON,
-    exec_type ENUM('run','submit') DEFAULT 'run',
+    exec_type ENUM('run','submit','brute_force','submit_brute') DEFAULT 'run',
     status ENUM('queued','running','completed','failed') DEFAULT 'queued',
     result LONGTEXT,
-    stdout TEXT,
+    stdout LONGTEXT,
     error TEXT,
     timing_ms INTEGER,
     memory_kb INTEGER,
@@ -83,6 +83,9 @@ CREATE TABLE IF NOT EXISTS auto_saves (
     PRIMARY KEY (problem_id),
     FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
+
+ALTER TABLE execution_queue MODIFY COLUMN exec_type ENUM('run','submit','brute_force','submit_brute') DEFAULT 'run';
+ALTER TABLE execution_queue MODIFY COLUMN stdout LONGTEXT;
 """
 
 

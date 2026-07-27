@@ -87,7 +87,7 @@ def get_problem_label(conn, problem_id):
         return str(problem_id)
 
 
-def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict]) -> str:
+def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict], stop_on_failure: bool = False) -> str:
     lines = [
         "import json, sys, io, time, traceback",
         "from typing import List, Optional, Dict, Tuple, Set",
@@ -95,6 +95,7 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict])
         "solution = Solution()",
         "method = getattr(solution, " + json.dumps(method_name) + ")",
         "results = []",
+        "_abort = False",
     ]
     for tc in test_cases:
         args_str = tc.get("args") or tc.get("input") or ""
@@ -106,14 +107,15 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict])
             lines.append("results.append({'input': " + json.dumps(inp_display) + ", 'expected': " + json.dumps(exp_display) + ", 'got': '', 'error': '', 'passed': True, 'stdout': '', 'status': 'skipped'})")
             continue
 
-        lines.append("_cap = io.StringIO()")
-        lines.append("_old_stdout = sys.stdout")
-        lines.append("sys.stdout = _cap")
-        lines.append("_r_input = " + json.dumps(inp_display))
-        lines.append("_r_expected = " + json.dumps(exp_display))
-        lines.append("err = ''")
-        lines.append("_t0 = time.perf_counter()")
-        lines.append("try:")
+        lines.append("if not _abort:")
+        lines.append("  _cap = io.StringIO()")
+        lines.append("  _old_stdout = sys.stdout")
+        lines.append("  sys.stdout = _cap")
+        lines.append("  _r_input = " + json.dumps(inp_display))
+        lines.append("  _r_expected = " + json.dumps(exp_display))
+        lines.append("  err = ''")
+        lines.append("  _t0 = time.perf_counter()")
+        lines.append("  try:")
         lines.append("    args = json.loads(" + json.dumps(args_str) + ")")
         lines.append("    result = method(*args)")
         lines.append("    got = json.dumps(result)")
@@ -124,15 +126,17 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict])
         else:
             lines.append("    status = 'checked'")
             lines.append("    passed = True")
-        lines.append("except Exception as _ex:")
+        lines.append("  except Exception as _ex:")
         lines.append("    got = json.dumps(str(_ex))")
         lines.append("    err = traceback.format_exc()")
         lines.append("    passed = False")
         lines.append("    status = 'failed'")
-        lines.append("_tc_stdout = _cap.getvalue()")
-        lines.append("sys.stdout = _old_stdout")
-        lines.append("_timing = round((time.perf_counter() - _t0) * 1000, 3)")
-        lines.append("results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout, 'status': status, 'timing_ms': _timing})")
+        lines.append("  _tc_stdout = _cap.getvalue()")
+        lines.append("  sys.stdout = _old_stdout")
+        lines.append("  _timing = round((time.perf_counter() - _t0) * 1000, 3)")
+        lines.append("  results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout, 'status': status, 'timing_ms': _timing})")
+        if stop_on_failure:
+            lines.append("  if not passed: _abort = True")
     lines.append("print('__SOLVER_RESULT__')")
     lines.append("print(json.dumps(results))")
     return "\n".join(lines)
@@ -258,6 +262,104 @@ def create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, m
         return cur.fetchone()["id"]
 
 
+def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_attempts=1000):
+    """Generate test cases using generator_code, validate with solution_code."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT generator_code, solution_code, method_name FROM problems WHERE id = %s", (problem_id,))
+        row = cur.fetchone()
+    if not row:
+        return None
+    generator_code = row.get("generator_code") or ""
+    solution_code = row.get("solution_code") or ""
+    method_name = row.get("method_name") or "run"
+    if not generator_code or not solution_code:
+        return None
+
+    gen_path = f"/tmp/gen-{get_problem_label(conn, problem_id)}-{qid}.py"
+    try:
+        with open(gen_path, "w") as f:
+            f.write(generator_code + "\n\nimport json\ntry:\n    result = generate()\n    print(json.dumps(result))\nexcept Exception as e:\n    print(json.dumps({'error': str(e)}))\n")
+    except OSError:
+        return None
+
+    valid = []
+    gen_wrapper = generator_code + "\n\nimport json\nfor _ in range(" + str(max_attempts) + "):\n    try:\n        result = generate()\n        print(json.dumps(result))\n    except Exception:\n        pass\n"
+    try:
+        with open(gen_path, "w") as f:
+            f.write(gen_wrapper)
+    except OSError:
+        return None
+
+    try:
+        proc = subprocess.Popen([sys.executable, gen_path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        stdout, _ = proc.communicate(timeout=120)
+        for line in stdout.strip().split("\n"):
+            if len(valid) >= max_valid:
+                break
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                tc_data = json.loads(line)
+            except (json.JSONDecodeError, ValueError):
+                continue
+
+            if isinstance(tc_data, dict) and "args" in tc_data:
+                args_str = json.dumps(tc_data["args"])
+            elif isinstance(tc_data, list):
+                args_str = json.dumps(tc_data)
+            else:
+                continue
+
+            sol_path = f"/tmp/sol-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
+            try:
+                with open(sol_path, "w") as f:
+                    f.write(solution_code)
+            except OSError:
+                continue
+
+            sol_wrapper = build_wrapper(sol_path, method_name, [{"args": args_str, "expected": ""}])
+            sol_wrap_path = f"/tmp/solwrap-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
+            sol_result = run_code(sol_wrapper, sol_wrap_path, sol_path, timeout=15)
+
+            try:
+                os.unlink(sol_path)
+            except OSError:
+                pass
+            try:
+                os.unlink(sol_wrap_path)
+            except OSError:
+                pass
+
+            if sol_result["returncode"] != 0:
+                continue
+            try:
+                tc_results = json.loads(sol_result["results_json"])
+            except (json.JSONDecodeError, ValueError):
+                continue
+            if not tc_results or tc_results[0].get("status") == "failed":
+                continue
+
+            got = tc_results[0].get("got", "")
+            try:
+                expected_raw = json.loads(got)
+            except (json.JSONDecodeError, ValueError):
+                expected_raw = got
+            valid.append({"args": args_str, "expected": expected_raw, "input": "", "expected_output": ""})
+        proc.wait(timeout=60)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+    except subprocess.CalledProcessError:
+        pass
+
+    try:
+        os.unlink(gen_path)
+    except OSError:
+        pass
+    return valid if valid else None
+
+
 def process_entry(conn, entry):
     qid = entry["id"]
     problem_id = entry["problem_id"]
@@ -274,8 +376,21 @@ def process_entry(conn, entry):
             test_cases = json.loads(raw)
         except (json.JSONDecodeError, TypeError):
             pass
-    if not test_cases:
+
+    if exec_type in ("brute_force", "submit_brute"):
+        sample_cases = get_test_cases(conn, problem_id) if exec_type == "submit_brute" else []
+        gen_cases = generate_brute_force_test_cases(conn, problem_id, qid)
+        if gen_cases is None and exec_type == "brute_force":
+            mark_failed(conn, qid, "Failed to generate test cases (missing generator or solution code)")
+            return
+        combined = (sample_cases or []) + (gen_cases or [])
+        if not combined:
+            mark_failed(conn, qid, "No test cases to run")
+            return
+        test_cases = combined
+    elif not test_cases:
         test_cases = get_test_cases(conn, problem_id)
+
     if not test_cases:
         mark_failed(conn, qid, "No test cases found")
         return
@@ -289,7 +404,8 @@ def process_entry(conn, entry):
         return
 
     wrapper_path = f"/tmp/wrapper-{get_problem_label(conn, problem_id)}-{qid}.py"
-    wrapper = build_wrapper(user_code_path, method_name, test_cases)
+    stop_on_failure = exec_type in ("brute_force", "submit_brute")
+    wrapper = build_wrapper(user_code_path, method_name, test_cases, stop_on_failure)
     result = run_bwrap(wrapper, wrapper_path, user_code_path)
 
     if result["returncode"] != 0:
