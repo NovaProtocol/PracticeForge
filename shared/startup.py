@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS problems (
     output_spec MEDIUMTEXT,
     examples_json JSON,
     constraints_json JSON,
+    solution_code TEXT,
+    generator_code TEXT,
+    hints JSON,
     url VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(contest_id, problem_index)
