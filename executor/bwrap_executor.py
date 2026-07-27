@@ -5,7 +5,6 @@ import os
 import resource
 import subprocess
 import sys
-import tempfile
 import time
 
 import pymysql
@@ -79,6 +78,15 @@ def get_problem_method(conn, problem_id):
         return row["method_name"] if row and row.get("method_name") else "run"
 
 
+def get_problem_label(conn, problem_id):
+    with conn.cursor() as cur:
+        cur.execute("SELECT contest_id, problem_index FROM problems WHERE id = %s", (problem_id,))
+        row = cur.fetchone()
+        if row:
+            return f"{row['contest_id']}{row['problem_index']}"
+        return str(problem_id)
+
+
 def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict]) -> str:
     lines = [
         "import json, sys, io, time, traceback",
@@ -140,21 +148,20 @@ def _parse_output(stdout: str) -> dict:
     return result
 
 
-def run_code(wrapper_code: str, user_code_path: str | None = None, timeout: int = TIMEOUT) -> dict:
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
+def run_code(wrapper_code: str, wrapper_path: str, user_code_path: str | None = None, timeout: int = TIMEOUT) -> dict:
     try:
-        tmp.write(wrapper_code)
-        tmp.close()
-        os.chmod(tmp.name, 0o644)
+        with open(wrapper_path, "w") as f:
+            f.write(wrapper_code)
+        os.chmod(wrapper_path, 0o644)
 
         python_path = "/usr/local/bin/python3"
         start = time.perf_counter()
 
-        cmd = [python_path, tmp.name]
+        cmd = [python_path, wrapper_path]
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         except OSError:
-            r = subprocess.run(["python3", tmp.name], capture_output=True, text=True, timeout=timeout)
+            r = subprocess.run(["python3", wrapper_path], capture_output=True, text=True, timeout=timeout)
 
         elapsed = int((time.perf_counter() - start) * 1000)
         try:
@@ -175,23 +182,19 @@ def run_code(wrapper_code: str, user_code_path: str | None = None, timeout: int 
     except Exception as e:
         return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0, "results_json": "[]", "memory_kb": 0}
     finally:
-        try:
-            os.unlink(tmp.name)
-        except OSError:
-            pass
-        if user_code_path:
-            try:
-                os.unlink(user_code_path)
-            except OSError:
-                pass
+        for p in [wrapper_path, user_code_path]:
+            if p:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
 
 
-def run_bwrap(wrapper_code: str, user_code_path: str | None = None, timeout: int = TIMEOUT) -> dict:
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
+def run_bwrap(wrapper_code: str, wrapper_path: str, user_code_path: str | None = None, timeout: int = TIMEOUT) -> dict:
     try:
-        tmp.write(wrapper_code)
-        tmp.close()
-        os.chmod(tmp.name, 0o644)
+        with open(wrapper_path, "w") as f:
+            f.write(wrapper_code)
+        os.chmod(wrapper_path, 0o644)
 
         bwrap_args = [BWRAP, "--unshare-user", "--unshare-net", "--unshare-ipc", "--unshare-pid",
                "--die-with-parent", "--ro-bind", "/usr", "/usr",
@@ -199,10 +202,10 @@ def run_bwrap(wrapper_code: str, user_code_path: str | None = None, timeout: int
                "--ro-bind", "/lib", "/lib",
                "--ro-bind", "/lib64", "/lib64",
                "--dev", "/dev",
-               "--ro-bind", tmp.name, tmp.name]
+               "--ro-bind", wrapper_path, wrapper_path]
         if user_code_path:
             bwrap_args.extend(["--ro-bind", user_code_path, user_code_path])
-        bwrap_args.extend(["--chdir", "/", "/usr/local/bin/python3", tmp.name])
+        bwrap_args.extend(["--chdir", "/", "/usr/local/bin/python3", wrapper_path])
 
         cmd = bwrap_args
 
@@ -218,7 +221,7 @@ def run_bwrap(wrapper_code: str, user_code_path: str | None = None, timeout: int
         if r.returncode != 0:
             err = r.stderr.lower()
             if "operation not permitted" in err or "namespace" in err or "cannot" in err:
-                return run_code(wrapper_code, user_code_path, timeout)
+                return run_code(wrapper_code, wrapper_path, user_code_path, timeout)
 
         parsed = _parse_output(r.stdout)
         return {
@@ -230,21 +233,18 @@ def run_bwrap(wrapper_code: str, user_code_path: str | None = None, timeout: int
             "memory_kb": mem,
         }
     except OSError:
-        return run_code(wrapper_code, user_code_path, timeout)
+        return run_code(wrapper_code, wrapper_path, user_code_path, timeout)
     except subprocess.TimeoutExpired:
         return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000}
     except Exception as e:
         return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0}
     finally:
-        try:
-            os.unlink(tmp.name)
-        except OSError:
-            pass
-        if user_code_path:
-            try:
-                os.unlink(user_code_path)
-            except OSError:
-                pass
+        for p in [wrapper_path, user_code_path]:
+            if p:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
 
 
 def create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, memory_kb):
@@ -280,7 +280,7 @@ def process_entry(conn, entry):
         mark_failed(conn, qid, "No test cases found")
         return
 
-    user_code_path = f"/tmp/solver_user_{qid}.py"
+    user_code_path = f"/tmp/solver-{get_problem_label(conn, problem_id)}-{qid}.py"
     try:
         with open(user_code_path, "w") as f:
             f.write(code)
@@ -288,8 +288,9 @@ def process_entry(conn, entry):
         mark_failed(conn, qid, f"Failed to write user code: {e}")
         return
 
+    wrapper_path = f"/tmp/wrapper-{get_problem_label(conn, problem_id)}-{qid}.py"
     wrapper = build_wrapper(user_code_path, method_name, test_cases)
-    result = run_bwrap(wrapper, user_code_path)
+    result = run_bwrap(wrapper, wrapper_path, user_code_path)
 
     if result["returncode"] != 0:
         mark_failed(conn, qid, result["stderr"] or result["stdout"])
