@@ -11,7 +11,7 @@ API_BASE = "http://debian.local:7031"
 CF_API = "https://codeforces.com/api/problemset.problems"
 
 # AI
-AI_KEY = "REPLACED_API_KEY"
+AI_KEY = os.environ.get("ZEN_API_KEY", "")
 AI_URL = "https://opencode.ai/zen/go/v1"
 AI_MODEL = "deepseek-v4-flash"
 
