@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import json
 
-from flask import render_template, request
+from flask import render_template
 
 from apps.problems import blueprint
 from shared.models import (
     get_problem,
-    get_problems_with_status,
+    get_problem_submissions,
     get_solution,
     get_solution_results,
     load_code,
@@ -23,7 +23,35 @@ def index():
 
 @blueprint.route("/problem/<int:contest_id>/<index>/")
 def detail(contest_id: int, index: str):
-    return render_template("problems/detail.html", contest_id=contest_id, problem_index=index)
+    problem = get_problem(contest_id, index)
+    if not problem:
+        return render_template("404.html"), 404
+    saved_data = load_code(problem["id"])
+    saved = saved_data["code"]
+    last_ran = saved_data["last_ran"]
+    examples = []
+    raw = problem.get("examples_json")
+    if isinstance(raw, str):
+        try:
+            examples = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    elif isinstance(raw, list):
+        examples = raw
+    constraints = []
+    raw_c = problem.get("constraints_json")
+    if isinstance(raw_c, str):
+        try:
+            constraints = json.loads(raw_c)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    elif isinstance(raw_c, list):
+        constraints = raw_c
+    problem["examples"] = examples
+    problem["constraints"] = constraints
+    submissions = get_problem_submissions(problem["id"])
+    base_code = problem.get("base_code") or "class Solution:\n    def run(self, input: str) -> str:\n        "
+    return render_template("problems/detail.html", problem=problem, saved_code=saved, last_ran=last_ran, submissions=submissions, base_code=base_code)
 
 
 @blueprint.route("/problem/<int:contest_id>/<index>/solution/<int:solution_id>")

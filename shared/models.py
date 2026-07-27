@@ -41,6 +41,36 @@ def get_problems_with_status():
     return result
 
 
+def get_problems_summary():
+    """Lightweight list — no description_html or large text fields."""
+    rows = query(
+        """SELECT p.id, p.contest_id, p.problem_index, p.title, p.slug,
+                  p.difficulty_rating, p.tags, p.time_limit, p.memory_limit, p.url,
+                  MAX(s.verdict) AS best_verdict,
+                  COUNT(s.id) AS submission_count
+           FROM problems p
+           LEFT JOIN solutions s ON s.problem_id = p.id
+           GROUP BY p.id
+           ORDER BY p.contest_id, p.problem_index"""
+    )
+    result = []
+    for r in rows:
+        p = {"id": r["id"], "contest_id": r["contest_id"], "problem_index": r["problem_index"],
+             "title": r["title"], "slug": r["slug"], "difficulty_rating": r["difficulty_rating"],
+             "time_limit": r["time_limit"], "memory_limit": r["memory_limit"], "url": r["url"],
+             "submission_count": r["submission_count"]}
+        tags = r.get("tags")
+        p["tags"] = json.loads(tags) if isinstance(tags, str) else (tags or [])
+        if r["best_verdict"] == "Accepted":
+            p["completion"] = "completed"
+        elif r["submission_count"] > 0:
+            p["completion"] = "in_progress"
+        else:
+            p["completion"] = "incomplete"
+        result.append(p)
+    return result
+
+
 def get_problem(contest_id: int, index: str):
     row = query_one(
         "SELECT * FROM problems WHERE contest_id = %s AND problem_index = %s",

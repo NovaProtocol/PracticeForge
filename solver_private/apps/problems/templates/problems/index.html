@@ -15,54 +15,33 @@
   z-index: 100;
 }
 .sidebar-filters .filter-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-  margin-top: 1.25rem;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text-secondary);
+  margin-bottom: 0.5rem; margin-top: 1.25rem;
 }
 .sidebar-filters .filter-label:first-child { margin-top: 0; }
-.main-area {
-  margin-right: 240px;
-  min-height: calc(100vh - 56px);
-}
+.main-area { margin-right: 240px; min-height: calc(100vh - 56px); }
 .view-toggle {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 0.35rem 0.6rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  line-height: 1;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-secondary); padding: 0.35rem 0.6rem;
+  border-radius: 4px; cursor: pointer; font-size: 0.85rem; line-height: 1;
 }
-.view-toggle.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border-color: var(--accent);
-}
+.view-toggle.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
 .view-toggle:hover { color: var(--text-primary); }
+.loading { text-align: center; padding: 3rem; color: var(--text-secondary); }
+.card-link { text-decoration: none; color: inherit; }
+.card-link:hover .card { border-color: var(--accent); transform: translateY(-2px); }
 </style>
 {% endblock %}
 {% block content %}
 <aside class="sidebar-filters">
   <div class="filter-label">Completion</div>
-  {% for key, label in [('completed','Completed'), ('in_progress','In Progress'), ('incomplete','Incomplete')] %}
-  <label class="d-block" style="font-size: 0.85rem; cursor: pointer;">
-    <input type="checkbox" class="filter-completion" value="{{ key }}" {{ 'checked' if key == 'completed' else '' }}> {{ label }}
-  </label>
-  {% endfor %}
+  <label class="d-block" style="font-size: 0.85rem; cursor: pointer;"><input type="checkbox" class="filter-completion" value="completed" checked> Completed</label>
+  <label class="d-block" style="font-size: 0.85rem; cursor: pointer;"><input type="checkbox" class="filter-completion" value="in_progress"> In Progress</label>
+  <label class="d-block" style="font-size: 0.85rem; cursor: pointer;"><input type="checkbox" class="filter-completion" value="incomplete"> Incomplete</label>
 
   <div class="filter-label">Topic</div>
-  <div id="topic-filters">
-    {% for tag in all_tags %}
-    <label class="d-block" style="font-size: 0.85rem; cursor: pointer;">
-      <input type="checkbox" class="filter-topic" value="{{ tag }}" checked> {{ tag }}
-    </label>
-    {% endfor %}
-  </div>
+  <div id="topic-filters"><div class="loading" style="padding:0.5rem 0;">Loading...</div></div>
 
   <div class="filter-label">Difficulty</div>
   <div class="d-flex" style="gap: 4px;">
@@ -70,7 +49,6 @@
     <span style="color: var(--text-secondary); align-self: center;">—</span>
     <input type="number" id="diff-max" class="form-control form-control-sm" placeholder="Max" value="">
   </div>
-
   <button id="clear-filters" class="btn-outline-accent btn-sm btn-block mt-3" style="font-size: 0.8rem;">Clear Filters</button>
 </aside>
 
@@ -86,40 +64,45 @@
         <button id="view-list" class="view-toggle" title="List view"><i class="fas fa-list"></i></button>
       </div>
     </div>
-
     <div id="problem-container">
-      <div id="problem-list" class="row">
-        {% for problem in problems %}
-        <div class="col-md-6 col-xl-4 mb-4 problem-card" data-completion="{{ problem.completion }}" data-tags='{{ problem.tags|tojson }}' data-difficulty="{{ problem.difficulty_rating or 0 }}" data-title="{{ problem.title }}" data-id="{{ problem.contest_id }}{{ problem.problem_index }}">
-          <a href="{{ url_for('problems_blueprint.detail', contest_id=problem.contest_id, index=problem.problem_index) }}" style="text-decoration: none; color: inherit;">
-            <div class="card p-3 h-100">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="tag" style="margin-bottom: 0;">{{ problem.contest_id }}{{ problem.problem_index }}</span>
-                {% if problem.difficulty_rating %}
-                  {% set diff = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
-                  <span class="badge-difficulty badge-{{ diff }}" style="line-height: 1.4;">{{ problem.difficulty_rating }}</span>
-                {% endif %}
-              </div>
-              <h5 style="font-weight: 600; font-size: 1rem;">{{ problem.title }}</h5>
-              <div class="d-flex align-items-center" style="gap: 6px;">
-                {% if problem.completion == 'completed' %}
-                  <span class="badge-difficulty badge-easy" style="font-size: 0.7rem;">Completed</span>
-                {% elif problem.completion == 'in_progress' %}
-                  <span class="badge-difficulty badge-medium" style="font-size: 0.7rem;">In Progress</span>
-                {% else %}
-                  <span class="badge-difficulty" style="background: rgba(136,136,160,0.15); color: var(--text-secondary); font-size: 0.7rem;">Incomplete</span>
-                {% endif %}
-              </div>
-            </div>
-          </a>
-        </div>
-        {% endfor %}
-      </div>
+      <div id="problem-list" class="row"><div class="loading" style="width:100%;">Loading...</div></div>
     </div>
   </div>
 </div>
 
 <script>
+async function loadProblems() {
+  const [problems, tags] = await Promise.all([
+    fetch('/api/problems').then(r => r.json()),
+    fetch('/api/tags').then(r => r.json()),
+  ]);
+
+  // Render topic filters
+  const tf = document.getElementById('topic-filters');
+  tf.innerHTML = tags.map(t => '<label class="d-block" style="font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="filter-topic" value="' + t + '" checked> ' + t + '</label>').join('');
+
+  // Render cards
+  const pl = document.getElementById('problem-list');
+  pl.innerHTML = problems.map(function(p) {
+    var diffCls = p.difficulty_rating < 1200 ? 'easy' : p.difficulty_rating < 1600 ? 'medium' : 'hard';
+    var diffBadge = p.difficulty_rating ? '<span class="badge-difficulty badge-' + diffCls + '" style="line-height:1.4;">' + p.difficulty_rating + '</span>' : '';
+    var compBadge = '';
+    if (p.completion === 'completed') compBadge = '<span class="badge-difficulty badge-easy" style="font-size:0.7rem;">Completed</span>';
+    else if (p.completion === 'in_progress') compBadge = '<span class="badge-difficulty badge-medium" style="font-size:0.7rem;">In Progress</span>';
+    else compBadge = '<span class="badge-difficulty" style="background:rgba(136,136,160,0.15);color:var(--text-secondary);font-size:0.7rem;">Incomplete</span>';
+    var slug = p.contest_id + '/' + p.problem_index;
+    return '<div class="col-md-6 col-xl-4 mb-4 problem-card" data-completion="' + p.completion + '" data-tags=\'' + JSON.stringify(p.tags) + '\' data-difficulty="' + (p.difficulty_rating||0) + '">' +
+      '<a href="/problem/' + slug + '/" class="card-link">' +
+      '<div class="card p-3 h-100"><div class="d-flex justify-content-between align-items-center mb-2">' +
+      '<span class="tag" style="margin-bottom:0;">' + slug + '</span>' + diffBadge + '</div>' +
+      '<h5 style="font-weight:600;font-size:1rem;">' + p.title + '</h5>' +
+      '<div class="d-flex align-items-center" style="gap:6px;">' + compBadge + '</div></div></a></div>';
+  }).join('');
+
+  applyFilters();
+  try { setView(localStorage.getItem('problemView') || 'cards'); } catch(e) {}
+}
+
 function applyFilters() {
   const comps = Array.from(document.querySelectorAll('.filter-completion:checked')).map(c => c.value);
   const topics = Array.from(document.querySelectorAll('.filter-topic:checked')).map(c => c.value);
@@ -134,7 +117,7 @@ function applyFilters() {
   });
 }
 
-document.querySelectorAll('.filter-completion, .filter-topic').forEach(el => el.addEventListener('change', applyFilters));
+document.querySelectorAll('.filter-completion').forEach(el => el.addEventListener('change', applyFilters));
 ['diff-min','diff-max'].forEach(id => document.getElementById(id)?.addEventListener('input', applyFilters));
 document.getElementById('clear-filters')?.addEventListener('click', () => {
   document.querySelectorAll('.filter-completion').forEach(c => c.checked = false);
@@ -144,7 +127,6 @@ document.getElementById('clear-filters')?.addEventListener('click', () => {
   applyFilters();
 });
 
-// view toggle
 function setView(mode) {
   const list = document.getElementById('problem-list');
   const cards = document.getElementById('view-cards');
@@ -165,6 +147,7 @@ function setView(mode) {
 }
 document.getElementById('view-cards')?.addEventListener('click', () => setView('cards'));
 document.getElementById('view-list')?.addEventListener('click', () => setView('list'));
-try { setView(localStorage.getItem('problemView') || 'cards'); } catch(e) {}
+
+loadProblems();
 </script>
 {% endblock %}
