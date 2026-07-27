@@ -124,12 +124,11 @@ def get_sample_cases(problem_id: int):
 
 
 def create_solution(problem_id: int, code: str, verdict: str = "Pending", passed: int = 0, total: int = 0, timing_ms: int = 0, memory_kb: int = 0, language: str = "python"):
-    execute(
+    return execute(
         """INSERT INTO solutions (problem_id, code, language, verdict, passed_count, total_count, timing_ms, memory_kb)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
         (problem_id, code, language, verdict, passed, total, timing_ms, memory_kb),
     )
-    return query_one("SELECT LAST_INSERT_ID() AS id")["id"]
 
 
 def get_solution(solution_id: int):
@@ -285,11 +284,10 @@ def get_editorial(problem_id: int) -> dict | None:
 
 
 def create_custom_test_case(problem_id: int, input_data: str, expected_output: str) -> int:
-    execute(
+    return execute(
         "INSERT INTO test_cases (problem_id, input, expected_output, is_sample) VALUES (%s, %s, %s, FALSE)",
         (problem_id, input_data, expected_output),
     )
-    return query_one("SELECT LAST_INSERT_ID() AS id")["id"]
 
 
 def delete_custom_test_case(tc_id: int) -> bool:

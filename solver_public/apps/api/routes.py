@@ -28,12 +28,11 @@ def re_run(solution_id: int):
     problem = query_one("SELECT method_name FROM problems WHERE id = %s", (solution["problem_id"],))
     if problem and problem.get("method_name"):
         method_name = problem["method_name"]
-    execute(
+    qid = execute(
         """INSERT INTO execution_queue (problem_id, code, method_name, exec_type, status)
            VALUES (%s, %s, %s, 'run', 'queued')""",
         (solution["problem_id"], solution["code"], method_name),
     )
-    qid = query_one("SELECT LAST_INSERT_ID() AS id")["id"]
     return jsonify({"queue_id": qid, "status": "queued"})
 
 
