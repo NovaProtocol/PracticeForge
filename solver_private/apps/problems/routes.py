@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from flask import render_template
+from bs4 import BeautifulSoup
 
 from apps.problems import blueprint
 from shared.models import (
@@ -14,6 +15,13 @@ from shared.models import (
 )
 
 from shared.db import query as raw_query
+
+
+def _sanitize_html(html: str) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup.find_all("script"):
+        tag.decompose()
+    return str(soup)
 
 
 @blueprint.route("/")
@@ -49,6 +57,8 @@ def detail(contest_id: int, index: str):
         constraints = raw_c
     problem["examples"] = examples
     problem["constraints"] = constraints
+    raw_desc = problem.get("description_html") or ""
+    problem["description_html"] = _sanitize_html(raw_desc)
     submissions = get_problem_submissions(problem["id"])
     base_code = problem.get("base_code") or "class Solution:\n    def run(self, input: str) -> str:\n        "
     return render_template("problems/detail.html", problem=problem, saved_code=saved, last_ran=last_ran, submissions=submissions, base_code=base_code)
