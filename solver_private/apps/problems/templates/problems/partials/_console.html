@@ -823,7 +823,7 @@
     try {
       var tcs = JSON.stringify(window.consoleApi.getTestCases());
       var body = new URLSearchParams({ code: code, testcases: tcs });
-      var r = await fetch('/problem/' + contestId + '/' + index + '/run', {
+      var r = await fetch('/api/run/' + contestId + '/' + index, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
@@ -845,7 +845,7 @@
   window.__consoleSubmit = async function(code, contestId, index) {
     window.consoleApi.showSpinner('Submitting...');
     try {
-      var r = await fetch('/problem/' + contestId + '/' + index + '/submit', {
+      var r = await fetch('/api/submit/' + contestId + '/' + index, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ code: code })
