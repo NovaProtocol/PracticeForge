@@ -187,8 +187,7 @@ window.descriptionApi.reloadSubmissions = function() {
         (s.timing_ms ? '<span class="text-secondary"> \u00b7 ' + s.timing_ms + 'ms</span>' : '') +
         (s.memory_kb ? '<span class="text-secondary"> \u00b7 ' + s.memory_kb.toLocaleString() + 'KB</span>' : '') +
         '<span class="text-secondary" style="float:right;font-size:0.78rem;">' + (s.created_at || '') + '</span>' +
-        '<a href="/problem/{{ problem.contest_id }}/{{ problem.problem_index }}/solution/' + s.id + '" class="btn-outline-accent btn-sm" style="padding:0.15rem 0.6rem;font-size:0.72rem;text-decoration:none;">View solution</a></div>
-';
+        '<a href="/problem/{{ problem.contest_id }}/{{ problem.problem_index }}/solution/' + s.id + '" class="btn-outline-accent btn-sm" style="padding:0.15rem 0.6rem;font-size:0.72rem;text-decoration:none;">View solution</a></div>';
     }).join('') || '<p class="text-secondary" style="font-size:0.85rem;padding:1rem 1.25rem;">No submissions yet.</p>';
   }).catch(function() {});
 };

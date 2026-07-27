@@ -33,7 +33,7 @@ html, body { overflow: hidden; }
 <script>
 document.querySelectorAll('script[src*="codemirror"]').forEach(s => { if (s.dataset.loaded) return; s.dataset.loaded = '1'; });
 document.addEventListener('DOMContentLoaded', function() {
-  if (window.descriptionApi) window.descriptionApi.loadStats();
+  if (window.descriptionApi) window.descriptionApi.reloadSubmissions();
 });
 </script>
 {% endblock %}
