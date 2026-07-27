@@ -151,7 +151,7 @@ function copyText(btn) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function() {
         btn.textContent = 'Copied!'; btn.classList.add('copied');
-        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1000);
       }).catch(function() { fallbackCopy(text, btn); });
     } else { fallbackCopy(text, btn); }
   } catch(e) { fallbackCopy(text, btn); }
@@ -162,7 +162,7 @@ function fallbackCopy(text, btn) {
   document.body.appendChild(ta); ta.select();
   try { document.execCommand('copy'); btn.textContent = 'Copied!'; } catch(e) {}
   document.body.removeChild(ta);
-  setTimeout(function() { if (btn) btn.textContent = 'Copy'; }, 1500);
+  setTimeout(function() { if (btn) btn.textContent = 'Copy'; }, 1000);
 }
 
 document.querySelectorAll('.section-header').forEach(function(hdr) {

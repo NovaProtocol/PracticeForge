@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from flask import render_template
 from bs4 import BeautifulSoup
 
@@ -13,7 +15,12 @@ def _sanitize_html(html: str) -> str:
         tag.decompose()
     for tag in soup.find_all("style"):
         tag.decompose()
-    return str(soup)
+    result = str(soup)
+    result = re.sub(r'<script\b[^>]*>', '', result, flags=re.IGNORECASE)
+    result = re.sub(r'</script>', '', result, flags=re.IGNORECASE)
+    result = re.sub(r'<style\b[^>]*>', '', result, flags=re.IGNORECASE)
+    result = re.sub(r'</style>', '', result, flags=re.IGNORECASE)
+    return result
 
 
 @blueprint.route("/")
