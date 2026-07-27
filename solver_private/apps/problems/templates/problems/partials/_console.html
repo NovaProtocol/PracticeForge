@@ -595,7 +595,7 @@
     if (rt != null) document.getElementById('result-runtime-val').textContent = rt + ' ms';
     var mem = data.memory_kb || data.memory;
     document.getElementById('result-memory').style.display = mem != null ? 'inline-flex' : 'none';
-    if (mem != null) document.getElementById('result-memory-val').textContent = mem + ' KB';
+    if (mem != null) document.getElementById('result-memory-val').textContent = mem > 1024 ? (mem/1024).toFixed(1) + ' MB' : mem + ' KB';
 
     var tbody = document.getElementById('result-table-body');
     tbody.innerHTML = '';
