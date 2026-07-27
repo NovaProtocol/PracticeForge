@@ -26,9 +26,7 @@ class AIEnricher:
 
         # Rough estimate: ~4 chars per token for input + output
         estimated = max(1000, (len(problem_text) // 4) * 3)
-        if not check_and_track(estimated):
-            log.warn("Token limit hit — skipping AI enrichment")
-            return None
+        check_and_track(estimated)
 
         prompt = (
             r'Extract problem data as JSON: {"title","time_limit","memory_limit",'

@@ -26,29 +26,20 @@ def _save(state: dict):
 
 
 def check_and_track(tokens: int):
-    """Check if under limit, record usage. Returns True if allowed."""
+    """Check if under limit, record usage. Returns True if allowed. Exits if over limit."""
     state = _load()
     now = time.time()
     elapsed = now - state["window_start"]
 
-    # Reset window if expired
     if elapsed > WINDOW_SECONDS:
-        log.info(f"Token window reset ({elapsed:.0f}s elapsed, limit {WINDOW_SECONDS}s)")
+        log.info(f"Token window reset ({elapsed:.0f}s elapsed)")
         state["window_start"] = now
         state["tokens_used"] = 0
 
-    # Check limit
     projected = state["tokens_used"] + tokens
     if projected > TOKEN_LIMIT:
         remaining = TOKEN_LIMIT - state["tokens_used"]
         reset_at = datetime.fromtimestamp(state["window_start"] + WINDOW_SECONDS, tz=timezone.utc)
-        log.warn(f"Token limit reached ({state['tokens_used']}/{TOKEN_LIMIT})")
-        log.warn(f"  Would exceed by {projected - TOKEN_LIMIT} tokens")
-        log.warn(f"  Window resets at {reset_at.isoformat()}")
-        return False
-
-    # Record
-    state["tokens_used"] += tokens
-    _save(state)
-    log.info(f"Token usage: {state['tokens_used']}/{TOKEN_LIMIT} in current window")
-    return True
+        log.error(f"Token limit reached ({state['tokens_used']}/{TOKEN_LIMIT})")
+        log.error(f"Window resets at {reset_at.isoformat()}")
+        raise SystemExit(0)
