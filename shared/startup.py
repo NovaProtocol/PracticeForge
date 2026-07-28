@@ -75,13 +75,16 @@ CREATE TABLE IF NOT EXISTS execution_queue (
     FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
 
+DROP TABLE IF EXISTS auto_saves;
 CREATE TABLE IF NOT EXISTS auto_saves (
+    id INTEGER AUTO_INCREMENT PRIMARY KEY,
     problem_id INTEGER NOT NULL,
+    filename VARCHAR(255) NOT NULL DEFAULT 'main.py',
     code TEXT NOT NULL,
     last_ran TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (problem_id),
-    FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
+    FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_problem_file (problem_id, filename)
 );
 
 ALTER TABLE execution_queue MODIFY COLUMN exec_type ENUM('run','submit','brute_force','submit_brute') DEFAULT 'run';

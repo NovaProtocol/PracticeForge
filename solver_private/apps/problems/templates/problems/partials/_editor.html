@@ -3,12 +3,19 @@
   display: flex; align-items: center; justify-content: flex-end; gap: 6px;
   padding: 5px 10px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-.editor-toolbar select, .editor-toolbar button {
+.editor-toolbar button {
   background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
   padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.78rem; cursor: pointer;
 }
 .editor-toolbar button:hover { color: var(--text-primary); border-color: var(--text-secondary); }
-.editor-toolbar select option { background: var(--bg-primary); color: var(--text-primary); }
+.file-tabs { display: flex; align-items: center; background: var(--bg-primary); border-bottom: 1px solid var(--border); overflow-x: auto; flex-shrink: 0; min-height: 32px; }
+.file-tab { display: inline-flex; align-items: center; gap: 4px; padding: 0.3rem 0.6rem; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; border-right: 1px solid var(--border); white-space: nowrap; user-select: none; min-width: 0; }
+.file-tab:hover { color: var(--text-primary); background: var(--bg-secondary); }
+.file-tab.active { color: var(--text-primary); background: var(--bg-secondary); border-bottom: 2px solid var(--accent); }
+.file-tab .tab-close { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; font-size: 0.6rem; border-radius: 2px; color: var(--text-secondary); background: none; border: none; cursor: pointer; padding: 0; line-height: 1; margin-left: 2px; flex-shrink: 0; }
+.file-tab .tab-close:hover { background: rgba(248,113,113,0.2); color: #f87171; }
+.file-tab-add { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; font-size: 1rem; color: var(--text-secondary); background: none; border: none; cursor: pointer; flex-shrink: 0; margin: 0 2px; }
+.file-tab-add:hover { color: var(--accent); }
 .editor-wrapper { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .editor-wrapper .CodeMirror { flex: 1; height: auto !important; }
 body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; right: 0; bottom: 0; z-index: 999; }
@@ -22,10 +29,6 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
 .CodeMirror-hint { color: var(--text-primary); padding: 0.3rem 0.6rem; }
 .CodeMirror-hint-active { background: var(--accent); color: #0a0a0f; }
 .CodeMirror-simplescroll-horizontal div, .CodeMirror-simplescroll-vertical div { background: var(--border); border-radius: 4px; }
-.editor-actions {
-  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
-  background: var(--bg-secondary); border-top: 1px solid var(--border); flex-shrink: 0;
-}
 </style>
 <div style="display:flex;flex-direction:column;flex:1;min-height:0;">
   <div class="editor-toolbar">
@@ -38,6 +41,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     <span style="flex:1"></span>
     <button id="run-btn" class="btn-accent btn-sm" style="padding:0.3rem 1rem;font-size:0.82rem;"><i class="fas fa-play mr-1"></i>Run</button>
   </div>
+  <div class="file-tabs" id="file-tabs"></div>
   <div class="editor-wrapper" id="editor-wrapper"></div>
 </div>
 <script>
@@ -45,56 +49,120 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   var C = { contestId: {{ problem.contest_id }}, index: '{{ problem.problem_index }}', problemId: {{ problem.id }} };
   var el = function(id) { return document.getElementById(id); };
   var editorEl = el('editor-wrapper');
-  var initialCode = {{ (saved_code or base_code)|tojson }};
+  var tabsEl = el('file-tabs');
+  var baseCode = {{ base_code|tojson }};
 
-  var textarea = document.createElement('textarea');
-  textarea.id = 'code'; textarea.style.display = 'none';
-  textarea.textContent = initialCode;
-  editorEl.appendChild(textarea);
+  var files = [];
+  var activeFile = null;
+  var saveTimer;
 
-  window.editor = CodeMirror.fromTextArea(textarea, {
-    lineNumbers: true, autoCloseBrackets: true, matchBrackets: true,
-    tabSize: 4, indentUnit: 4, mode: 'python', theme: 'material-darker',
-    indentWithTabs: false, electricChars: true, smartIndent: true,
-    styleActiveLine: true, showTrailingSpace: true,
-    foldGutter: true,
-    gutters: ["CodeMirror-foldgutter", "CodeMirror-linenumbers"],
-    highlightSelectionMatches: true,
-    scrollbarStyle: 'overlay',
-    rulers: [{column: 79, color: '#2a2a3e'}],
-    keyMap: 'sublime',
-    extraKeys: {
-      'Ctrl-Enter': function() { el('run-btn').click(); },
-      'Cmd-Enter': function() { el('run-btn').click(); },
-      'Ctrl-D': function(cm) { cm.execCommand('deleteLine'); },
-      'Cmd-D': function(cm) { cm.execCommand('deleteLine'); },
-      'Ctrl-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); },
-      'Cmd-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); },
-      'Ctrl-Space': function(cm) { cm.showHint({hint: CodeMirror.hint.anyword}); }
-    }
-  });
+  function initEditor(code) {
+    if (window.editor) { window.editor.setValue(code || ''); window.editor.focus(); return; }
+    var textarea = document.createElement('textarea');
+    textarea.id = 'code'; textarea.style.display = 'none';
+    textarea.textContent = code || '';
+    editorEl.appendChild(textarea);
+    window.editor = CodeMirror.fromTextArea(textarea, {
+      lineNumbers: true, autoCloseBrackets: true, matchBrackets: true,
+      tabSize: 4, indentUnit: 4, mode: 'python', theme: 'material-darker',
+      indentWithTabs: false, electricChars: true, smartIndent: true,
+      styleActiveLine: true, showTrailingSpace: true,
+      foldGutter: true,
+      gutters: ["CodeMirror-foldgutter", "CodeMirror-linenumbers"],
+      highlightSelectionMatches: true,
+      scrollbarStyle: 'overlay',
+      rulers: [{column: 79, color: '#2a2a3e'}],
+      keyMap: 'sublime',
+      extraKeys: {
+        'Ctrl-Enter': function() { el('run-btn').click(); },
+        'Cmd-Enter': function() { el('run-btn').click(); },
+        'Ctrl-D': function(cm) { cm.execCommand('deleteLine'); },
+        'Cmd-D': function(cm) { cm.execCommand('deleteLine'); },
+        'Ctrl-S': function() { saveCurrentFile(); },
+        'Cmd-S': function() { saveCurrentFile(); },
+        'Ctrl-Space': function(cm) { cm.showHint({hint: CodeMirror.hint.anyword}); }
+      }
+    });
+    window.editor.on('change', function() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function() { saveCurrentFile(); }, 500);
+    });
+  }
+
+  function saveCurrentFile() {
+    if (!activeFile || !window.editor) return;
+    var code = window.editor.getValue();
+    var fd = new URLSearchParams({ code: code, filename: activeFile });
+    navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, fd);
+  }
+
+  function renderTabs() {
+    tabsEl.innerHTML = '';
+    files.forEach(function(f) {
+      var tab = document.createElement('div');
+      tab.className = 'file-tab' + (f.filename === activeFile ? ' active' : '');
+      tab.dataset.filename = f.filename;
+      tab.innerHTML = escHtml(f.filename) + '<button class="tab-close" data-filename="' + escHtml(f.filename) + '">&times;</button>';
+      tab.addEventListener('click', function(e) {
+        if (e.target.closest('.tab-close')) return;
+        switchFile(f.filename);
+      });
+      tabsEl.appendChild(tab);
+    });
+    var addBtn = document.createElement('button');
+    addBtn.className = 'file-tab-add';
+    addBtn.textContent = '+';
+    addBtn.title = 'New file';
+    addBtn.addEventListener('click', function() {
+      var name = prompt('Filename:', 'main.py');
+      if (!name) return;
+      var fd = new FormData(); fd.append('filename', name); fd.append('code', '');
+      fetch('/api/files/' + C.problemId, { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function() {
+        files.push({ filename: name, code: '', last_ran: null });
+        switchFile(name);
+      });
+    });
+    tabsEl.appendChild(addBtn);
+    // Close button handler via delegation
+    tabsEl.querySelectorAll('.tab-close').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var name = btn.dataset.filename;
+        if (files.length <= 1) return;
+        if (!confirm('Delete "' + name + '"?')) return;
+        fetch('/api/files/' + C.problemId + '/' + encodeURIComponent(name), { method: 'DELETE' }).then(function() {
+          files = files.filter(function(f) { return f.filename !== name; });
+          if (activeFile === name) switchFile(files[0] ? files[0].filename : 'main.py');
+          renderTabs();
+        });
+      });
+    });
+  }
+
+  function switchFile(filename) {
+    if (activeFile && window.editor) saveCurrentFile();
+    activeFile = filename;
+    fetch('/api/auto-save/' + C.problemId + '?filename=' + encodeURIComponent(filename)).then(function(r) { return r.json(); }).then(function(d) {
+      var code = d.code || '';
+      if (filename === 'main.py' && !code) code = baseCode;
+      initEditor(code);
+      renderTabs();
+    });
+  }
+
+  function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   var fontSize = 14;
-  function applyFontSize() {
-    var cm = editorEl.querySelector('.CodeMirror');
-    if (cm) { cm.style.fontSize = fontSize + 'px'; window.editor.refresh(); }
-  }
+  function applyFontSize() { var cm = editorEl.querySelector('.CodeMirror'); if (cm) { cm.style.fontSize = fontSize + 'px'; if (window.editor) window.editor.refresh(); } }
   el('font-inc').addEventListener('click', function() { fontSize = Math.min(32, fontSize + 2); applyFontSize(); });
   el('font-dec').addEventListener('click', function() { fontSize = Math.max(8, fontSize - 2); applyFontSize(); });
-
-  var baseCode = {{ base_code|tojson }};
-  el('reset-btn').addEventListener('click', function() {
-    if (confirm('Reset to original template?')) {
-      window.editor.setValue(baseCode); window.editor.focus();
-    }
-  });
+  el('reset-btn').addEventListener('click', function() { if (confirm('Reset to original template?')) { window.editor.setValue(baseCode); window.editor.focus(); } });
   el('lastran-btn').addEventListener('click', function() {
-    fetch('/api/auto-save/' + C.problemId).then(function(r) { return r.json(); }).then(function(d) {
+    fetch('/api/auto-save/' + C.problemId + '?filename=' + encodeURIComponent(activeFile || 'main.py')).then(function(r) { return r.json(); }).then(function(d) {
       if (d.last_ran) { window.editor.setValue(d.last_ran); window.editor.focus(); }
       else { alert('No previously run code saved.'); }
     }).catch(function() {});
   });
-
   var fsActive = false;
   el('fullscreen-btn').addEventListener('click', function() {
     fsActive = !fsActive;
@@ -106,19 +174,17 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   document.addEventListener('fullscreenchange', function() {
     if (!document.fullscreenElement) { fsActive = false; document.body.classList.remove('editor-fullscreen'); if (window.editor) window.editor.refresh(); }
   });
-
-  var saveTimer;
-  window.editor.on('change', function() {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(function() {
-      navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()}));
-    }, 500);
-  });
-
   el('run-btn').addEventListener('click', function() {
     jQuery('#solver-modal').modal('show');
     jQuery('#solver-modal').data('action', 'run');
     el('modal-tab-testcases').click();
+  });
+
+  // Load files
+  fetch('/api/files/' + C.problemId).then(function(r) { return r.json(); }).then(function(data) {
+    files = data;
+    if (files.length === 0) files = [{ filename: 'main.py', code: '', last_ran: null }];
+    switchFile(activeFile || 'main.py');
   });
 })();
 </script>
