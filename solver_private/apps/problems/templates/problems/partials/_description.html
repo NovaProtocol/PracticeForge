@@ -61,7 +61,7 @@
           <span class="badge-difficulty badge-{{ d }}" style="line-height: 1.4; font-size: 0.72rem;">{{ problem.difficulty_rating }}</span>
         {% endif %}
         <div style="margin-left: auto; display: flex; gap: 4px;">
-          <button title="Toggle sidebar" onclick="var p=document.getElementById('description-panel');p.classList.toggle('collapsed');localStorage.setItem('solvespace-sidebar',p.classList.contains('collapsed')?'collapsed':'open');" style="background:none;border:1px solid var(--border);color:var(--text-secondary);font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:4px;cursor:pointer;line-height:1.4;"><i class="fas fa-bars"></i></button>
+          {% if problem.url %}
           {% if problem.url %}
           <a href="{{ problem.url }}" target="_blank" title="View on Codeforces" class="btn-outline-accent btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;text-decoration:none;"><i class="fas fa-external-link-alt"></i></a>
           {% endif %}
