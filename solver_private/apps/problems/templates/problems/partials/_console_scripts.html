@@ -159,7 +159,7 @@
       }
       var addBtn = e.target.closest('.add-tc-btn');
       if (addBtn) { addTCFromResult(addBtn.dataset.args, addBtn.dataset.expected); return; }
-      var cell = e.target.closest('.cell-clamped');
+      var cell = e.target.closest('.cell-clamp');
       if (cell) { cell.classList.toggle('expanded'); }
     };
 
@@ -194,9 +194,9 @@
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
-          '<td class="cell-clamped">' + escHtml(r.input || '') + '</td>' +
-          '<td class="cell-clamped">' + escHtml(r.expected || '') + '</td>' +
-          '<td class="cell-clamped ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          '<td><div class="cell-clamp">' + escHtml(r.input || '') + '</div></td>' +
+          '<td><div class="cell-clamp">' + escHtml(r.expected || '') + '</div></td>' +
+          '<td><div class="cell-clamp ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</div></td>' +
           timeCell +
           '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
         tbody.appendChild(tr);
