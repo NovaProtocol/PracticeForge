@@ -243,7 +243,9 @@
 
   var runCode = async function(action) {
     var code = window.editor ? window.editor.getValue() : '';
-    showModalSpinner(action === 'benchmark' ? 'Benchmarking...' : action === 'submit' ? 'Submitting...' : 'Running...');
+    var label = action === 'benchmark' ? 'Benchmarking...' : action === 'submit' ? 'Submitting...' : 'Running...';
+    document.getElementById('modal-tab-results').click();
+    showModalSpinner(label);
     try {
       var tcs = getModalTCs();
       console.log('[solver] getModalTCs:', JSON.stringify(tcs));
