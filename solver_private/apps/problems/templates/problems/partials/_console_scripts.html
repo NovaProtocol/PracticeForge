@@ -190,12 +190,14 @@
           } else { timeCell = '<td>' + t.toFixed(3) + 'ms</td>'; }
         } else { timeCell = '<td></td>'; }
         var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-args="' + escHtml(r.input) + '" data-expected="' + escHtml(r.expected || '') + '">+TC</button>' : '';
+        var displayGot = r.got || r.error || '';
+        try { displayGot = JSON.parse(r.got); } catch(e) { displayGot = r.got || r.error || ''; }
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
           '<td><div class="cell-clamp">' + escHtml(r.input || '') + '</div></td>' +
           '<td><div class="cell-clamp">' + escHtml(r.expected || '') + '</div></td>' +
-          '<td><div class="cell-clamp ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</div></td>' +
+          '<td><div class="cell-clamp ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(String(displayGot)) + '</div></td>' +
           timeCell +
           '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
         tbody.appendChild(tr);
