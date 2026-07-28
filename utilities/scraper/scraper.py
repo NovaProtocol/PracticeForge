@@ -107,8 +107,25 @@ class CodeforcesScraper:
 
         def add(label, el):
             if not el: return
-            text = el.get_text("\n").strip()
-            text = re.sub(r"\n{3,}", "\n\n", text)
+            parts = []
+            for child in el.children:
+                if child.name == "p":
+                    t = child.get_text(" ").strip()
+                    if t: parts.append(t)
+                elif child.name in ("ul", "ol"):
+                    for li in child.find_all("li"):
+                        t = li.get_text(" ").strip()
+                        if t: parts.append("  - " + t)
+                elif child.name == "br":
+                    pass
+                elif isinstance(child, str):
+                    t = child.strip()
+                    if t: parts.append(t)
+                elif child.name:
+                    t = child.get_text(" ").strip()
+                    if t: parts.append(t)
+            text = " ".join(parts) if parts else el.get_text(" ").strip()
+            text = re.sub(r" {3,}", "  ", text)
             if text:
                 lines.append(f"{label}:")
                 lines.append(text)
