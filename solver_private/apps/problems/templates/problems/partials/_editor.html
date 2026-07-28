@@ -12,6 +12,16 @@
 .editor-wrapper { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .editor-wrapper .CodeMirror { flex: 1; height: auto !important; }
 body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; right: 0; bottom: 0; z-index: 999; }
+.cm-trailingspace { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUEDgkQM7M5XQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAASSURBVAjXY2BgYGC4+v9/BgAHigD/7Vh64gAAAABJRU5ErkJggg==); background-position: bottom left; background-repeat: repeat-x; }
+.CodeMirror-activeline-background { background: rgba(100, 255, 218, 0.04) !important; }
+.CodeMirror-foldgutter-open, .CodeMirror-foldgutter-closed { cursor: pointer; font-size: 0.8rem; color: var(--text-secondary); }
+.CodeMirror-foldgutter-open::after { content: '▾'; }
+.CodeMirror-foldgutter-closed::after { content: '▸'; }
+.CodeMirror-foldgutter-open, .CodeMirror-foldgutter-closed { width: 16px; text-align: center; }
+.CodeMirror-hints { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+.CodeMirror-hint { color: var(--text-primary); padding: 0.3rem 0.6rem; }
+.CodeMirror-hint-active { background: var(--accent); color: #0a0a0f; }
+.CodeMirror-simplescroll-horizontal div, .CodeMirror-simplescroll-vertical div { background: var(--border); border-radius: 4px; }
 .editor-actions {
   display: flex; align-items: center; gap: 8px; padding: 6px 10px;
   background: var(--bg-secondary); border-top: 1px solid var(--border); flex-shrink: 0;
@@ -50,19 +60,23 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     lineNumbers: true, autoCloseBrackets: true, matchBrackets: true,
     tabSize: 4, indentUnit: 4, mode: 'python', theme: 'material-darker',
     indentWithTabs: false, electricChars: true, smartIndent: true,
+    styleActiveLine: true, showTrailingSpace: true,
+    foldGutter: true,
+    gutters: ["CodeMirror-foldgutter", "CodeMirror-linenumbers"],
+    highlightSelectionMatches: true,
+    scrollbarStyle: 'overlay',
+    rulers: [{column: 79, color: '#2a2a3e'}],
+    keyMap: 'sublime',
     extraKeys: {
-      'Tab': function(cm) { cm.replaceSelection('    '); },
-      'Shift-Tab': function(cm) { cm.execCommand('indentLess'); },
       'Ctrl-Enter': function() { var b=$('run-btn'); if(b) b.click(); },
       'Cmd-Enter': function() { var b=$('run-btn'); if(b) b.click(); },
       'Ctrl-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); },
       'Cmd-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); },
-      'Ctrl-/': function(cm) { cm.toggleComment({ lineComment: '#', blockComment: ['"""', '"""'] }); },
-      'Cmd-/': function(cm) { cm.toggleComment({ lineComment: '#', blockComment: ['"""', '"""'] }); },
       'Ctrl-D': function(cm) { cm.execCommand('deleteLine'); },
       'Cmd-D': function(cm) { cm.execCommand('deleteLine'); },
       'Ctrl-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); },
-      'Cmd-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); }
+      'Cmd-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); },
+      'Ctrl-Space': function(cm) { cm.showHint({hint: CodeMirror.hint.anyword}); }
     }
   });
 
