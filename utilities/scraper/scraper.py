@@ -88,16 +88,33 @@ class CodeforcesScraper:
     @staticmethod
     def _extract_text(html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
-        for el in soup.select("script[type='math/tex']"):
-            if el.string:
-                el.replace_with(soup.new_string(f" ${el.string.strip()} $"))
-        for el in soup.select("script[type='math/tex; mode=display']"):
-            if el.string:
-                el.replace_with(soup.new_string(f" $$ {el.string.strip()} $$ "))
+
+        # Convert math script tags to LaTeX text
+        for sel, fmt in [
+            ("script[type='math/tex']", " ${} $"),
+            ("script[type='math/tex; mode=display']", " $$ {} $$ "),
+        ]:
+            for el in soup.select(sel):
+                if el.string:
+                    el.replace_with(soup.new_string(fmt.replace("{}", el.string.strip())))
+
         for el in soup.select(".MathJax"):
             m = el.find("script", {"type": "math/tex"})
             if m and m.string:
-                el.replace_with(soup.new_string(f" ${m.string.strip()} $"))
+                el.replace_with(soup.new_string(f" ${m.string.strip()}$ "))
+
+        # Remove tex-spans: they duplicate plain text. Insert $value$ and
+        # strip any whitespace-only adjacent text nodes so we don't get "n n $n$".
+        for el in soup.select("span.tex-span"):
+            val = el.get_text().strip()
+            el.replace_with(soup.new_string(f" ${val}$ "))
+
+        # Remove duplicate text nodes around tex-span replacements
+        for el in soup.find_all(string=True):
+            if el.parent and el.parent.name in ("p", "div", "span") and el.strip() == "":
+                prev = el.find_previous_sibling(string=True)
+                if prev and prev.strip() == el.strip() and prev.parent is el.parent:
+                    pass  # keep at least one space
 
         c = soup.select_one("div.problemindexholder") or soup.select_one("div.problem-statement")
         if not c:
@@ -105,31 +122,17 @@ class CodeforcesScraper:
 
         lines = []
 
-        def add(label, el):
-            if not el: return
-            parts = []
-            for child in el.children:
-                if child.name == "p":
-                    t = child.get_text(" ").strip()
-                    if t: parts.append(t)
-                elif child.name in ("ul", "ol"):
-                    for li in child.find_all("li"):
-                        t = li.get_text(" ").strip()
-                        if t: parts.append("  - " + t)
-                elif child.name == "br":
-                    pass
-                elif isinstance(child, str):
-                    t = child.strip()
-                    if t: parts.append(t)
-                elif child.name:
-                    t = child.get_text(" ").strip()
-                    if t: parts.append(t)
-            text = " ".join(parts) if parts else el.get_text(" ").strip()
-            text = re.sub(r" {3,}", "  ", text)
-            if text:
-                lines.append(f"{label}:")
-                lines.append(text)
-                lines.append("")
+        def strip_sec_name(text: str, name: str) -> str:
+            if text.lower().startswith(name.lower()):
+                text = text[len(name):].lstrip(" .:\n")
+            return text
+
+        def get_clean(el) -> str:
+            if not el:
+                return ""
+            text = el.get_text(" ").strip()
+            text = re.sub(r" {3,}", " ", text)
+            return text
 
         header = c.select_one(".header")
         if header:
@@ -141,9 +144,30 @@ class CodeforcesScraper:
             if ml: lines.append("Memory: " + ml.get_text(strip=True).replace("memory limit per test", "").strip(": \n"))
             lines.append("")
 
-        add("Description", c.select_one(".legend"))
-        add("Input", c.select_one(".input-specification"))
-        add("Output", c.select_one(".output-specification"))
+        # Description: try .legend, fall back to all text before input-spec
+        legend = c.select_one(".legend")
+        if legend:
+            desc = get_clean(legend)
+            if desc:
+                lines.append("Description:")
+                lines.append(desc)
+                lines.append("")
+
+        inp_sec = c.select_one(".input-specification")
+        if inp_sec:
+            inp_text = strip_sec_name(get_clean(inp_sec), "Input")
+            if inp_text:
+                lines.append("Input:")
+                lines.append(inp_text)
+                lines.append("")
+
+        out_sec = c.select_one(".output-specification")
+        if out_sec:
+            out_text = strip_sec_name(get_clean(out_sec), "Output")
+            if out_text:
+                lines.append("Output:")
+                lines.append(out_text)
+                lines.append("")
 
         for i, s in enumerate(c.select(".sample-test"), 1):
             inp = s.select_one(".input pre")
@@ -157,6 +181,12 @@ class CodeforcesScraper:
                 lines.append(out.get_text("\n").strip())
                 lines.append("")
 
-        add("Note", c.select_one(".note"))
+        note = c.select_one(".note")
+        if note:
+            note_text = strip_sec_name(get_clean(note), "Note")
+            if note_text:
+                lines.append("Note:")
+                lines.append(note_text)
+                lines.append("")
 
         return "\n".join(lines)
