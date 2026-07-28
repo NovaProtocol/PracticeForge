@@ -90,38 +90,40 @@ class AIEnricher:
         if not data:
             return None
 
-        if not self._validate_solution(data):
+        solution_ok, solution_err = self._validate_solution(data)
+        if not solution_ok:
             for attempt in range(self.MAX_RETRIES):
-                ok, err = self._validate_solution(data)
-                if ok:
+                solution_ok, solution_err = self._validate_solution(data)
+                if solution_ok:
                     break
-                log.warn(f"Solution failed (attempt {attempt+1}/{self.MAX_RETRIES}): {err[:200]}")
+                log.warn(f"Solution failed (attempt {attempt+1}/{self.MAX_RETRIES}): {solution_err[:200]}")
                 retry_data = self._call_ai(
                     problem_text,
-                    f"Your solution_code was tested against the example test cases and FAILED:\n{err}\n\nFix the solution_code so it produces the correct output for ALL example cases.",
+                    f"Your solution_code was tested against the example test cases and FAILED:\n{solution_err}\n\nFix the solution_code so it produces the correct output for ALL example cases.",
                 )
                 if retry_data:
                     data["solution_code"] = retry_data.get("solution_code", data["solution_code"])
                     data["base_code"] = retry_data.get("base_code", data["base_code"])
-            ok, _ = self._validate_solution(data)
-            if not ok:
-                log.error("Solution validation failed after max retries")
+            solution_ok, solution_err = self._validate_solution(data)
+            if not solution_ok:
+                log.error(f"Solution validation failed after max retries: {solution_err}")
                 return None
 
-        if not self._validate_generator(data):
+        gen_ok, gen_err = self._validate_generator(data)
+        if not gen_ok:
             for attempt in range(self.MAX_RETRIES):
-                ok, err = self._validate_generator(data)
-                if ok:
+                gen_ok, gen_err = self._validate_generator(data)
+                if gen_ok:
                     break
-                log.warn(f"Generator failed (attempt {attempt+1}/{self.MAX_RETRIES}): {err[:200]}")
+                log.warn(f"Generator failed (attempt {attempt+1}/{self.MAX_RETRIES}): {gen_err[:200]}")
                 retry_data = self._call_ai(
                     problem_text,
-                    f"Your generator_code was tested and FAILED. {err}\n\nFix the generator_code so it produces test cases that ALWAYS pass the solution_code (100% success rate across 100 generated cases). The solution_code is:\n{data.get('solution_code', '')}\n\nKeep the same problem data (examples, description, base_code, hints). Only fix generator_code.",
+                    f"Your generator_code was tested and FAILED. {gen_err}\n\nFix the generator_code so it produces test cases that ALWAYS pass the solution_code (100% success rate across 100 generated cases). The solution_code is:\n{data.get('solution_code', '')}\n\nKeep the same problem data (examples, description, base_code, hints). Only fix generator_code.",
                 )
                 if retry_data:
                     data["generator_code"] = retry_data.get("generator_code", data["generator_code"])
-            ok, _ = self._validate_generator(data)
-            if not ok:
+            gen_ok, gen_err = self._validate_generator(data)
+            if not gen_ok:
                 log.error("Generator validation failed after max retries")
                 return None
 
