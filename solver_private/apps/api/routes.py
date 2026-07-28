@@ -147,6 +147,7 @@ def run_code(contest_id: int, index: str):
     code = request.form.get("code", "")
     method_name = problem.get("method_name") or "run"
     test_cases = request.form.get("testcases", "[]")
+    print(f"[api] run #{problem['id']}: testcases={test_cases!r}", flush=True)
     save_last_ran(problem["id"], code)
     qid = _queue_execution(problem["id"], code, method_name, "run", test_cases)
     return jsonify({"queue_id": qid, "status": "queued"})

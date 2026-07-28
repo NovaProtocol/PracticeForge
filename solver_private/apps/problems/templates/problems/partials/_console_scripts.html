@@ -244,9 +244,12 @@
     var code = window.editor ? window.editor.getValue() : '';
     showModalSpinner(action === 'benchmark' ? 'Benchmarking...' : action === 'submit' ? 'Submitting...' : 'Running...');
     try {
+      var tcs = getModalTCs();
+      console.log('[solver] getModalTCs:', JSON.stringify(tcs));
       var body = action === 'run'
-        ? new URLSearchParams({ code: code, testcases: JSON.stringify(getModalTCs()) })
+        ? new URLSearchParams({ code: code, testcases: JSON.stringify(tcs) })
         : new URLSearchParams({ code: code });
+      console.log('[solver] body testcases:', body.get('testcases'));
       var endpoint = action === 'benchmark' ? '/api/brute-force/' : action === 'submit' ? '/api/submit/' : '/api/run/';
       var r = await fetch(endpoint + contestId + '/' + index, {
         method: 'POST',
@@ -254,6 +257,7 @@
         body: body
       });
       var data = await r.json();
+      console.log('[solver] queue_id:', data.queue_id);
       pollQueue(data.queue_id, function(qd) {
         var parsed = { verdict: 'Runtime Error', timing_ms: qd.timing_ms, memory_kb: qd.memory_kb, results: [], stdout: '', error: qd.error, solution_id: qd.solution_id };
         try { var jd = JSON.parse(qd.result); parsed.results = jd.results || []; parsed.stdout = jd.stdout || ''; } catch(e) {}
