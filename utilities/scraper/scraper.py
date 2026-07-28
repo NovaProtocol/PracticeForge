@@ -1,6 +1,7 @@
 """Scraper service — orchestrates the full scraping, AI enrichment, and upload flow."""
 
 import json
+import re
 import time
 
 import requests
@@ -89,13 +90,56 @@ class CodeforcesScraper:
         soup = BeautifulSoup(html, "html.parser")
         for el in soup.select("script[type='math/tex']"):
             if el.string:
-                el.replace_with(soup.new_string(f"${el.string}$"))
+                el.replace_with(soup.new_string(f" ${el.string.strip()} $"))
         for el in soup.select("script[type='math/tex; mode=display']"):
             if el.string:
-                el.replace_with(soup.new_string(f"$${el.string}$$"))
+                el.replace_with(soup.new_string(f" $$ {el.string.strip()} $$ "))
         for el in soup.select(".MathJax"):
             m = el.find("script", {"type": "math/tex"})
             if m and m.string:
-                el.replace_with(soup.new_string(f"${m.string}$"))
+                el.replace_with(soup.new_string(f" ${m.string.strip()} $"))
+
         c = soup.select_one("div.problemindexholder") or soup.select_one("div.problem-statement")
-        return str(c) if c else html
+        if not c:
+            return html
+
+        lines = []
+
+        def add(label, el):
+            if not el: return
+            text = el.get_text("\n").strip()
+            text = re.sub(r"\n{3,}", "\n\n", text)
+            if text:
+                lines.append(f"{label}:")
+                lines.append(text)
+                lines.append("")
+
+        header = c.select_one(".header")
+        if header:
+            t = header.select_one(".title")
+            if t: lines.append("Title: " + t.get_text(strip=True))
+            tl = header.select_one(".time-limit")
+            if tl: lines.append("Time: " + tl.get_text(strip=True).replace("time limit per test", "").strip(": \n"))
+            ml = header.select_one(".memory-limit")
+            if ml: lines.append("Memory: " + ml.get_text(strip=True).replace("memory limit per test", "").strip(": \n"))
+            lines.append("")
+
+        add("Description", c.select_one(".legend"))
+        add("Input", c.select_one(".input-specification"))
+        add("Output", c.select_one(".output-specification"))
+
+        for i, s in enumerate(c.select(".sample-test"), 1):
+            inp = s.select_one(".input pre")
+            out = s.select_one(".output pre")
+            if inp:
+                lines.append(f"Example {i} Input:")
+                lines.append(inp.get_text("\n").strip())
+                lines.append("")
+            if out:
+                lines.append(f"Example {i} Output:")
+                lines.append(out.get_text("\n").strip())
+                lines.append("")
+
+        add("Note", c.select_one(".note"))
+
+        return "\n".join(lines)
