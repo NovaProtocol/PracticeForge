@@ -170,7 +170,12 @@ class AIEnricher:
         if problem_text:
             messages.append({"role": "user", "content": problem_text})
 
+        full_text = "\n".join(m["content"] for m in messages)
         log.info(f"Sending to AI (problem={len(problem_text or '')} chars, context={len(error_context or '')} chars)")
+        log.info(f"--- Full prompt ({len(full_text)} chars) ---")
+        for line in full_text.split("\n"):
+            log.info(line)
+        log.info("--- End prompt ---")
         try:
             resp = self._openai_client.chat.completions.create(
                 model=AI_MODEL,
