@@ -69,6 +69,14 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
       btn.removeEventListener('click', handler);
       var name = input.value.trim();
       if (!name) return;
+      if (files.some(function(f) { return f.filename === name; })) {
+        input.style.borderColor = '#f87171';
+        input.setAttribute('placeholder', 'Already exists');
+        setTimeout(function() { input.style.borderColor = ''; input.setAttribute('placeholder', 'e.g. approach-b'); }, 1500);
+        input.focus();
+        input.select();
+        return;
+      }
       jQuery('#newfile-modal').modal('hide');
       fetch('/api/files/' + C.problemId, {
         method: 'POST',
