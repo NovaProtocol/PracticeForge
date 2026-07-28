@@ -52,6 +52,39 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   var tabsEl = el('file-tabs');
   var baseCode = {{ base_code|tojson }};
 
+  function showConfirm(title, text, cb) {
+    document.getElementById('confirm-modal-title').textContent = title;
+    document.getElementById('confirm-modal-text').textContent = text;
+    var btn = document.getElementById('confirm-modal-yes');
+    var handler = function() { btn.removeEventListener('click', handler); jQuery('#confirm-modal').modal('hide'); cb(); };
+    btn.addEventListener('click', handler);
+    jQuery('#confirm-modal').modal('show');
+  }
+
+  function showNewFileModal() {
+    var input = document.getElementById('newfile-input');
+    input.value = '';
+    var btn = document.getElementById('newfile-create-btn');
+    var handler = function() {
+      btn.removeEventListener('click', handler);
+      var name = input.value.trim();
+      if (!name) return;
+      jQuery('#newfile-modal').modal('hide');
+      fetch('/api/files/' + C.problemId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: name, code: '' })
+      }).then(function(r) { return r.json(); }).then(function() {
+        files.push({ filename: name, code: '', last_ran: null });
+        switchFile(name);
+      });
+    };
+    btn.addEventListener('click', handler);
+    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') btn.click(); });
+    jQuery('#newfile-modal').modal('show');
+    setTimeout(function() { input.focus(); }, 300);
+  }
+
   var files = [];
   var activeFile = null;
   var saveTimer;
@@ -113,18 +146,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     addBtn.className = 'file-tab-add';
     addBtn.textContent = '+';
     addBtn.title = 'New file';
-    addBtn.addEventListener('click', function() {
-      var name = prompt('Filename:', 'main.py');
-      if (!name) return;
-      fetch('/api/files/' + C.problemId, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: name, code: '' })
-      }).then(function(r) { return r.json(); }).then(function() {
-        files.push({ filename: name, code: '', last_ran: null });
-        switchFile(name);
-      });
-    });
+    addBtn.addEventListener('click', showNewFileModal);
     tabsEl.appendChild(addBtn);
     // Close button handler via delegation
     tabsEl.querySelectorAll('.tab-close').forEach(function(btn) {
@@ -132,11 +154,12 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
         e.stopPropagation();
         var name = btn.dataset.filename;
         if (files.length <= 1) return;
-        if (!confirm('Delete "' + name + '"?')) return;
-        fetch('/api/files/' + C.problemId + '/' + encodeURIComponent(name), { method: 'DELETE' }).then(function() {
-          files = files.filter(function(f) { return f.filename !== name; });
-          if (activeFile === name) switchFile(files[0] ? files[0].filename : 'main.py');
-          renderTabs();
+        showConfirm('Delete file', 'Delete "' + name + '"?', function() {
+          fetch('/api/files/' + C.problemId + '/' + encodeURIComponent(name), { method: 'DELETE' }).then(function() {
+            files = files.filter(function(f) { return f.filename !== name; });
+            if (activeFile === name) switchFile(files[0] ? files[0].filename : 'main.py');
+            renderTabs();
+          });
         });
       });
     });
@@ -159,7 +182,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   function applyFontSize() { var cm = editorEl.querySelector('.CodeMirror'); if (cm) { cm.style.fontSize = fontSize + 'px'; if (window.editor) window.editor.refresh(); } }
   el('font-inc').addEventListener('click', function() { fontSize = Math.min(32, fontSize + 2); applyFontSize(); });
   el('font-dec').addEventListener('click', function() { fontSize = Math.max(8, fontSize - 2); applyFontSize(); });
-  el('reset-btn').addEventListener('click', function() { if (confirm('Reset to original template?')) { window.editor.setValue(baseCode); window.editor.focus(); } });
+  el('reset-btn').addEventListener('click', function() { showConfirm('Reset code', 'Reset to original template?', function() { window.editor.setValue(baseCode); window.editor.focus(); }); });
   el('lastran-btn').addEventListener('click', function() {
     fetch('/api/auto-save/' + C.problemId + '?filename=' + encodeURIComponent(activeFile || 'main.py')).then(function(r) { return r.json(); }).then(function(d) {
       if (d.last_ran) { window.editor.setValue(d.last_ran); window.editor.focus(); }

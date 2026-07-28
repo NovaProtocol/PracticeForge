@@ -127,7 +127,7 @@
       <p class="text-secondary" style="margin: 0;">Hint 1: Think about the problem constraints and edge cases.</p>
       {% if problem.solution_code %}
       <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-        <button id="get-solution-btn" class="btn-outline-accent btn-sm" style="padding:0.3rem 1rem;font-size:0.78rem;" onclick="if(confirm('Are you sure? This is an intentional action to reveal the solution.')){var pre=document.getElementById('solution-code');if(pre){pre.style.display=pre.style.display==='none'?'block':'none';}this.textContent=this.textContent==='Get solution'?'Hide solution':'Get solution';}">Get solution</button>
+        <button id="get-solution-btn" class="btn-outline-accent btn-sm" style="padding:0.3rem 1rem;font-size:0.78rem;">Get solution</button>
         <pre id="solution-code" style="display:none;margin-top:0.75rem;background:#1a1a2e;padding:0.75rem;border-radius:6px;border:1px solid var(--border);font-size:0.82rem;white-space:pre-wrap;overflow-x:auto;color:#e8e8f0;tab-size:4;">{{ problem.solution_code }}</pre>
       </div>
       {% endif %}
@@ -207,5 +207,18 @@ document.querySelectorAll('.desc-tab').forEach(function(tab) {
   });
 });
 
-
+document.getElementById('get-solution-btn').addEventListener('click', function() {
+  document.getElementById('confirm-modal-title').textContent = 'View Solution';
+  document.getElementById('confirm-modal-text').textContent = 'Are you sure? This is an intentional action to reveal the solution.';
+  document.getElementById('confirm-modal-yes').addEventListener('click', function h() {
+    document.getElementById('confirm-modal-yes').removeEventListener('click', h);
+    jQuery('#confirm-modal').modal('hide');
+    var pre = document.getElementById('solution-code');
+    if (pre) {
+      pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
+      document.getElementById('get-solution-btn').textContent = pre.style.display === 'none' ? 'Get solution' : 'Hide solution';
+    }
+  });
+  jQuery('#confirm-modal').modal('show');
+});
 </script>
