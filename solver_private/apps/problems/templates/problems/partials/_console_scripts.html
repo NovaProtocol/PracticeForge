@@ -151,8 +151,9 @@
         var tr = btn.closest('tr');
         var or = tr && tr.nextElementSibling;
         if (or && or.classList.contains('output-row')) {
-          or.style.display = or.style.display === 'none' ? '' : 'none';
-          btn.textContent = or.style.display === 'none' ? 'Output' : 'Close';
+          var show = or.style.display === 'none';
+          or.style.display = show ? 'table-row' : 'none';
+          btn.textContent = show ? 'Close' : 'Output';
         }
         return;
       }
@@ -194,7 +195,6 @@
         try { displayGot = JSON.parse(r.got); } catch(e) { displayGot = r.got || r.error || ''; }
         var hasOutput = r.stdout && r.stdout.trim();
         var outBtn = hasOutput ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '';
-        console.log('[solver] result', i, 'stdout:', JSON.stringify(r.stdout), 'hasOutput:', hasOutput);
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
@@ -251,11 +251,9 @@
     showModalSpinner(label);
     try {
       var tcs = getModalTCs();
-      console.log('[solver] getModalTCs:', JSON.stringify(tcs));
       var body = action === 'run'
         ? new URLSearchParams({ code: code, testcases: JSON.stringify(tcs) })
         : new URLSearchParams({ code: code });
-      console.log('[solver] body testcases:', body.get('testcases'));
       var endpoint = action === 'benchmark' ? '/api/brute-force/' : action === 'submit' ? '/api/submit/' : '/api/run/';
       var r = await fetch(endpoint + contestId + '/' + index, {
         method: 'POST',
@@ -263,7 +261,6 @@
         body: body
       });
       var data = await r.json();
-      console.log('[solver] queue_id:', data.queue_id);
       pollQueue(data.queue_id, function(qd) {
         var parsed = { verdict: 'Runtime Error', timing_ms: qd.timing_ms, memory_kb: qd.memory_kb, results: [], stdout: '', error: qd.error, solution_id: qd.solution_id };
         try { var jd = JSON.parse(qd.result); parsed.results = jd.results || []; parsed.stdout = jd.stdout || ''; } catch(e) {}
