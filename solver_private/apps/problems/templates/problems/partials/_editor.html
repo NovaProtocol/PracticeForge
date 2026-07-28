@@ -116,8 +116,11 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     addBtn.addEventListener('click', function() {
       var name = prompt('Filename:', 'main.py');
       if (!name) return;
-      var fd = new FormData(); fd.append('filename', name); fd.append('code', '');
-      fetch('/api/files/' + C.problemId, { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function() {
+      fetch('/api/files/' + C.problemId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: name, code: '' })
+      }).then(function(r) { return r.json(); }).then(function() {
         files.push({ filename: name, code: '', last_ran: null });
         switchFile(name);
       });

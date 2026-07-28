@@ -89,13 +89,16 @@ def get_problem_label(conn, problem_id):
 
 def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict], stop_on_failure: bool = False) -> str:
     lines = [
-        "import json, sys, io, time, traceback",
+        "import json, sys, io, time, traceback, signal",
         "from typing import List, Optional, Dict, Tuple, Set",
         f"exec(compile(open({json.dumps(user_code_path)}).read(), {json.dumps(user_code_path)}, 'exec'))",
         "solution = Solution()",
         "method = getattr(solution, " + json.dumps(method_name) + ")",
         "results = []",
         "_abort = False",
+        "class _TimeoutError(Exception): pass",
+        "def _timeout_handler(signum, frame): raise _TimeoutError",
+        "signal.signal(signal.SIGALRM, _timeout_handler)",
     ]
     for tc in test_cases:
         args_str = tc.get("args") or tc.get("input") or ""
@@ -108,6 +111,7 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
             continue
 
         lines.append("if not _abort:")
+        lines.append("  signal.alarm(10)")
         lines.append("  _cap = io.StringIO()")
         lines.append("  _old_stdout = sys.stdout")
         lines.append("  sys.stdout = _cap")
@@ -126,11 +130,18 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         else:
             lines.append("    status = 'checked'")
             lines.append("    passed = True")
+        lines.append("  except _TimeoutError:")
+        lines.append("    got = json.dumps('TIMEOUT')")
+        lines.append("    err = 'Test case exceeded 10s limit'")
+        lines.append("    passed = False")
+        lines.append("    status = 'failed'")
         lines.append("  except Exception as _ex:")
         lines.append("    got = json.dumps(str(_ex))")
         lines.append("    err = traceback.format_exc()")
         lines.append("    passed = False")
         lines.append("    status = 'failed'")
+        lines.append("  finally:")
+        lines.append("    signal.alarm(0)")
         lines.append("  _tc_stdout = _cap.getvalue()")
         lines.append("  sys.stdout = _old_stdout")
         lines.append("  _timing = round((time.perf_counter() - _t0) * 1000, 3)")
@@ -238,8 +249,16 @@ def run_bwrap(wrapper_code: str, wrapper_path: str, user_code_path: str | None =
         }
     except OSError:
         return run_code(wrapper_code, wrapper_path, user_code_path, timeout)
-    except subprocess.TimeoutExpired:
-        return {"returncode": -1, "stdout": "", "stderr": "Time Limit Exceeded", "timing_ms": timeout * 1000}
+    except subprocess.TimeoutExpired as te:
+        partial = ""
+        if te.output:
+            partial = te.output.decode() if isinstance(te.output, bytes) else te.output
+        msg = "Time Limit Exceeded"
+        if partial:
+            idx = partial.find("case ")
+            if idx >= 0:
+                msg += f" (during test {partial[idx:idx+20].strip()})"
+        return {"returncode": -1, "stdout": "", "stderr": msg, "timing_ms": timeout * 1000}
     except Exception as e:
         return {"returncode": -2, "stdout": "", "stderr": str(e), "timing_ms": 0}
     finally:
