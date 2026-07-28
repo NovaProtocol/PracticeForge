@@ -114,7 +114,7 @@
     loadTC(newIdx);
   }
 
-  function escHtml(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function statusToClass(s) { switch(s){case'accepted':case'Accepted':return'accepted';case'wrong_answer':case'Wrong Answer':return'wrong-answer';case'time_limit_exceeded':case'Time Limit Exceeded':return'time-limit-exceeded';case'runtime_error':case'Runtime Error':return'runtime-error';default:return'pending';} }
   function statusLabel(s) { switch(s){case'accepted':case'Accepted':return'Accepted';case'wrong_answer':case'Wrong Answer':return'Wrong Answer';case'time_limit_exceeded':case'Time Limit Exceeded':return'Time Limit Exceeded';case'runtime_error':case'Runtime Error':return'Runtime Error';default:return s||'Pending';} }
 
