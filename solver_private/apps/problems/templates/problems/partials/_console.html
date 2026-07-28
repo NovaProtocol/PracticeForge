@@ -729,6 +729,102 @@
       .replace(/"/g, '&quot;');
   }
 
+  function showModalResult(data) {
+    document.getElementById('modal-result-spinner').style.display = 'none';
+    var verdict = data.verdict || data.status || 'Pending';
+    document.getElementById('modal-result-badge').className = 'result-badge ' + statusToClass(verdict);
+    document.getElementById('modal-result-badge').textContent = statusLabel(verdict);
+    var rt = data.timing_ms || data.runtime;
+    document.getElementById('modal-result-runtime').style.display = rt != null ? 'inline-flex' : 'none';
+    if (rt != null) document.getElementById('modal-result-runtime-val').textContent = rt + ' ms';
+    var mem = data.memory_kb || data.memory;
+    document.getElementById('modal-result-memory').style.display = mem != null ? 'inline-flex' : 'none';
+    if (mem != null) document.getElementById('modal-result-memory-val').textContent = mem > 1024 ? (mem/1024).toFixed(1) + ' MB' : mem + ' KB';
+    var tbody = document.getElementById('modal-result-body');
+    tbody.innerHTML = '';
+    var comparison = document.getElementById('modal-result-comparison');
+    tbody.onclick = function(e) {
+      var btn = e.target.closest('.output-btn');
+      if (btn) { var tr = btn.closest('tr'); var or = tr && tr.nextElementSibling; if (or && or.classList.contains('output-row')) { or.style.display = or.style.display === 'none' ? '' : 'none'; btn.textContent = or.style.display === 'none' ? 'Output' : 'Close'; } return; }
+      var addBtn = e.target.closest('.add-tc-btn');
+      if (addBtn) { addTestCaseFromResult(addBtn.dataset.args, addBtn.dataset.expected); return; }
+      var cell = e.target.closest('.cell-clamped');
+      if (cell) { cell.classList.toggle('expanded'); }
+    };
+    if (data.results && data.results.length > 0) {
+      comparison.style.display = 'block';
+      data.results.forEach(function(r, i) {
+        var status = r.status || (r.passed ? 'passed' : 'failed');
+        var statusLabel, statusClass;
+        switch (status) {
+          case 'passed': statusLabel = 'PASS'; statusClass = 'pass'; break;
+          case 'failed': statusLabel = 'FAIL'; statusClass = 'fail'; break;
+          case 'skipped': statusLabel = 'SKIP'; statusClass = 'info'; break;
+          case 'checked': statusLabel = 'CHECK'; statusClass = 'pass'; break;
+          default: statusLabel = status.toUpperCase(); statusClass = 'info';
+        }
+        var tr = document.createElement('tr');
+        tr.dataset.tcIdx = i;
+        var timeCell = '';
+        if (r.timing_ms != null) {
+          var t = r.timing_ms;
+          var sol = r.sol_timing;
+          if (sol != null) {
+            var diff = t - sol;
+            var cls = diff > 0.01 ? 'fail' : (diff < -0.01 ? 'pass' : '');
+            timeCell = '<td class="' + cls + '">' + sol.toFixed(3) + 'ms';
+            if (diff > 0) timeCell += ' <span class="fail">(+' + diff.toFixed(3) + 'ms)</span>';
+            else if (diff < 0) timeCell += ' <span class="pass">(' + diff.toFixed(3) + 'ms)</span>';
+            timeCell += '</td>';
+          } else { timeCell = '<td>' + t.toFixed(3) + 'ms</td>'; }
+        } else { timeCell = '<td></td>'; }
+        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-args="' + escHtml(r.input) + '" data-expected="' + escHtml(r.expected || '') + '">+TC</button>' : '';
+        tr.innerHTML =
+          '<td>' + (i + 1) + '</td>' +
+          '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
+          '<td class="cell-clamped">' + escHtml(r.input || '') + '</td>' +
+          '<td class="cell-clamped">' + escHtml(r.expected || '') + '</td>' +
+          '<td class="cell-clamped ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          timeCell +
+          '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
+        tbody.appendChild(tr);
+        if (r.stdout || r.error) {
+          var or = document.createElement('tr');
+          or.className = 'output-row';
+          or.style.display = 'none';
+          var timing = r.timing_ms != null ? r.timing_ms + 'ms' : '';
+          var mem = r.memory_kb ? (r.memory_kb > 1024 ? (r.memory_kb/1024).toFixed(1) + 'MB' : r.memory_kb + 'KB') : '';
+          var footer = '<span style="color:#888;">\u2500 Process exited \u2014 Return Code: ' + (r.passed ? '0' : '1') + '</span>';
+          if (timing) footer += ' <span style="color:#888;">\u00b7 Finished at ' + timing + '</span>';
+          if (mem) footer += ' <span style="color:#888;">\u00b7 Peak memory: ' + mem + '</span>';
+          or.innerHTML = '<td colspan="7"><div style="background:#0d0d14;border:1px solid #2a2a3e;border-radius:6px;overflow:hidden;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.6;">' +
+            '<div style="padding:0.35rem 0.75rem;background:#0a0a0f;border-bottom:1px solid #2a2a3e;color:#64ffda;font-size:0.72rem;">' +
+            '<span style="color:#f92672;">bwrap</span><span style="color:#888;">@</span><span style="color:#a6e22e;">ProjectNova</span><span style="color:#888;">:</span> python3 /tmp/temp.py</div>' +
+            '<pre style="padding:0.75rem;margin:0;color:#e8e8f0;white-space:pre-wrap;word-break:break-all;">' + escHtml(r.stdout || '') + (r.stdout && r.error ? '\n' : '') + escHtml(r.error || '') + '</pre>' +
+            '<div style="padding:0.35rem 0.75rem;border-top:1px solid #2a2a3e;font-size:0.72rem;">' + footer + '</div></div></td>';
+          tbody.appendChild(or);
+        }
+      });
+    } else { comparison.style.display = 'none'; }
+    var err = data.error || '';
+    if (data.results) { data.results.forEach(function(r) { if (r.error) err += r.error + '\n'; }); }
+    var errorEl = document.getElementById('modal-result-error');
+    if (err) { document.getElementById('modal-result-error-content').textContent = err; errorEl.style.display = 'block'; }
+    else { errorEl.style.display = 'none'; }
+  }
+
+  function showModalSpinner(text) {
+    document.getElementById('modal-result-badge').className = 'result-badge pending';
+    document.getElementById('modal-result-badge').textContent = 'Pending';
+    document.getElementById('modal-result-runtime').style.display = 'none';
+    document.getElementById('modal-result-memory').style.display = 'none';
+    document.getElementById('modal-result-comparison').style.display = 'none';
+    document.getElementById('modal-result-stdout').style.display = 'none';
+    document.getElementById('modal-result-error').style.display = 'none';
+    document.getElementById('modal-result-spinner').style.display = 'flex';
+    document.getElementById('modal-result-spinner-text').textContent = text || 'Running...';
+  }
+
   function appendLog(text, className) {
     // check if log tab exists in parent
     var logEl = document.getElementById('console-log');
@@ -745,6 +841,8 @@
     showResult: showResult,
     showSubmissionResult: showSubmissionResult,
     showSpinner: showSpinner,
+    showModalResult: showModalResult,
+    showModalSpinner: showModalSpinner,
     appendLog: appendLog,
     getTestCases: getTestCases
   };
@@ -898,7 +996,7 @@
 
   // Expose run/submit with queue polling
   window.__consoleRun = async function(code, contestId, index) {
-    window.consoleApi.showSpinner('Running...');
+    window.consoleApi.showModalSpinner('Running...');
     try {
       var tcs = JSON.stringify(window.consoleApi.getTestCases());
       var body = new URLSearchParams({ code: code, testcases: tcs });
@@ -914,14 +1012,14 @@
         try { var jd = JSON.parse(qd.result); parsed.results = jd.results || []; parsed.stdout = jd.stdout || ''; } catch(e) {}
         if (qd.error) { parsed.verdict = 'Runtime Error'; }
         else { var fail = parsed.results.some(function(r) { return !r.passed; }); parsed.verdict = fail ? 'Wrong Answer' : 'Accepted'; }
-        window.consoleApi.showResult(parsed);
+        window.consoleApi.showModalResult(parsed);
       });
     } catch (e) {
-      window.consoleApi.showResult({ verdict: 'Runtime Error', error: e.message });
+      window.consoleApi.showModalResult({ verdict: 'Runtime Error', error: e.message });
     }
   };
 
-  window.__consoleRunBruteForce = async function(code, contestId, index) {
+  window.__consoleBenchmark = async function(code, contestId, index) {
     window.consoleApi.showSpinner('Brute forcing...');
     try {
       var r = await fetch('/api/brute-force/' + contestId + '/' + index, {
