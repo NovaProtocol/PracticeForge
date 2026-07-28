@@ -34,12 +34,13 @@ html, body { overflow: hidden; }
 {% endblock %}
 {% block content %}
 <div class="container-fluid" style="height: calc(100vh - 70px); padding-top: 0;">
-  <div class="row" style="height: 100%;">
+  <div class="row" style="height: 100%; position: relative;">
     <div class="col-lg-5 p-0" id="description-panel" style="height: 100%; border-right: 1px solid var(--border);">
       <script>window.__sampleCases = {{ problem.examples|tojson }}; window.__baseCode = {{ base_code|tojson }};</script>
       {% include "problems/partials/_description.html" %}
     </div>
     <div class="col-lg-7 d-flex flex-column p-0" id="workspace-panel" style="height: 100%;">
+      <button title="Toggle sidebar" onclick="var p=document.getElementById('description-panel');p.classList.toggle('collapsed');localStorage.setItem('solvespace-sidebar',p.classList.contains('collapsed')?'collapsed':'open');" style="position:absolute;top:0;left:0;z-index:10;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-secondary);font-size:0.7rem;padding:0.2rem 0.5rem;border-radius:0 0 4px 0;cursor:pointer;line-height:1.4;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'"><i class="fas fa-bars"></i></button>
       <div class="editor-area">
         {% include "problems/partials/_editor.html" %}
       </div>
