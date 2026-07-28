@@ -164,11 +164,13 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
         var name = btn.dataset.filename;
         if (files.length <= 1) return;
         showConfirm('Delete file', 'Delete "' + name + '"?', function() {
-          fetch('/api/files/' + C.problemId + '/' + encodeURIComponent(name), { method: 'DELETE' }).then(function() {
-            files = files.filter(function(f) { return f.filename !== name; });
-            if (activeFile === name) switchFile(files[0] ? files[0].filename : 'main.py');
-            renderTabs();
-          });
+          files = files.filter(function(f) { return f.filename !== name; });
+          if (activeFile === name) {
+            activeFile = files[0] ? files[0].filename : 'main.py';
+            switchFile(activeFile);
+          }
+          renderTabs();
+          fetch('/api/files/' + C.problemId + '/' + encodeURIComponent(name), { method: 'DELETE' });
         });
       });
     });
