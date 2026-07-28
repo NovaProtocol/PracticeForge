@@ -9,6 +9,7 @@ from shared.db import execute, query, query_one
 from shared.models import (
     create_custom_test_case,
     delete_custom_test_case,
+    delete_file,
     get_all_tags,
     get_editorial,
     get_problem,
@@ -17,7 +18,9 @@ from shared.models import (
     get_solution,
     get_solution_results,
     get_solutions,
+    list_files,
     load_code,
+    rename_file,
     save_code,
     save_last_ran,
     upsert_problem,
@@ -145,10 +148,11 @@ def run_code(contest_id: int, index: str):
     if not problem:
         return jsonify({"error": "not found"}), 404
     code = request.form.get("code", "")
+    filename = request.form.get("filename", "main.py")
     method_name = problem.get("method_name") or "run"
     test_cases = request.form.get("testcases", "[]")
     print(f"[api] run #{problem['id']}: testcases={test_cases!r}", flush=True)
-    save_last_ran(problem["id"], code)
+    save_last_ran(problem["id"], code, filename)
     qid = _queue_execution(problem["id"], code, method_name, "run", test_cases)
     return jsonify({"queue_id": qid, "status": "queued"})
 
@@ -160,8 +164,9 @@ def brute_force(contest_id: int, index: str):
         if not problem:
             return jsonify({"error": "not found"}), 404
         code = request.form.get("code", "")
+        filename = request.form.get("filename", "main.py")
         method_name = problem.get("method_name") or "run"
-        save_last_ran(problem["id"], code)
+        save_last_ran(problem["id"], code, filename)
         qid = _queue_execution(problem["id"], code, method_name, "brute_force")
         return jsonify({"queue_id": qid, "status": "queued"})
     except Exception as e:
@@ -175,8 +180,9 @@ def submit_code(contest_id: int, index: str):
         if not problem:
             return jsonify({"error": "not found"}), 404
         code = request.form.get("code", "")
+        filename = request.form.get("filename", "main.py")
         method_name = problem.get("method_name") or "run"
-        save_last_ran(problem["id"], code)
+        save_last_ran(problem["id"], code, filename)
         qid = _queue_execution(problem["id"], code, method_name, "submit_brute")
         return jsonify({"queue_id": qid, "status": "queued"})
     except Exception as e:
@@ -205,19 +211,56 @@ def queue_status(queue_id: int):
 
 # ── Code auto-save ──
 
+@blueprint.route("/files/<int:problem_id>")
+def files_list(problem_id: int):
+    return jsonify(list_files(problem_id))
+
+
+@blueprint.route("/files/<int:problem_id>", methods=["POST"])
+def files_create(problem_id: int):
+    data = request.get_json() or request.form
+    filename = data.get("filename", "main.py")
+    code = data.get("code", "")
+    save_code(problem_id, code, filename)
+    return jsonify({"status": "ok", "filename": filename})
+
+
+@blueprint.route("/files/<int:problem_id>/<path:filename>", methods=["PUT"])
+def files_save(problem_id: int, filename: str):
+    code = request.form.get("code", "")
+    save_code(problem_id, code, filename)
+    return jsonify({"status": "ok"})
+
+
+@blueprint.route("/files/<int:problem_id>/<path:filename>", methods=["DELETE"])
+def files_delete(problem_id: int, filename: str):
+    delete_file(problem_id, filename)
+    return jsonify({"status": "ok"})
+
+
+@blueprint.route("/files/<int:problem_id>/<path:old_filename>/rename", methods=["POST"])
+def files_rename(problem_id: int, old_filename: str):
+    data = request.get_json() or request.form
+    new_filename = data.get("filename", "main.py")
+    rename_file(problem_id, old_filename, new_filename)
+    return jsonify({"status": "ok"})
+
+
 @blueprint.route("/save/<int:contest_id>/<index>", methods=["POST"])
 def save_code_api(contest_id: int, index: str):
     problem = get_problem(contest_id, index)
     if not problem:
         return jsonify({"error": "not found"}), 404
     code = request.form.get("code", "")
-    save_code(problem["id"], code)
+    filename = request.form.get("filename", "main.py")
+    save_code(problem["id"], code, filename)
     return jsonify({"status": "ok"})
 
 
 @blueprint.route("/auto-save/<int:problem_id>")
 def auto_save_get(problem_id: int):
-    data = load_code(problem_id)
+    filename = request.args.get("filename", "main.py")
+    data = load_code(problem_id, filename)
     return jsonify({"code": data["code"] or "", "last_ran": data["last_ran"] or ""})
 
 
