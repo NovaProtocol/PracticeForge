@@ -46,8 +46,8 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
 <script>
 (function() {
   var C = { contestId: {{ problem.contest_id }}, index: '{{ problem.problem_index }}', problemId: {{ problem.id }} };
-  var $ = function(id) { return document.getElementById(id); };
-  var editorEl = $('editor-wrapper');
+  var el = function(id) { return document.getElementById(id); };
+  var editorEl = el('editor-wrapper');
   var initialCode = {{ (saved_code or base_code)|tojson }};
 
   var textarea = document.createElement('textarea');
@@ -67,10 +67,10 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     rulers: [{column: 79, color: '#2a2a3e'}],
     keyMap: 'sublime',
     extraKeys: {
-      'Ctrl-Enter': function() { var b=$('run-btn'); if(b) b.click(); },
-      'Cmd-Enter': function() { var b=$('run-btn'); if(b) b.click(); },
-      'Ctrl-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); },
-      'Cmd-Shift-Enter': function() { var b=$('submit-btn'); if(b) b.click(); },
+      'Ctrl-Enter': function() { var b=el('run-btn'); if(b) b.click(); },
+      'Cmd-Enter': function() { var b=el('run-btn'); if(b) b.click(); },
+      'Ctrl-Shift-Enter': function() { var b=el('submit-btn'); if(b) b.click(); },
+      'Cmd-Shift-Enter': function() { var b=el('submit-btn'); if(b) b.click(); },
       'Ctrl-D': function(cm) { cm.execCommand('deleteLine'); },
       'Cmd-D': function(cm) { cm.execCommand('deleteLine'); },
       'Ctrl-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); },
@@ -84,16 +84,16 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     var cm = editorEl.querySelector('.CodeMirror');
     if (cm) { cm.style.fontSize = fontSize + 'px'; window.editor.refresh(); }
   }
-  $('font-inc').addEventListener('click', function() { fontSize = Math.min(32, fontSize + 2); applyFontSize(); });
-  $('font-dec').addEventListener('click', function() { fontSize = Math.max(8, fontSize - 2); applyFontSize(); });
+  el('font-inc').addEventListener('click', function() { fontSize = Math.min(32, fontSize + 2); applyFontSize(); });
+  el('font-dec').addEventListener('click', function() { fontSize = Math.max(8, fontSize - 2); applyFontSize(); });
 
   var baseCode = {{ base_code|tojson }};
-  $('reset-btn').addEventListener('click', function() {
+  el('reset-btn').addEventListener('click', function() {
     if (confirm('Reset to original template?')) {
       window.editor.setValue(baseCode); window.editor.focus();
     }
   });
-  $('lastran-btn').addEventListener('click', function() {
+  el('lastran-btn').addEventListener('click', function() {
     fetch('/api/auto-save/' + C.problemId).then(function(r) { return r.json(); }).then(function(d) {
       if (d.last_ran) { window.editor.setValue(d.last_ran); window.editor.focus(); }
       else { alert('No previously run code saved.'); }
@@ -101,7 +101,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   });
 
   var fsActive = false;
-  $('fullscreen-btn').addEventListener('click', function() {
+  el('fullscreen-btn').addEventListener('click', function() {
     fsActive = !fsActive;
     document.body.classList.toggle('editor-fullscreen', fsActive);
     if (fsActive && editorEl.requestFullscreen) editorEl.requestFullscreen();
@@ -120,16 +120,16 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     }, 500);
   });
 
-  $('run-btn').addEventListener('click', function() {
-    $('#result-modal').modal('show');
-    $('#modal-test-btn').off('click').on('click', function() {
+  el('run-btn').addEventListener('click', function() {
+    jQuery('#result-modal').modal('show');
+    jQuery('#modal-test-btn').off('click').on('click', function() {
       if (window.__consoleRun) window.__consoleRun(window.editor.getValue(), C.contestId, C.index);
     });
   });
-  $('benchmark-btn').addEventListener('click', function() {
+  el('benchmark-btn').addEventListener('click', function() {
     if (window.__consoleBenchmark) window.__consoleBenchmark(window.editor.getValue(), C.contestId, C.index);
   });
-  $('submit-btn').addEventListener('click', function() {
+  el('submit-btn').addEventListener('click', function() {
     if (window.__consoleSubmit) window.__consoleSubmit(window.editor.getValue(), C.contestId, C.index);
   });
 })();
