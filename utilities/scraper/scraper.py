@@ -80,7 +80,9 @@ class CodeforcesScraper:
             if data["status"] != "OK":
                 log.error(f"API error: {data.get('comment', 'unknown')}")
                 return None
-            return data["result"]["problems"]
+            problems = data["result"]["problems"]
+            problems.sort(key=lambda p: (p["contestId"], p["index"]))
+            return problems
         except Exception as e:
             log.error(f"API request failed: {e}")
             return None
