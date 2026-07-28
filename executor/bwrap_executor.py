@@ -62,13 +62,6 @@ def mark_failed(conn, queue_id, error):
         )
 
 
-def get_test_cases(conn, problem_id):
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, kwargs, expected, input, expected_output FROM test_cases WHERE problem_id = %s ORDER BY id",
-            (problem_id,),
-        )
-        return cur.fetchall()
 
 
 def get_problem_method(conn, problem_id):
@@ -396,18 +389,11 @@ def process_entry(conn, entry):
         except (json.JSONDecodeError, TypeError):
             pass
     if exec_type in ("brute_force", "submit_brute"):
-        sample_cases = get_test_cases(conn, problem_id) if exec_type == "submit_brute" else []
         gen_cases = generate_brute_force_test_cases(conn, problem_id, qid)
-        if gen_cases is None and exec_type == "brute_force":
+        if gen_cases is None:
             mark_failed(conn, qid, "Failed to generate test cases (missing generator or solution code)")
             return
-        combined = (sample_cases or []) + (gen_cases or [])
-        if not combined:
-            mark_failed(conn, qid, "No test cases to run")
-            return
-        test_cases = combined
-    elif not test_cases:
-        test_cases = get_test_cases(conn, problem_id)
+        test_cases = gen_cases
 
     if not test_cases:
         mark_failed(conn, qid, "No test cases found")

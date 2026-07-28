@@ -33,22 +33,7 @@ class Problem(Base):
 
     __table_args__ = (UniqueConstraint("contest_id", "problem_index"),)
 
-    test_cases = relationship("TestCase", back_populates="problem", cascade="all, delete-orphan")
     solutions = relationship("Solution", back_populates="problem", cascade="all, delete-orphan")
-
-
-class TestCase(Base):
-    __tablename__ = "test_cases"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    problem_id = Column(Integer, ForeignKey("problems.id", ondelete="CASCADE"), nullable=False)
-    input = Column(Text)
-    expected_output = Column(Text)
-    is_sample = Column(Boolean, default=False)
-    kwargs = Column(JSON)
-    expected = Column(JSON)
-
-    problem = relationship("Problem", back_populates="test_cases")
 
 
 class Solution(Base):
