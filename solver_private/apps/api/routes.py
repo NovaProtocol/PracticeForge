@@ -198,6 +198,9 @@ def format_code():
         return jsonify({"formatted": formatted})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@blueprint.route("/queue-status/<int:queue_id>")
 def queue_status(queue_id: int):
     q = query_one(
         "SELECT id, status, result, stdout, error, timing_ms, memory_kb, solution_id FROM execution_queue WHERE id = %s",
