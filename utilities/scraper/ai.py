@@ -86,56 +86,91 @@ class AIEnricher:
             log.warn("ZEN_API_KEY not set — skipping AI enrichment")
             return None
 
+        # First call: raw HTML + system prompt
         data = self._call_ai(problem_text, None)
         if not data:
             return None
 
+        # Solution validation — retry with cleaned problem data
         solution_ok, solution_err = self._validate_solution(data)
         if not solution_ok:
             for attempt in range(self.MAX_RETRIES):
-                solution_ok, solution_err = self._validate_solution(data)
-                if solution_ok:
-                    break
                 log.warn(f"Solution failed (attempt {attempt+1}/{self.MAX_RETRIES}): {solution_err[:200]}")
-                retry_data = self._call_ai(
-                    problem_text,
-                    f"Your solution_code was tested against the example test cases and FAILED:\n{solution_err}\n\nFix the solution_code so it produces the correct output for ALL example cases.",
-                )
+                ctx = self._build_solution_retry_context(data, solution_err)
+                retry_data = self._call_ai(None, ctx)
                 if retry_data:
                     data["solution_code"] = retry_data.get("solution_code", data["solution_code"])
                     data["base_code"] = retry_data.get("base_code", data["base_code"])
-            solution_ok, solution_err = self._validate_solution(data)
+                solution_ok, solution_err = self._validate_solution(data)
+                if solution_ok:
+                    break
             if not solution_ok:
                 log.error(f"Solution validation failed after max retries: {solution_err}")
                 return None
 
+        # Generator validation — retry with cleaned problem data + solution + generator
         gen_ok, gen_err = self._validate_generator(data)
         if not gen_ok:
             for attempt in range(self.MAX_RETRIES):
+                log.warn(f"Generator failed (attempt {attempt+1}/{self.MAX_RETRIES}): {gen_err[:200]}")
+                ctx = self._build_generator_retry_context(data, gen_err)
+                retry_data = self._call_ai(None, ctx)
+                if retry_data:
+                    data["generator_code"] = retry_data.get("generator_code", data["generator_code"])
+                    data["solution_code"] = retry_data.get("solution_code", data["solution_code"])
                 gen_ok, gen_err = self._validate_generator(data)
                 if gen_ok:
                     break
-                log.warn(f"Generator failed (attempt {attempt+1}/{self.MAX_RETRIES}): {gen_err[:200]}")
-                retry_data = self._call_ai(
-                    problem_text,
-                    f"Your generator_code was tested and FAILED. {gen_err}\n\nFix the generator_code so it produces test cases that ALWAYS pass the solution_code (100% success rate across 100 generated cases). The solution_code is:\n{data.get('solution_code', '')}\n\nKeep the same problem data (examples, description, base_code, hints). Only fix generator_code.",
-                )
-                if retry_data:
-                    data["generator_code"] = retry_data.get("generator_code", data["generator_code"])
-            gen_ok, gen_err = self._validate_generator(data)
             if not gen_ok:
-                log.error("Generator validation failed after max retries")
+                log.error(f"Generator validation failed after max retries: {gen_err}")
                 return None
 
+        # Fully validated: solution passes examples AND generator produces 100% passing cases
         return data
 
-    def _call_ai(self, problem_text: str, error_context: str | None) -> dict | None:
+    def _build_solution_retry_context(self, data: dict, error: str) -> str:
+        """Build retry prompt using cleaned problem data (not raw HTML)."""
+        examples = data.get("examples", [])
+        ex_str = json.dumps(examples, indent=2) if examples else "[]"
+        desc = data.get("description", "")[:1000]
+        return (
+            f"Your solution_code failed validation against the example test cases.\n\n"
+            f"Error:\n{error}\n\n"
+            f"Problem description:\n{desc}\n\n"
+            f"Example test cases:\n{ex_str}\n\n"
+            f"Your current solution_code:\n{data.get('solution_code', '')}\n\n"
+            f"Current base_code:\n{data.get('base_code', '')}\n\n"
+            f"Fix the solution_code so it produces the correct output for ALL example cases. "
+            f"Return the COMPLETE JSON with updated solution_code. Keep all other fields unchanged."
+        )
+
+    def _build_generator_retry_context(self, data: dict, error: str) -> str:
+        """Build retry prompt for generator failures, includes solution + generator."""
+        examples = data.get("examples", [])
+        ex_str = json.dumps(examples, indent=2) if examples else "[]"
+        desc = data.get("description", "")[:1000]
+        return (
+            f"Your generator_code failed validation.\n\n"
+            f"Error:\n{error}\n\n"
+            f"Problem description:\n{desc}\n\n"
+            f"Example test cases:\n{ex_str}\n\n"
+            f"Current solution_code:\n{data.get('solution_code', '')}\n\n"
+            f"Current generator_code:\n{data.get('generator_code', '')}\n\n"
+            f"Current base_code:\n{data.get('base_code', '')}\n\n"
+            f"Fix either the solution_code or the generator_code so that:\n"
+            f"1. The solution_code produces correct output for ALL example cases.\n"
+            f"2. The generator_code produces 100 test cases that ALL pass when validated against the solution_code.\n"
+            f"Return the COMPLETE JSON with the corrected fields. Keep all other fields unchanged."
+        )
+
+    def _call_ai(self, problem_text: str | None, error_context: str | None) -> dict | None:
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         if error_context:
             messages.append({"role": "user", "content": error_context})
-        messages.append({"role": "user", "content": problem_text})
+        if problem_text:
+            messages.append({"role": "user", "content": problem_text})
 
-        log.info(f"Sending to AI ({len(problem_text)} chars{' + error context' if error_context else ''})")
+        log.info(f"Sending to AI (problem={len(problem_text or '')} chars, context={len(error_context or '')} chars)")
         try:
             resp = self._openai_client.chat.completions.create(
                 model=AI_MODEL,
