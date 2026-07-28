@@ -246,9 +246,19 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
 
   // Load files
   fetch('/api/files/' + C.problemId).then(function(r) { return r.json(); }).then(function(data) {
-    files = data;
-    if (files.length === 0) files = [{ filename: 'main.py', code: '', last_ran: null }];
-    switchFile(activeFile || 'main.py');
+    if (data.length === 0) {
+      fetch('/api/files/' + C.problemId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: 'main.py', code: baseCode })
+      }).then(function(r) { return r.json(); }).then(function() {
+        files = [{ filename: 'main.py', code: baseCode, last_ran: null }];
+        switchFile('main.py');
+      });
+    } else {
+      files = data;
+      switchFile(activeFile || 'main.py');
+    }
   });
 })();
 </script>
