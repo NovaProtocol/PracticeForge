@@ -376,6 +376,8 @@ def process_entry(conn, entry):
             test_cases = json.loads(raw)
         except (json.JSONDecodeError, TypeError):
             pass
+    if exec_type == "run" and not test_cases:
+        print(f"[bwrap-executor] Queue #{qid}: test_cases_json={raw!r}", flush=True)
 
     if exec_type in ("brute_force", "submit_brute"):
         sample_cases = get_test_cases(conn, problem_id) if exec_type == "submit_brute" else []
