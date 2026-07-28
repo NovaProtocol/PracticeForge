@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from shared.db import execute
+from shared.db import execute, query_one
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS problems (
@@ -89,9 +89,14 @@ ALTER TABLE execution_queue MODIFY COLUMN exec_type ENUM('run','submit','brute_f
 ALTER TABLE execution_queue MODIFY COLUMN stdout LONGTEXT;
 """
 
-MIGRATIONS_SQL = """
-ALTER TABLE auto_saves ADD COLUMN filename VARCHAR(255) NOT NULL DEFAULT 'main.py' AFTER problem_id, DROP PRIMARY KEY, ADD PRIMARY KEY (problem_id, filename);
-"""
+def run_migrations():
+    # Migrate auto_saves to add filename column if missing
+    try:
+        row = query_one("SHOW COLUMNS FROM auto_saves LIKE 'filename'")
+        if not row:
+            execute("ALTER TABLE auto_saves ADD COLUMN filename VARCHAR(255) NOT NULL DEFAULT 'main.py' AFTER problem_id, DROP PRIMARY KEY, ADD PRIMARY KEY (problem_id, filename)")
+    except Exception:
+        pass
 
 
 def ensure_schema():
@@ -99,16 +104,6 @@ def ensure_schema():
         stmt = statement.strip()
         if stmt:
             execute(stmt)
-
-
-def run_migrations():
-    for statement in MIGRATIONS_SQL.split(";"):
-        stmt = statement.strip()
-        if stmt:
-            try:
-                execute(stmt)
-            except Exception:
-                pass  # Column may already exist
 
 
 def run():
