@@ -207,7 +207,8 @@ document.querySelectorAll('.desc-tab').forEach(function(tab) {
   });
 });
 
-document.getElementById('get-solution-btn').addEventListener('click', function() {
+var solBtn = document.getElementById('get-solution-btn');
+if (solBtn) solBtn.addEventListener('click', function() {
   document.getElementById('confirm-modal-title').textContent = 'View Solution';
   document.getElementById('confirm-modal-text').textContent = 'Are you sure? This is an intentional action to reveal the solution.';
   document.getElementById('confirm-modal-yes').addEventListener('click', function h() {
