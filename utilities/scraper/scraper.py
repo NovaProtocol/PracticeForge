@@ -6,8 +6,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from .config import CF_API, AI_DELAY, SCRAPE_DELAY, LIMIT, API_BASE, DB_PATH
-from .db import Database
+from .config import CF_API, AI_DELAY, SCRAPE_DELAY, LIMIT, API_BASE
 from .browser import Browser
 from .ai import AIEnricher
 from .uploader import Uploader
@@ -17,78 +16,73 @@ from . import log
 class CodeforcesScraper:
 
     def __init__(self):
-        self.db = Database()
         self.browser = Browser()
         self.ai = AIEnricher()
         self.uploader = Uploader()
 
     def run(self):
         log.info(f"Server: {API_BASE}")
-        log.info(f"DB: {DB_PATH}")
 
-        self._sync_api()
+        problems = self._fetch_problems()
+        if not problems:
+            return
 
-        pending = self.db.get_pending()
-        to_process = pending[:LIMIT] if LIMIT else pending
+        to_process = problems[:LIMIT] if LIMIT else problems
         total = len(to_process)
-        log.info(f"{len(pending)} pending, processing {total} this run")
+        log.info(f"Processing {total} problems")
 
         ok = 0
         try:
-            for i, (cid, idx, api_json) in enumerate(to_process):
-                cf_data = json.loads(api_json)
+            for i, cf_data in enumerate(to_process):
+                cid = cf_data["contestId"]
+                idx = cf_data["index"]
                 name = cf_data.get("name", "")
                 log.info(f"[{i+1}/{total}] {cid}/{idx} — {name}")
 
                 if self.uploader.exists_on_server(cid, idx):
-                    self.db.mark_uploaded(cid, idx)
                     continue
 
                 html = self.browser.scrape_problem_page(cid, idx)
                 if not html:
-                    self.db.mark_failed(cid, idx, "cf-blocked")
+                    log.warn(f"{cid}/{idx} blocked by CF, skipping")
                     continue
 
                 clean = self._extract_text(html)
-                self.db.mark(cid, idx, html=json.dumps(clean), status="scraped")
                 time.sleep(SCRAPE_DELAY)
 
                 ai_data = self.ai.enrich(clean)
                 if not ai_data:
-                    self.db.mark(cid, idx, status="ai-failed")
+                    log.warn(f"{cid}/{idx} AI enrichment failed, skipping")
                     continue
-                self.db.mark(cid, idx, ai_data=json.dumps(ai_data), status="ai-done")
 
                 payload = self.uploader.build_payload(cf_data, ai_data)
                 pid = self.uploader.upload(payload)
                 if pid:
                     ok += 1
-                    if self.uploader.verify_upload(payload):
-                        self.db.mark_uploaded(cid, idx)
-                    else:
-                        log.warn(f"Upload verification failed for {cid}/{idx}, will retry next run")
+                    if not self.uploader.verify_upload(payload):
+                        log.warn(f"Upload verification failed for {cid}/{idx}")
                 else:
-                    self.db.mark(cid, idx, status="upload-failed")
+                    log.warn(f"{cid}/{idx} upload failed")
 
                 time.sleep(AI_DELAY)
 
         finally:
             self.browser.close()
-            self.db.close()
 
         log.info(f"Done. {ok} uploaded this run.")
 
-    def _sync_api(self):
+    def _fetch_problems(self):
         log.info("Fetching problem list from Codeforces API")
         try:
             r = requests.get(CF_API, headers={"Accept-Language": "en"}, timeout=30)
             data = r.json()
             if data["status"] != "OK":
                 log.error(f"API error: {data.get('comment', 'unknown')}")
-                return
-            self.db.sync_api(data["result"]["problems"])
+                return None
+            return data["result"]["problems"]
         except Exception as e:
             log.error(f"API request failed: {e}")
+            return None
 
     @staticmethod
     def _extract_text(html: str) -> str:
