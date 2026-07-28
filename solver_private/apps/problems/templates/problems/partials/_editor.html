@@ -29,6 +29,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
 </style>
 <div style="display:flex;flex-direction:column;flex:1;min-height:0;">
   <div class="editor-toolbar">
+    <button title="Toggle sidebar" onclick="var p=document.getElementById('description-panel'),w=document.getElementById('workspace-panel');p.classList.toggle('collapsed');if(p.classList.contains('collapsed')){w.classList.remove('col-lg-7');w.classList.add('col-lg-12');}else{w.classList.remove('col-lg-12');w.classList.add('col-lg-7');}localStorage.setItem('solvespace-sidebar',p.classList.contains('collapsed')?'collapsed':'open');" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-size:0.7rem;padding:0.15rem 0.4rem;border-radius:4px;cursor:pointer;line-height:1.4;margin-right:4px;"><i class="fas fa-bars"></i></button>
     <button id="font-dec" title="Decrease font size">A−</button>
     <button id="font-inc" title="Increase font size">A+</button>
     <button id="reset-btn" title="Reset to original template">↺ Reset</button>
