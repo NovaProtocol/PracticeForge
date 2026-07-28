@@ -40,7 +40,7 @@ html, body { overflow: hidden; }
       {% include "problems/partials/_description.html" %}
     </div>
     <div class="col-lg-7 d-flex flex-column p-0" id="workspace-panel" style="height: 100%;">
-      <button title="Toggle sidebar" onclick="var p=document.getElementById('description-panel');p.classList.toggle('collapsed');localStorage.setItem('solvespace-sidebar',p.classList.contains('collapsed')?'collapsed':'open');" style="position:absolute;top:0;left:0;z-index:10;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-secondary);font-size:0.7rem;padding:0.2rem 0.5rem;border-radius:0 0 4px 0;cursor:pointer;line-height:1.4;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'"><i class="fas fa-bars"></i></button>
+      <button title="Toggle sidebar" onclick="var p=document.getElementById('description-panel'),w=document.getElementById('workspace-panel');p.classList.toggle('collapsed');if(p.classList.contains('collapsed')){w.classList.remove('col-lg-7');w.classList.add('col-lg-12');}else{w.classList.remove('col-lg-12');w.classList.add('col-lg-7');}localStorage.setItem('solvespace-sidebar',p.classList.contains('collapsed')?'collapsed':'open');" style="position:absolute;top:0;left:0;z-index:10;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-secondary);font-size:0.7rem;padding:0.2rem 0.5rem;border-radius:0 0 4px 0;cursor:pointer;line-height:1.4;opacity:0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'"><i class="fas fa-bars"></i></button>
       <div class="editor-area">
         {% include "problems/partials/_editor.html" %}
       </div>
@@ -89,6 +89,8 @@ html, body { overflow: hidden; }
 var sidebarState = localStorage.getItem('solvespace-sidebar');
 if (sidebarState === 'collapsed') {
   document.getElementById('description-panel').classList.add('collapsed');
+  document.getElementById('workspace-panel').classList.remove('col-lg-7');
+  document.getElementById('workspace-panel').classList.add('col-lg-12');
 }
 document.querySelectorAll('script[src*="codemirror"]').forEach(s => { if (s.dataset.loaded) return; s.dataset.loaded = '1'; });
 document.addEventListener('DOMContentLoaded', function() {
