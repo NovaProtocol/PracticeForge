@@ -642,8 +642,8 @@
           var t = r.timing_ms;
           var sol = r.sol_timing;
           if (sol != null) {
-            var diff = t - sol;
-            var cls = diff > 1 ? 'fail' : (diff < -1 ? 'pass' : '');
+          var diff = t - sol;
+          var cls = diff > 0.01 ? 'fail' : (diff < -0.01 ? 'pass' : '');
             timeCell = '<td class="' + cls + '">' + sol.toFixed(3) + 'ms';
             if (diff > 0) timeCell += ' <span class="fail">(+' + diff.toFixed(3) + 'ms)</span>';
             else if (diff < 0) timeCell += ' <span class="pass">(' + diff.toFixed(3) + 'ms)</span>';
