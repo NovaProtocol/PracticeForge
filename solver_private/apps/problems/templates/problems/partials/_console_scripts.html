@@ -59,8 +59,7 @@
     tab.dataset.idx = newIdx;
     tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);white-space:nowrap;user-select:none;';
     tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;font-size:0.65rem;border-radius:2px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:0;line-height:1;margin-left:2px;">&times;</button>';
-    var addBtn = document.getElementById('modal-tc-add');
-    addBtn.parentNode.insertBefore(tab, addBtn);
+    document.getElementById('modal-tc-tabs').appendChild(tab);
     loadTC(newIdx);
   }
 
@@ -110,7 +109,7 @@
     tab.dataset.idx = newIdx;
     tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);white-space:nowrap;user-select:none;';
     tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;font-size:0.65rem;border-radius:2px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:0;line-height:1;margin-left:2px;">&times;</button>';
-    document.getElementById('modal-tc-add').parentNode.insertBefore(tab, document.getElementById('modal-tc-add'));
+    document.getElementById('modal-tc-tabs').appendChild(tab);
     modalTestCases.push({ idx: newIdx, args: args, expected: expected || '' });
     loadTC(newIdx);
   }
@@ -311,7 +310,7 @@
       tab.dataset.idx = i;
       tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;user-select:none;' + (i === 0 ? 'color:var(--accent);border-bottom-color:var(--accent);' : 'color:var(--text-secondary);');
       tab.innerHTML = 'Sample ' + (i + 1);
-      document.getElementById('modal-tc-add').parentNode.insertBefore(tab, document.getElementById('modal-tc-add'));
+      document.getElementById('modal-tc-tabs').appendChild(tab);
       modalTestCases.push({ idx: i, args: tc.args || '', expected: tc.expected || '' });
     });
     loadTC(0);
