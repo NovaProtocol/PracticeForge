@@ -377,6 +377,16 @@
   max-width: 200px;
   overflow: hidden;
 }
+.result-table td.cell-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+.result-table td.cell-clamped.expanded {
+  -webkit-line-clamp: unset;
+}
 .result-table tr:nth-child(even) td {
   background: rgba(18, 18, 26, 0.5);
 }
@@ -620,6 +630,11 @@
         var input = addBtn.dataset.args;
         var expected = addBtn.dataset.expected;
         addTestCaseFromResult(input, expected);
+        return;
+      }
+      var cell = e.target.closest('.cell-clamped');
+      if (cell) {
+        cell.classList.toggle('expanded');
       }
     };
 
@@ -658,9 +673,9 @@
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
-          '<td>' + escHtml(r.input || '') + '</td>' +
-          '<td>' + escHtml(r.expected || '') + '</td>' +
-          '<td class="' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          '<td class="cell-clamped">' + escHtml(r.input || '') + '</td>' +
+          '<td class="cell-clamped">' + escHtml(r.expected || '') + '</td>' +
+          '<td class="cell-clamped ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
           timeCell +
           '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
         tbody.appendChild(tr);
