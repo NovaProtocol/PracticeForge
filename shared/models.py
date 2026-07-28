@@ -169,7 +169,7 @@ def get_solutions():
 
 def list_files(problem_id: int) -> list:
     rows = query(
-        "SELECT filename, code, last_ran FROM auto_saves WHERE problem_id = %s AND active = TRUE ORDER BY id",
+        "SELECT filename, code, last_ran FROM auto_saves WHERE problem_id = %s AND active = TRUE ORDER BY filename",
         (problem_id,),
     )
     return rows if rows else []
