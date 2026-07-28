@@ -1,4 +1,8 @@
 import json
+import os
+import subprocess
+import sys
+import tempfile
 
 from .config import AI_KEY, AI_MODEL, AI_URL
 from . import log
@@ -41,12 +45,29 @@ Guidelines (Strictly Python-Centric):
        def run(self, h: int, n: int, damage: list, cooldown: list) -> int:
            # Write your code here
            pass
-8. SOLUTION_CODE: Provide the working reference solution matching the base code signature for student review when stuck.
-9. GENERATOR_CODE: Provide a Python script (using the random module) that dynamically generates valid test cases conforming to the problem's constraints. It should output a string or list representing test cases.
+8. SOLUTION_CODE: Provide the CORRECT working reference solution matching the base code signature for student review when stuck. This solution will be AUTOMATICALLY RUN against all example test cases to verify correctness. If it fails any example, you will be asked to fix it. Test your logic carefully — this is the ground truth used by the platform. Do NOT use recursion deeper than Python's default limit. Do NOT use external libraries. Handle ALL edge cases mentioned in the constraints. The solution MUST pass every example test case.
+9. GENERATOR_CODE: Provide a Python script that dynamically generates valid test cases conforming to the problem's constraints. The script MUST have a function called `generate()` that returns a list of dictionaries, where each dictionary has keyword argument keys matching the `run()` method parameters and their corresponding values. Example structure:
+   ```python
+   import random
+   def generate():
+       cases = []
+       for _ in range(100):
+           n = random.randint(1, 1000)
+           rounds = []
+           for _ in range(n):
+               name = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz', k=random.randint(1, 32)))
+               score = random.randint(-1000, 1000)
+               rounds.append([name, score])
+           cases.append({'n': n, 'rounds': rounds})
+       return cases
+   ```
+   The generated test cases will be AUTOMATICALLY RUN against the solution_code to verify that every single one passes. If ANY generated case fails the solution, you will be asked to fix the generator. Generate cases covering a range of difficulty (small inputs, large inputs, edge cases, boundary values). The first 100 generated cases MUST pass the solution with 100% success rate.
 10. Return ONLY pure JSON."""
 
 
 class AIEnricher:
+
+    MAX_RETRIES = 5
 
     def __init__(self):
         self._client = None
@@ -65,15 +86,58 @@ class AIEnricher:
             log.warn("ZEN_API_KEY not set — skipping AI enrichment")
             return None
 
+        data = self._call_ai(problem_text, None)
+        if not data:
+            return None
 
-        log.info(f"Sending to AI ({len(problem_text)} chars)")
+        if not self._validate_solution(data):
+            for attempt in range(self.MAX_RETRIES):
+                ok, err = self._validate_solution(data)
+                if ok:
+                    break
+                log.warn(f"Solution failed (attempt {attempt+1}/{self.MAX_RETRIES}): {err[:200]}")
+                retry_data = self._call_ai(
+                    problem_text,
+                    f"Your solution_code was tested against the example test cases and FAILED:\n{err}\n\nFix the solution_code so it produces the correct output for ALL example cases.",
+                )
+                if retry_data:
+                    data["solution_code"] = retry_data.get("solution_code", data["solution_code"])
+                    data["base_code"] = retry_data.get("base_code", data["base_code"])
+            ok, _ = self._validate_solution(data)
+            if not ok:
+                log.error("Solution validation failed after max retries")
+                return None
+
+        if not self._validate_generator(data):
+            for attempt in range(self.MAX_RETRIES):
+                ok, err = self._validate_generator(data)
+                if ok:
+                    break
+                log.warn(f"Generator failed (attempt {attempt+1}/{self.MAX_RETRIES}): {err[:200]}")
+                retry_data = self._call_ai(
+                    problem_text,
+                    f"Your generator_code was tested and FAILED. {err}\n\nFix the generator_code so it produces test cases that ALWAYS pass the solution_code (100% success rate across 100 generated cases). The solution_code is:\n{data.get('solution_code', '')}\n\nKeep the same problem data (examples, description, base_code, hints). Only fix generator_code.",
+                )
+                if retry_data:
+                    data["generator_code"] = retry_data.get("generator_code", data["generator_code"])
+            ok, _ = self._validate_generator(data)
+            if not ok:
+                log.error("Generator validation failed after max retries")
+                return None
+
+        return data
+
+    def _call_ai(self, problem_text: str, error_context: str | None) -> dict | None:
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if error_context:
+            messages.append({"role": "user", "content": error_context})
+        messages.append({"role": "user", "content": problem_text})
+
+        log.info(f"Sending to AI ({len(problem_text)} chars{' + error context' if error_context else ''})")
         try:
             resp = self._openai_client.chat.completions.create(
                 model=AI_MODEL,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": problem_text},
-                ],
+                messages=messages,
                 response_format={"type": "json_object"},
                 temperature=0.0,
             )
@@ -81,7 +145,6 @@ class AIEnricher:
             if not content:
                 log.error("AI returned empty response")
                 return None
-
             tokens = resp.usage.total_tokens if resp.usage else 0
             if tokens:
                 record(tokens)
@@ -90,3 +153,98 @@ class AIEnricher:
         except Exception as e:
             log.error(f"AI request failed: {e}")
             return None
+
+    def _validate_solution(self, data: dict) -> tuple[bool, str]:
+        solution_code = data.get("solution_code", "")
+        examples = data.get("examples", [])
+        if not solution_code or not examples:
+            return False, "Missing solution_code or examples"
+        for i, ex in enumerate(examples):
+            kwargs = ex.get("input", {})
+            expected = ex.get("output")
+            result = _run_code(solution_code, kwargs)
+            if result["error"]:
+                return False, f"Example {i+1}: raised {result['error']}"
+            if result["output"] != expected:
+                return False, f"Example {i+1}: expected {expected!r}, got {result['output']!r}"
+        return True, ""
+
+    def _validate_generator(self, data: dict) -> tuple[bool, str]:
+        generator_code = data.get("generator_code", "")
+        solution_code = data.get("solution_code", "")
+        if not generator_code or not solution_code:
+            return False, "Missing generator_code or solution_code"
+        cases = _run_generator(generator_code, count=100)
+        if cases is None:
+            return False, "Generator crashed or produced no output"
+        if not cases:
+            return False, "Generator returned empty list"
+        failed = []
+        for i, kwargs in enumerate(cases):
+            result = _run_code(solution_code, kwargs)
+            if result["error"]:
+                failed.append(f"Case {i+1}: solution crashed with {result['error']}")
+        if failed:
+            return False, f"{len(failed)}/100 generated cases failed. First failures:\n" + "\n".join(failed[:5])
+        return True, ""
+
+
+def _run_code(user_code: str, kwargs: dict) -> dict:
+    wrapper = f"""
+import json, sys
+{user_code}
+try:
+    solution = Solution()
+    result = solution.run(**json.loads(sys.argv[1]))
+    print(json.dumps({{"output": result}}))
+except Exception as e:
+    print(json.dumps({{"error": str(e)}}))
+"""
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
+    try:
+        tmp.write(wrapper)
+        tmp.close()
+        r = subprocess.run(
+            [sys.executable, tmp.name, json.dumps(kwargs)],
+            capture_output=True, text=True, timeout=15,
+        )
+        output = json.loads(r.stdout.strip() or "{}")
+        if "error" in output:
+            return {"output": None, "error": output["error"]}
+        return {"output": output.get("output"), "error": None}
+    except Exception as e:
+        return {"output": None, "error": str(e)}
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+
+
+def _run_generator(generator_code: str, count: int = 100) -> list | None:
+    wrapper = f"""
+import json
+{generator_code}
+result = generate()
+print(json.dumps(result))
+"""
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
+    try:
+        tmp.write(wrapper)
+        tmp.close()
+        r = subprocess.run(
+            [sys.executable, tmp.name],
+            capture_output=True, text=True, timeout=30,
+        )
+        if r.returncode != 0:
+            log.warn(f"Generator stderr: {r.stderr[:200]}")
+            return None
+        return json.loads(r.stdout.strip())
+    except Exception as e:
+        log.warn(f"Generator error: {e}")
+        return None
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
