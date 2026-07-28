@@ -7,9 +7,7 @@ from flask import jsonify, request
 from apps.api import blueprint
 from shared.db import execute, query, query_one
 from shared.models import (
-    create_custom_test_case,
     create_file,
-    delete_custom_test_case,
     delete_file,
     get_all_tags,
     get_editorial,
@@ -284,15 +282,3 @@ def auto_save_get(problem_id: int):
 
 
 # ── Test cases ──
-
-@blueprint.route("/test-cases/<int:problem_id>", methods=["POST"])
-def add_test_case(problem_id: int):
-    data = request.get_json() or request.form
-    tc_id = create_custom_test_case(problem_id, data.get("input", ""), data.get("expected_output", ""))
-    return jsonify({"id": tc_id, "status": "created"}), 201
-
-
-@blueprint.route("/test-cases/<int:tc_id>", methods=["DELETE"])
-def remove_test_case(tc_id: int):
-    delete_custom_test_case(tc_id)
-    return jsonify({"status": "deleted"})

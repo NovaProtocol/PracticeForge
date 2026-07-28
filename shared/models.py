@@ -94,33 +94,7 @@ def get_all_tags():
     return sorted(tags)
 
 
-def get_all_test_cases(problem_id: int):
-    return query(
-        "SELECT * FROM test_cases WHERE problem_id = %s ORDER BY id",
-        (problem_id,),
-    )
 
-
-def get_all_test_cases_json(problem_id: int):
-    """Returns test cases suitable for LeetCode-style execution (args+expected JSON)."""
-    return query(
-        "SELECT id, args, expected, is_sample FROM test_cases WHERE problem_id = %s AND args IS NOT NULL ORDER BY id",
-        (problem_id,),
-    )
-
-
-def get_sample_cases_json(problem_id: int):
-    return query(
-        "SELECT * FROM test_cases WHERE problem_id = %s AND is_sample = TRUE AND args IS NOT NULL ORDER BY id",
-        (problem_id,),
-    )
-
-
-def get_sample_cases(problem_id: int):
-    return query(
-        "SELECT * FROM test_cases WHERE problem_id = %s AND is_sample = TRUE ORDER BY id",
-        (problem_id,),
-    )
 
 
 def create_solution(problem_id: int, code: str, verdict: str = "Pending", passed: int = 0, total: int = 0, timing_ms: int = 0, memory_kb: int = 0, language: str = "python"):
@@ -313,18 +287,6 @@ def get_problem_submissions(problem_id: int) -> list:
 
 def get_editorial(problem_id: int) -> dict | None:
     return None
-
-
-def create_custom_test_case(problem_id: int, input_data: str, expected_output: str) -> int:
-    return execute(
-        "INSERT INTO test_cases (problem_id, input, expected_output, is_sample) VALUES (%s, %s, %s, FALSE)",
-        (problem_id, input_data, expected_output),
-    )
-
-
-def delete_custom_test_case(tc_id: int) -> bool:
-    execute("DELETE FROM test_cases WHERE id = %s", (tc_id,))
-    return True
 
 
 def update_tokens(token_count: int) -> bool:
