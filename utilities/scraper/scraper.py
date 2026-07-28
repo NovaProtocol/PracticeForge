@@ -91,17 +91,18 @@ class CodeforcesScraper:
 
         # Convert math script tags to LaTeX text
         for sel, fmt in [
-            ("script[type='math/tex']", " ${} $"),
-            ("script[type='math/tex; mode=display']", " $$ {} $$ "),
+            ("script[type='math/tex']", "$ {} $"),
+            ("script[type='math/tex; mode=display']", "$$ {} $$ "),
         ]:
             for el in soup.select(sel):
                 if el.string:
-                    el.replace_with(soup.new_string(fmt.replace("{}", el.string.strip())))
+                    val = el.string.strip()
+                    token = fmt.replace("{}", val).strip()
+                    el.replace_with(soup.new_string(f" {token} "))
 
-        for el in soup.select(".MathJax"):
-            m = el.find("script", {"type": "math/tex"})
-            if m and m.string:
-                el.replace_with(soup.new_string(f" ${m.string.strip()}$ "))
+        # Remove MathJax visual spans (they're just rendered markup, redundant)
+        for el in soup.select(".MathJax, .MathJax_Preview"):
+            el.decompose()
 
         # Remove tex-spans: they duplicate plain text. Insert $value$ and
         # strip any whitespace-only adjacent text nodes so we don't get "n n $n$".
@@ -130,9 +131,10 @@ class CodeforcesScraper:
         def get_clean(el) -> str:
             if not el:
                 return ""
-            text = el.get_text(" ").strip()
-            text = re.sub(r" {3,}", " ", text)
-            return text
+            # Get text with space separator, then collapse all whitespace to single spaces
+            text = el.get_text(" ")
+            text = re.sub(r"\s+", " ", text)
+            return text.strip()
 
         header = c.select_one(".header")
         if header:
@@ -144,14 +146,21 @@ class CodeforcesScraper:
             if ml: lines.append("Memory: " + ml.get_text(strip=True).replace("memory limit per test", "").strip(": \n"))
             lines.append("")
 
-        # Description: try .legend, fall back to all text before input-spec
-        legend = c.select_one(".legend")
-        if legend:
-            desc = get_clean(legend)
-            if desc:
-                lines.append("Description:")
-                lines.append(desc)
-                lines.append("")
+        # Description: Find ALL content between .header and .input-specification
+        # (Codeforces often uses an unnamed div, not .legend)
+        desc_parts = []
+        for sibling in header.find_next_siblings() if header else []:
+            if sibling.name == "div" and sibling.get("class"):
+                cls = " ".join(sibling.get("class"))
+                if cls in ("input-specification", "output-specification", "sample-tests", "note"):
+                    break
+            t = get_clean(sibling)
+            if t:
+                desc_parts.append(t)
+        if desc_parts:
+            lines.append("Description:")
+            lines.append("\n".join(desc_parts))
+            lines.append("")
 
         inp_sec = c.select_one(".input-specification")
         if inp_sec:
@@ -189,4 +198,9 @@ class CodeforcesScraper:
                 lines.append(note_text)
                 lines.append("")
 
-        return "\n".join(lines)
+        result = "\n".join(lines)
+        # Clean up excessive blank lines
+        result = re.sub(r"\n{3,}", "\n\n", result)
+        # Remove lines that are just whitespace
+        result = re.sub(r"^\s+$", "", result, flags=re.MULTILINE)
+        return result.strip()
