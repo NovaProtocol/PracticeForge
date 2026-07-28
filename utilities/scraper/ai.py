@@ -202,7 +202,8 @@ class AIEnricher:
             result = _run_code(solution_code, kwargs)
             if result["error"]:
                 return False, f"Example {i+1}: raised {result['error']}"
-            if result["output"] != expected:
+            # Compare JSON-serialized forms (matches executor's effective comparison)
+            if json.dumps(result["output"]) != json.dumps(expected):
                 return False, f"Example {i+1}: expected {expected!r}, got {result['output']!r}"
         return True, ""
 
