@@ -75,20 +75,22 @@ CREATE TABLE IF NOT EXISTS execution_queue (
     FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
 
-DROP TABLE IF EXISTS auto_saves;
 CREATE TABLE IF NOT EXISTS auto_saves (
-    id INTEGER AUTO_INCREMENT PRIMARY KEY,
     problem_id INTEGER NOT NULL,
     filename VARCHAR(255) NOT NULL DEFAULT 'main.py',
     code TEXT NOT NULL,
     last_ran TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE,
-    UNIQUE KEY uq_problem_file (problem_id, filename)
+    PRIMARY KEY (problem_id, filename),
+    FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE
 );
 
 ALTER TABLE execution_queue MODIFY COLUMN exec_type ENUM('run','submit','brute_force','submit_brute') DEFAULT 'run';
 ALTER TABLE execution_queue MODIFY COLUMN stdout LONGTEXT;
+"""
+
+MIGRATIONS_SQL = """
+ALTER TABLE auto_saves ADD COLUMN filename VARCHAR(255) NOT NULL DEFAULT 'main.py' AFTER problem_id, DROP PRIMARY KEY, ADD PRIMARY KEY (problem_id, filename);
 """
 
 
@@ -99,5 +101,16 @@ def ensure_schema():
             execute(stmt)
 
 
+def run_migrations():
+    for statement in MIGRATIONS_SQL.split(";"):
+        stmt = statement.strip()
+        if stmt:
+            try:
+                execute(stmt)
+            except Exception:
+                pass  # Column may already exist
+
+
 def run():
     ensure_schema()
+    run_migrations()
