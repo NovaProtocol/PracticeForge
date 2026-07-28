@@ -38,6 +38,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     <button id="reset-btn" title="Reset to original template">↺ Reset</button>
     <button id="lastran-btn" title="Restore last ran code">↻ Last Run</button>
     <button id="fullscreen-btn" title="Toggle fullscreen">⛶ Fullscreen</button>
+    <button id="format-btn" title="Format code with Black" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.78rem;cursor:pointer;"><i class="fas fa-wand-magic-sparkles"></i></button>
     <span style="flex:1"></span>
     <button id="run-btn" class="btn-accent btn-sm" style="padding:0.3rem 1rem;font-size:0.82rem;"><i class="fas fa-play mr-1"></i>Run</button>
   </div>
@@ -212,6 +213,22 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     jQuery('#solver-modal').modal('show');
     jQuery('#solver-modal').data('action', 'run');
     el('modal-tab-testcases').click();
+  });
+  el('format-btn').addEventListener('click', function() {
+    var btn = el('format-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    fetch('/api/format', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ code: window.editor.getValue() })
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.formatted) { window.editor.setValue(d.formatted); window.editor.focus(); }
+      else if (d.error) { alert('Format error: ' + d.error); }
+    }).catch(function(e) { alert('Format failed: ' + e.message); }).finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i>';
+    });
   });
 
   // Load files
