@@ -10,3 +10,4 @@ SQLAlchemy>=2.0
 beautifulsoup4>=4.12
 openai>=1.0
 cloudscraper>=1.2
+black>=25.0

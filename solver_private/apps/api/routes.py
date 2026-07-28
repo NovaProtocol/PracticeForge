@@ -188,7 +188,16 @@ def submit_code(contest_id: int, index: str):
         return jsonify({"error": str(e)}), 500
 
 
-@blueprint.route("/queue-status/<int:queue_id>")
+@blueprint.route("/format", methods=["POST"])
+def format_code():
+    code = request.form.get("code", "")
+    try:
+        import black
+        mode = black.Mode(target_versions={black.TargetVersion.PY39}, line_length=120)
+        formatted = black.format_str(code, mode=mode)
+        return jsonify({"formatted": formatted})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 def queue_status(queue_id: int):
     q = query_one(
         "SELECT id, status, result, stdout, error, timing_ms, memory_kb, solution_id FROM execution_queue WHERE id = %s",
