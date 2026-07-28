@@ -225,6 +225,13 @@ def queue_status(queue_id: int):
 
 @blueprint.route("/files/<int:problem_id>")
 def files_list(problem_id: int):
+    include_inactive = request.args.get("include_inactive", "").lower() in ("true", "1")
+    if include_inactive:
+        rows = query(
+            "SELECT filename, code, last_ran, active FROM auto_saves WHERE problem_id = %s ORDER BY id",
+            (problem_id,),
+        )
+        return jsonify(rows if rows else [])
     return jsonify(list_files(problem_id))
 
 

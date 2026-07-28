@@ -45,7 +45,7 @@ class TestCase(Base):
     input = Column(Text)
     expected_output = Column(Text)
     is_sample = Column(Boolean, default=False)
-    args = Column(JSON)
+    kwargs = Column(JSON)
     expected = Column(JSON)
 
     problem = relationship("Problem", back_populates="test_cases")

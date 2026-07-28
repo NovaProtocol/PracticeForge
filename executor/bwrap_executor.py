@@ -65,7 +65,7 @@ def mark_failed(conn, queue_id, error):
 def get_test_cases(conn, problem_id):
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, args, expected, input, expected_output FROM test_cases WHERE problem_id = %s ORDER BY id",
+            "SELECT id, kwargs, expected, input, expected_output FROM test_cases WHERE problem_id = %s ORDER BY id",
             (problem_id,),
         )
         return cur.fetchall()
@@ -101,12 +101,12 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         "signal.signal(signal.SIGALRM, _timeout_handler)",
     ]
     for tc in test_cases:
-        args_str = tc.get("args") or tc.get("input") or ""
+        kwargs_str = tc.get("kwargs") or tc.get("input") or ""
         expected_str = tc.get("expected") or tc.get("expected_output") or ""
-        inp_display = tc.get("args") or tc.get("input") or ""
+        inp_display = tc.get("kwargs") or tc.get("input") or ""
         exp_display = tc.get("expected") or tc.get("expected_output") or ""
 
-        if not args_str:
+        if not kwargs_str:
             lines.append("results.append({'input': " + json.dumps(inp_display) + ", 'expected': " + json.dumps(exp_display) + ", 'got': '', 'error': '', 'passed': True, 'stdout': '', 'status': 'skipped'})")
             continue
 
@@ -120,8 +120,8 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         lines.append("  err = ''")
         lines.append("  _t0 = time.perf_counter()")
         lines.append("  try:")
-        lines.append("    args = json.loads(" + json.dumps(args_str) + ")")
-        lines.append("    result = method(*args)")
+        lines.append("    kwargs = json.loads(" + json.dumps(kwargs_str) + ")")
+        lines.append("    result = method(**kwargs)")
         lines.append("    got = json.dumps(result)")
         if expected_str:
             lines.append("    expected = json.loads(" + json.dumps(json.dumps(expected_str)) + ")")
@@ -323,10 +323,10 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
             except (json.JSONDecodeError, ValueError):
                 continue
 
-            if isinstance(tc_data, dict) and "args" in tc_data:
-                args_str = json.dumps(tc_data["args"])
-            elif isinstance(tc_data, list):
-                args_str = json.dumps(tc_data)
+            if isinstance(tc_data, dict) and "kwargs" in tc_data:
+                kwargs_str = json.dumps(tc_data["kwargs"])
+            elif isinstance(tc_data, dict):
+                kwargs_str = json.dumps(tc_data)
             else:
                 continue
 
@@ -337,7 +337,7 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
             except OSError:
                 continue
 
-            sol_wrapper = build_wrapper(sol_path, method_name, [{"args": args_str, "expected": ""}])
+            sol_wrapper = build_wrapper(sol_path, method_name, [{"kwargs": kwargs_str, "expected": ""}])
             sol_wrap_path = f"/tmp/solwrap-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
             sol_result = run_code(sol_wrapper, sol_wrap_path, sol_path, timeout=15)
 
@@ -364,7 +364,7 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
                 expected_raw = json.loads(got)
             except (json.JSONDecodeError, ValueError):
                 expected_raw = got
-            valid.append({"args": args_str, "expected": expected_raw, "input": "", "expected_output": ""})
+            valid.append({"kwargs": kwargs_str, "expected": expected_raw, "input": "", "expected_output": ""})
         proc.wait(timeout=60)
     except subprocess.TimeoutExpired:
         proc.kill()
