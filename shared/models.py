@@ -169,7 +169,7 @@ def get_solutions():
 
 def list_files(problem_id: int) -> list:
     rows = query(
-        "SELECT filename, code, last_ran FROM auto_saves WHERE problem_id = %s ORDER BY id",
+        "SELECT filename, code, last_ran FROM auto_saves WHERE problem_id = %s AND active = TRUE ORDER BY id",
         (problem_id,),
     )
     return rows if rows else []
@@ -177,28 +177,35 @@ def list_files(problem_id: int) -> list:
 
 def save_code(problem_id: int, code: str, filename: str = "main.py"):
     execute(
-        "INSERT INTO auto_saves (problem_id, filename, code) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE code = %s",
-        (problem_id, filename, code, code),
+        "UPDATE auto_saves SET code = %s WHERE problem_id = %s AND filename = %s AND active = TRUE",
+        (code, problem_id, filename),
+    )
+
+
+def create_file(problem_id: int, filename: str, code: str = ""):
+    execute(
+        "INSERT INTO auto_saves (problem_id, filename, code, active) VALUES (%s, %s, %s, TRUE)",
+        (problem_id, filename, code),
     )
 
 
 def rename_file(problem_id: int, old_filename: str, new_filename: str):
     execute(
-        "UPDATE auto_saves SET filename = %s WHERE problem_id = %s AND filename = %s",
+        "UPDATE auto_saves SET filename = %s WHERE problem_id = %s AND filename = %s AND active = TRUE",
         (new_filename, problem_id, old_filename),
     )
 
 
 def delete_file(problem_id: int, filename: str):
     execute(
-        "DELETE FROM auto_saves WHERE problem_id = %s AND filename = %s",
+        "UPDATE auto_saves SET active = FALSE WHERE problem_id = %s AND filename = %s",
         (problem_id, filename),
     )
 
 
 def save_last_ran(problem_id: int, code: str, filename: str = "main.py"):
     execute(
-        "UPDATE auto_saves SET last_ran = %s WHERE problem_id = %s AND filename = %s",
+        "UPDATE auto_saves SET last_ran = %s WHERE problem_id = %s AND filename = %s AND active = TRUE",
         (code, problem_id, filename),
     )
 

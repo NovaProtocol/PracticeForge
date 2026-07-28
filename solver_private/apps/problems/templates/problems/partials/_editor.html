@@ -126,9 +126,17 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
       }
     });
     window.editor.on('change', function() {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(function() { saveCurrentFile(); }, 500);
+      isDirty = true;
     });
+
+    setInterval(function() {
+      if (isDirty && activeFile && window.editor) {
+        isDirty = false;
+        var code = window.editor.getValue();
+        var fd = new URLSearchParams({ code: code, filename: activeFile });
+        navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, fd);
+      }
+    }, 1000);
   }
 
   function saveCurrentFile() {
@@ -136,6 +144,7 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     var code = window.editor.getValue();
     var fd = new URLSearchParams({ code: code, filename: activeFile });
     navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, fd);
+    isDirty = false;
   }
 
   function renderTabs() {
@@ -190,6 +199,8 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   var fontSize = 14;
+  var isDirty = false;
+
   function applyFontSize() { var cm = editorEl.querySelector('.CodeMirror'); if (cm) { cm.style.fontSize = fontSize + 'px'; if (window.editor) window.editor.refresh(); } }
   el('font-inc').addEventListener('click', function() { fontSize = Math.min(32, fontSize + 2); applyFontSize(); });
   el('font-dec').addEventListener('click', function() { fontSize = Math.max(8, fontSize - 2); applyFontSize(); });

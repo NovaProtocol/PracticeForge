@@ -98,4 +98,5 @@ class AutoSave(Base):
     filename = Column(String(255), primary_key=True, default="main.py")
     code = Column(Text, nullable=False)
     last_ran = Column(Text)
+    active = Column(Boolean, default=True)
     updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
