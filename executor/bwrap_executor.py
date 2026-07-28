@@ -425,6 +425,35 @@ def process_entry(conn, entry):
 
     all_stdout = "\n".join(t.get("stdout", "") for t in tc_results if t.get("stdout"))
 
+    # Run solution code against same test cases for timing comparison
+    with conn.cursor() as cur:
+        cur.execute("SELECT solution_code FROM problems WHERE id = %s", (problem_id,))
+        sol_row = cur.fetchone()
+    if sol_row and sol_row.get("solution_code"):
+        sol_code = sol_row["solution_code"]
+        sol_path = f"/tmp/solcompare-{get_problem_label(conn, problem_id)}-{qid}.py"
+        sol_wrap_path = f"/tmp/solcomparewrap-{get_problem_label(conn, problem_id)}-{qid}.py"
+        try:
+            with open(sol_path, "w") as f:
+                f.write(sol_code)
+            sol_wrapper = build_wrapper(sol_path, method_name, test_cases, stop_on_failure=False)
+            sol_result = run_bwrap(sol_wrapper, sol_wrap_path, sol_path, timeout=30)
+            if sol_result["returncode"] == 0:
+                try:
+                    sol_tc_results = json.loads(sol_result["results_json"])
+                except (json.JSONDecodeError, ValueError):
+                    sol_tc_results = None
+                if sol_tc_results:
+                    for i, t in enumerate(sol_tc_results):
+                        if i < len(tc_results):
+                            tc_results[i]["sol_timing"] = t.get("timing_ms", None)
+        finally:
+            for p in [sol_path, sol_wrap_path]:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
+
     result_data = json.dumps({
         "results": tc_results,
         "stdout": all_stdout,
