@@ -137,6 +137,45 @@ html, body { overflow: hidden; }
   </div>
 </div>
 
+<!-- Confirm modal (for solution reveal, delete file, etc.) -->
+<div class="modal fade" id="confirm-modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document" style="max-width:400px;">
+    <div class="modal-content" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;">
+      <div class="modal-header" style="border-bottom:1px solid var(--border);padding:0.75rem 1rem;">
+        <h6 id="confirm-modal-title" style="margin:0;font-weight:700;font-size:0.9rem;">Confirm</h6>
+        <button type="button" class="close" data-dismiss="modal" style="color:var(--text-secondary);">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:1rem;">
+        <p id="confirm-modal-text" style="margin:0;font-size:0.88rem;color:var(--text-primary);"></p>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid var(--border);padding:0.75rem 1rem;display:flex;gap:6px;">
+        <button id="confirm-modal-yes" class="btn-accent btn-sm" style="padding:0.35rem 1rem;font-size:0.82rem;">Yes</button>
+        <button type="button" class="btn-outline-accent btn-sm" data-dismiss="modal" style="padding:0.35rem 1rem;font-size:0.82rem;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New file modal -->
+<div class="modal fade" id="newfile-modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document" style="max-width:400px;">
+    <div class="modal-content" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;">
+      <div class="modal-header" style="border-bottom:1px solid var(--border);padding:0.75rem 1rem;">
+        <h6 style="margin:0;font-weight:700;font-size:0.9rem;">New File</h6>
+        <button type="button" class="close" data-dismiss="modal" style="color:var(--text-secondary);">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:1rem;">
+        <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:0.4rem;">Filename</label>
+        <input id="newfile-input" type="text" class="form-control" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);border-radius:6px;padding:0.5rem 0.75rem;font-size:0.88rem;width:100%;outline:none;" placeholder="e.g. approach-b" autofocus>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid var(--border);padding:0.75rem 1rem;display:flex;gap:6px;">
+        <button id="newfile-create-btn" class="btn-accent btn-sm" style="padding:0.35rem 1rem;font-size:0.82rem;">Create</button>
+        <button type="button" class="btn-outline-accent btn-sm" data-dismiss="modal" style="padding:0.35rem 1rem;font-size:0.82rem;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 {% include "problems/partials/_console_scripts.html" %}
 </script>
