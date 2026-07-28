@@ -94,10 +94,8 @@ class ExecutionQueue(Base):
 class AutoSave(Base):
     __tablename__ = "auto_saves"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    problem_id = Column(Integer, ForeignKey("problems.id", ondelete="CASCADE"), nullable=False)
-    filename = Column(String(255), nullable=False, default="main.py")
+    problem_id = Column(Integer, ForeignKey("problems.id", ondelete="CASCADE"), primary_key=True)
+    filename = Column(String(255), primary_key=True, default="main.py")
     code = Column(Text, nullable=False)
     last_ran = Column(Text)
     updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
-    __table_args__ = (UniqueConstraint("problem_id", "filename", name="uq_problem_file"),)
