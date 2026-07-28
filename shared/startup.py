@@ -16,3 +16,9 @@ def run():
         execute("ALTER TABLE execution_queue MODIFY COLUMN stdout LONGTEXT")
     except Exception:
         pass
+    try:
+        row = query_one("SHOW COLUMNS FROM auto_saves LIKE 'active'")
+        if not row:
+            execute("ALTER TABLE auto_saves ADD COLUMN active BOOLEAN DEFAULT TRUE")
+    except Exception:
+        pass

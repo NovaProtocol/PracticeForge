@@ -8,6 +8,7 @@ from apps.api import blueprint
 from shared.db import execute, query, query_one
 from shared.models import (
     create_custom_test_case,
+    create_file,
     delete_custom_test_case,
     delete_file,
     get_all_tags,
@@ -232,7 +233,7 @@ def files_create(problem_id: int):
     data = request.get_json() or request.form
     filename = data.get("filename", "main.py")
     code = data.get("code", "")
-    save_code(problem_id, code, filename)
+    create_file(problem_id, filename, code)
     return jsonify({"status": "ok", "filename": filename})
 
 
