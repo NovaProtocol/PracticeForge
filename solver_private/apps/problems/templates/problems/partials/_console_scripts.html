@@ -1,9 +1,6 @@
 (function() {
-  var C = null;
-  try { var e = document.querySelector('script[src*="python"]'); } catch(ex) {}
   var contestId = {{ problem.contest_id }};
   var index = '{{ problem.problem_index }}';
-  var problemId = {{ problem.id }};
 
   var modalTestCases = [];
 
@@ -31,9 +28,17 @@
 
   function switchTC(idx) {
     saveCurrentTC();
-    document.querySelectorAll('#modal-tc-tabs .tc-tab').forEach(function(t) { t.classList.remove('active'); t.style.color = ''; t.style.borderBottomColor = 'transparent'; });
+    document.querySelectorAll('#modal-tc-tabs .tc-tab').forEach(function(t) {
+      t.classList.remove('active');
+      t.style.color = 'var(--text-secondary)';
+      t.style.borderBottomColor = 'transparent';
+    });
     var target = document.querySelector('#modal-tc-tabs .tc-tab[data-idx="' + idx + '"]');
-    if (target) { target.classList.add('active'); target.style.color = 'var(--accent)'; target.style.borderBottomColor = 'var(--accent)'; }
+    if (target) {
+      target.classList.add('active');
+      target.style.color = 'var(--accent)';
+      target.style.borderBottomColor = 'var(--accent)';
+    }
     loadTC(idx);
   }
 
@@ -41,14 +46,21 @@
     saveCurrentTC();
     var tabs = document.querySelectorAll('#modal-tc-tabs .tc-tab');
     var maxIdx = 0;
-    tabs.forEach(function(t) { var n = parseInt(t.dataset.idx, 10); if (n > maxIdx) maxIdx = n; t.classList.remove('active'); t.style.color = ''; t.style.borderBottomColor = 'transparent'; });
+    tabs.forEach(function(t) {
+      t.classList.remove('active');
+      t.style.color = 'var(--text-secondary)';
+      t.style.borderBottomColor = 'transparent';
+      var n = parseInt(t.dataset.idx, 10);
+      if (n > maxIdx) maxIdx = n;
+    });
     var newIdx = maxIdx + 1;
     var tab = document.createElement('div');
     tab.className = 'tc-tab active';
     tab.dataset.idx = newIdx;
     tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);white-space:nowrap;user-select:none;';
     tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;font-size:0.65rem;border-radius:2px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:0;line-height:1;margin-left:2px;">&times;</button>';
-    document.getElementById('modal-tc-add').parentNode.insertBefore(tab, document.getElementById('modal-tc-add'));
+    var addBtn = document.getElementById('modal-tc-add');
+    addBtn.parentNode.insertBefore(tab, addBtn);
     loadTC(newIdx);
   }
 
@@ -61,9 +73,11 @@
     tabEl.remove();
     var remaining = document.querySelectorAll('#modal-tc-tabs .tc-tab');
     if (remaining.length > 0) {
-      remaining.forEach(function(t) { t.classList.remove('active'); t.style.color = ''; t.style.borderBottomColor = 'transparent'; });
+      remaining.forEach(function(t) { t.classList.remove('active'); t.style.color = 'var(--text-secondary)'; t.style.borderBottomColor = 'transparent'; });
       var first = remaining[0];
-      first.classList.add('active'); first.style.color = 'var(--accent)'; first.style.borderBottomColor = 'var(--accent)';
+      first.classList.add('active');
+      first.style.color = 'var(--accent)';
+      first.style.borderBottomColor = 'var(--accent)';
       loadTC(parseInt(first.dataset.idx, 10));
     }
   }
@@ -83,7 +97,13 @@
     saveCurrentTC();
     var tabs = document.querySelectorAll('#modal-tc-tabs .tc-tab');
     var maxIdx = 0;
-    tabs.forEach(function(t) { var n = parseInt(t.dataset.idx, 10); if (n > maxIdx) maxIdx = n; t.classList.remove('active'); t.style.color = ''; t.style.borderBottomColor = 'transparent'; });
+    tabs.forEach(function(t) {
+      t.classList.remove('active');
+      t.style.color = 'var(--text-secondary)';
+      t.style.borderBottomColor = 'transparent';
+      var n = parseInt(t.dataset.idx, 10);
+      if (n > maxIdx) maxIdx = n;
+    });
     var newIdx = maxIdx + 1;
     var tab = document.createElement('div');
     tab.className = 'tc-tab active';
@@ -99,65 +119,6 @@
   function statusToClass(s) { switch(s){case'accepted':case'Accepted':return'accepted';case'wrong_answer':case'Wrong Answer':return'wrong-answer';case'time_limit_exceeded':case'Time Limit Exceeded':return'time-limit-exceeded';case'runtime_error':case'Runtime Error':return'runtime-error';default:return'pending';} }
   function statusLabel(s) { switch(s){case'accepted':case'Accepted':return'Accepted';case'wrong_answer':case'Wrong Answer':return'Wrong Answer';case'time_limit_exceeded':case'Time Limit Exceeded':return'Time Limit Exceeded';case'runtime_error':case'Runtime Error':return'Runtime Error';default:return s||'Pending';} }
 
-  function showModalResult(data) {
-    document.getElementById('modal-result-spinner').style.display = 'none';
-    var v = data.verdict || data.status || 'Pending';
-    var badge = document.getElementById('modal-result-badge');
-    badge.className = 'result-badge ' + statusToClass(v);
-    badge.textContent = statusLabel(v);
-    var rt = data.timing_ms || data.runtime;
-    document.getElementById('modal-result-runtime').style.display = rt != null ? 'inline-flex' : 'none';
-    if (rt != null) document.getElementById('modal-result-runtime-val').textContent = rt + ' ms';
-    var mem = data.memory_kb || data.memory;
-    document.getElementById('modal-result-memory').style.display = mem != null ? 'inline-flex' : 'none';
-    if (mem != null) document.getElementById('modal-result-memory-val').textContent = mem > 1024 ? (mem/1024).toFixed(1) + ' MB' : mem + ' KB';
-    var tbody = document.getElementById('modal-result-body');
-    tbody.innerHTML = '';
-    var comparison = document.getElementById('modal-result-comparison');
-    tbody.onclick = function(e) {
-      var btn = e.target.closest('.output-btn');
-      if (btn) { var tr = btn.closest('tr'); var or = tr && tr.nextElementSibling; if (or && or.classList.contains('output-row')) { or.style.display = or.style.display === 'none' ? '' : 'none'; btn.textContent = or.style.display === 'none' ? 'Output' : 'Close'; } return; }
-      var addBtn = e.target.closest('.add-tc-btn');
-      if (addBtn) { addTCFromResult(addBtn.dataset.args, addBtn.dataset.expected); return; }
-      var cell = e.target.closest('.cell-clamped');
-      if (cell) { cell.classList.toggle('expanded'); }
-    };
-    if (data.results && data.results.length > 0) {
-      comparison.style.display = 'block';
-      data.results.forEach(function(r, i) {
-        var s = r.status || (r.passed ? 'passed' : 'failed');
-        var sl, sc;
-        switch(s){case'passed':sl='PASS';sc='pass';break;case'failed':sl='FAIL';sc='fail';break;case'skipped':sl='SKIP';sc='info';break;case'checked':sl='CHECK';sc='pass';break;default:sl=s.toUpperCase();sc='info';}
-        var tr = document.createElement('tr');
-        tr.dataset.tcIdx = i;
-        var timeCell = '';
-        if (r.timing_ms != null) {
-          var t = r.timing_ms, sol = r.sol_timing;
-          if (sol != null) { var diff = t - sol; var cls = diff > 0.01 ? 'fail' : (diff < -0.01 ? 'pass' : ''); timeCell = '<td class="' + cls + '">' + sol.toFixed(3) + 'ms'; if (diff > 0) timeCell += ' <span class="fail">(+' + diff.toFixed(3) + 'ms)</span>'; else if (diff < 0) timeCell += ' <span class="pass">(' + diff.toFixed(3) + 'ms)</span>'; timeCell += '</td>'; }
-          else { timeCell = '<td>' + t.toFixed(3) + 'ms</td>'; }
-        } else { timeCell = '<td></td>'; }
-        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-args="' + escHtml(r.input) + '" data-expected="' + escHtml(r.expected || '') + '">+TC</button>' : '';
-        tr.innerHTML = '<td>' + (i + 1) + '</td>' + '<td class="' + sc + '" style="font-weight:600;">' + sl + '</td>' + '<td class="cell-clamped">' + escHtml(r.input || '') + '</td>' + '<td class="cell-clamped">' + escHtml(r.expected || '') + '</td>' + '<td class="cell-clamped ' + (s === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' + timeCell + '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
-        tbody.appendChild(tr);
-        if (r.stdout || r.error) {
-          var or = document.createElement('tr'); or.className = 'output-row'; or.style.display = 'none';
-          var tim = r.timing_ms != null ? r.timing_ms + 'ms' : '';
-          var me = r.memory_kb ? (r.memory_kb > 1024 ? (r.memory_kb/1024).toFixed(1) + 'MB' : r.memory_kb + 'KB') : '';
-          var footer = '<span style="color:#888;">\u2500 Process exited \u2014 Return Code: ' + (r.passed ? '0' : '1') + '</span>';
-          if (tim) footer += ' <span style="color:#888;">\u00b7 Finished at ' + tim + '</span>';
-          if (me) footer += ' <span style="color:#888;">\u00b7 Peak memory: ' + me + '</span>';
-          or.innerHTML = '<td colspan="7"><div style="background:#0d0d14;border:1px solid #2a2a3e;border-radius:6px;overflow:hidden;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.6;"><div style="padding:0.35rem 0.75rem;background:#0a0a0f;border-bottom:1px solid #2a2a3e;color:#64ffda;font-size:0.72rem;"><span style="color:#f92672;">bwrap</span><span style="color:#888;">@</span><span style="color:#a6e22e;">ProjectNova</span><span style="color:#888;">:</span> python3 /tmp/temp.py</div><pre style="padding:0.75rem;margin:0;color:#e8e8f0;white-space:pre-wrap;word-break:break-all;">' + escHtml(r.stdout || '') + (r.stdout && r.error ? '\n' : '') + escHtml(r.error || '') + '</pre><div style="padding:0.35rem 0.75rem;border-top:1px solid #2a2a3e;font-size:0.72rem;">' + footer + '</div></div></td>';
-          tbody.appendChild(or);
-        }
-      });
-    } else { comparison.style.display = 'none'; }
-    var err = data.error || '';
-    if (data.results) { data.results.forEach(function(r) { if (r.error) err += r.error + '\n'; }); }
-    var errorEl = document.getElementById('modal-result-error');
-    if (err) { document.getElementById('modal-result-error-content').textContent = err; errorEl.style.display = 'block'; } else { errorEl.style.display = 'none'; }
-    document.getElementById('modal-tab-results').click();
-  }
-
   function showModalSpinner(text) {
     document.getElementById('modal-result-badge').className = 'result-badge pending';
     document.getElementById('modal-result-badge').textContent = 'Pending';
@@ -167,6 +128,102 @@
     document.getElementById('modal-result-error').style.display = 'none';
     document.getElementById('modal-result-spinner').style.display = 'flex';
     document.getElementById('modal-result-spinner-text').textContent = text || 'Running...';
+  }
+
+  function showModalResult(data) {
+    document.getElementById('modal-result-spinner').style.display = 'none';
+    var verdict = data.verdict || data.status || 'Pending';
+    var badge = document.getElementById('modal-result-badge');
+    badge.className = 'result-badge ' + statusToClass(verdict);
+    badge.textContent = statusLabel(verdict);
+    var rt = data.timing_ms || data.runtime;
+    document.getElementById('modal-result-runtime').style.display = rt != null ? 'inline-flex' : 'none';
+    if (rt != null) document.getElementById('modal-result-runtime-val').textContent = rt + ' ms';
+    var mem = data.memory_kb || data.memory;
+    document.getElementById('modal-result-memory').style.display = mem != null ? 'inline-flex' : 'none';
+    if (mem != null) document.getElementById('modal-result-memory-val').textContent = mem > 1024 ? (mem/1024).toFixed(1) + ' MB' : mem + ' KB';
+
+    var tbody = document.getElementById('modal-result-body');
+    tbody.innerHTML = '';
+    var comparison = document.getElementById('modal-result-comparison');
+    tbody.onclick = function(e) {
+      var btn = e.target.closest('.output-btn');
+      if (btn) {
+        var tr = btn.closest('tr');
+        var or = tr && tr.nextElementSibling;
+        if (or && or.classList.contains('output-row')) {
+          or.style.display = or.style.display === 'none' ? '' : 'none';
+          btn.textContent = or.style.display === 'none' ? 'Output' : 'Close';
+        }
+        return;
+      }
+      var addBtn = e.target.closest('.add-tc-btn');
+      if (addBtn) { addTCFromResult(addBtn.dataset.args, addBtn.dataset.expected); return; }
+      var cell = e.target.closest('.cell-clamped');
+      if (cell) { cell.classList.toggle('expanded'); }
+    };
+
+    if (data.results && data.results.length > 0) {
+      comparison.style.display = 'block';
+      data.results.forEach(function(r, i) {
+        var status = r.status || (r.passed ? 'passed' : 'failed');
+        var statusLabel, statusClass;
+        switch (status) {
+          case 'passed': statusLabel = 'PASS'; statusClass = 'pass'; break;
+          case 'failed': statusLabel = 'FAIL'; statusClass = 'fail'; break;
+          case 'skipped': statusLabel = 'SKIP'; statusClass = 'info'; break;
+          case 'checked': statusLabel = 'CHECK'; statusClass = 'pass'; break;
+          default: statusLabel = status.toUpperCase(); statusClass = 'info';
+        }
+        var tr = document.createElement('tr');
+        tr.dataset.tcIdx = i;
+        var timeCell = '';
+        if (r.timing_ms != null) {
+          var t = r.timing_ms;
+          var sol = r.sol_timing;
+          if (sol != null) {
+            var diff = t - sol;
+            var cls = diff > 0.01 ? 'fail' : (diff < -0.01 ? 'pass' : '');
+            timeCell = '<td class="' + cls + '">' + sol.toFixed(3) + 'ms';
+            if (diff > 0) timeCell += ' <span class="fail">(+' + diff.toFixed(3) + 'ms)</span>';
+            else if (diff < 0) timeCell += ' <span class="pass">(' + diff.toFixed(3) + 'ms)</span>';
+            timeCell += '</td>';
+          } else { timeCell = '<td>' + t.toFixed(3) + 'ms</td>'; }
+        } else { timeCell = '<td></td>'; }
+        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-args="' + escHtml(r.input) + '" data-expected="' + escHtml(r.expected || '') + '">+TC</button>' : '';
+        tr.innerHTML =
+          '<td>' + (i + 1) + '</td>' +
+          '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
+          '<td class="cell-clamped">' + escHtml(r.input || '') + '</td>' +
+          '<td class="cell-clamped">' + escHtml(r.expected || '') + '</td>' +
+          '<td class="cell-clamped ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          timeCell +
+          '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
+        tbody.appendChild(tr);
+        if (r.stdout || r.error) {
+          var or = document.createElement('tr');
+          or.className = 'output-row';
+          or.style.display = 'none';
+          var timing = r.timing_ms != null ? r.timing_ms + 'ms' : '';
+          var mem = r.memory_kb ? (r.memory_kb > 1024 ? (r.memory_kb/1024).toFixed(1) + 'MB' : r.memory_kb + 'KB') : '';
+          var footer = '<span style="color:#888;">\u2500 Process exited \u2014 Return Code: ' + (r.passed ? '0' : '1') + '</span>';
+          if (timing) footer += ' <span style="color:#888;">\u00b7 Finished at ' + timing + '</span>';
+          if (mem) footer += ' <span style="color:#888;">\u00b7 Peak memory: ' + mem + '</span>';
+          or.innerHTML = '<td colspan="7"><div style="background:#0d0d14;border:1px solid #2a2a3e;border-radius:6px;overflow:hidden;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.6;">' +
+            '<div style="padding:0.35rem 0.75rem;background:#0a0a0f;border-bottom:1px solid #2a2a3e;color:#64ffda;font-size:0.72rem;">' +
+            '<span style="color:#f92672;">bwrap</span><span style="color:#888;">@</span><span style="color:#a6e22e;">ProjectNova</span><span style="color:#888;">:</span> python3 /tmp/temp.py</div>' +
+            '<pre style="padding:0.75rem;margin:0;color:#e8e8f0;white-space:pre-wrap;word-break:break-all;">' + escHtml(r.stdout || '') + (r.stdout && r.error ? '\n' : '') + escHtml(r.error || '') + '</pre>' +
+            '<div style="padding:0.35rem 0.75rem;border-top:1px solid #2a2a3e;font-size:0.72rem;">' + footer + '</div></div></td>';
+          tbody.appendChild(or);
+        }
+      });
+    } else { comparison.style.display = 'none'; }
+    var err = data.error || '';
+    if (data.results) { data.results.forEach(function(r) { if (r.error) err += r.error + '\n'; }); }
+    var errorEl = document.getElementById('modal-result-error');
+    if (err) { document.getElementById('modal-result-error-content').textContent = err; errorEl.style.display = 'block'; }
+    else { errorEl.style.display = 'none'; }
+    document.getElementById('modal-tab-results').click();
   }
 
   function pollQueue(queueId, callback) {
@@ -187,14 +244,15 @@
     var code = window.editor ? window.editor.getValue() : '';
     showModalSpinner(action === 'benchmark' ? 'Benchmarking...' : action === 'submit' ? 'Submitting...' : 'Running...');
     try {
-      var body;
-      if (action === 'run') {
-        body = new URLSearchParams({ code: code, testcases: JSON.stringify(getModalTCs()) });
-      } else {
-        body = new URLSearchParams({ code: code });
-      }
+      var body = action === 'run'
+        ? new URLSearchParams({ code: code, testcases: JSON.stringify(getModalTCs()) })
+        : new URLSearchParams({ code: code });
       var endpoint = action === 'benchmark' ? '/api/brute-force/' : action === 'submit' ? '/api/submit/' : '/api/run/';
-      var r = await fetch(endpoint + contestId + '/' + index, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body });
+      var r = await fetch(endpoint + contestId + '/' + index, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
+      });
       var data = await r.json();
       pollQueue(data.queue_id, function(qd) {
         var parsed = { verdict: 'Runtime Error', timing_ms: qd.timing_ms, memory_kb: qd.memory_kb, results: [], stdout: '', error: qd.error, solution_id: qd.solution_id };
@@ -221,19 +279,15 @@
     });
   });
 
-  // Modal test case tab switching (delegated)
+  // Test case tab switching (delegated)
   document.getElementById('modal-tc-tabs').addEventListener('click', function(e) {
     var tab = e.target.closest('.tc-tab');
     if (!tab) return;
-    var closeBtn = e.target.closest('.tc-tab-close');
-    if (closeBtn) { removeTC(parseInt(tab.dataset.idx, 10), tab); return; }
+    if (e.target.closest('.tc-tab-close')) { removeTC(parseInt(tab.dataset.idx, 10), tab); return; }
     switchTC(parseInt(tab.dataset.idx, 10));
   });
 
-  // Add test case
   document.getElementById('modal-tc-add').addEventListener('click', addTC);
-
-  // Action buttons
   document.getElementById('modal-test-btn').addEventListener('click', function() { runCode('run'); });
   document.getElementById('modal-benchmark-btn').addEventListener('click', function() { runCode('benchmark'); });
   document.getElementById('modal-submit-btn').addEventListener('click', function() { runCode('submit'); });
