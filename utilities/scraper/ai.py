@@ -16,7 +16,7 @@ SYSTEM_PROMPT = r"""You are an expert Python educational coding platform engine 
   "output_specification": "",
   "examples": [
     {
-      "input": [],
+      "input": {},
       "output": 0
     }
   ],
@@ -34,8 +34,8 @@ Guidelines (Strictly Python-Centric):
 3. CONSTRAINTS: Bulleted list of constraints inferred or stated.
 4. HINTS: Python-friendly logic tips and algorithmic hints.
 5. IS_INTERACTIVE: Set to true if the problem requires real-time interaction (flushing stdout/reading queries interactively), otherwise false.
-6. EXAMPLES: Parse raw sample test cases into an array (`examples`). NEVER use newline strings (`\n`). Every individual test case must have its inputs fully parsed into native JSON types (integers, floats, lists, or lists of lists matching the problem parameters, excluding the global test case count $t$), and the output must be cast to its correct primitive type.
-7. BASE_CODE: Provide a friendly LeetCode-style starter code for students. Do NOT use a generic `parsed_input: list`. Instead, write explicit parameter names with clear type hints matching the problem's inputs (e.g., `def run(self, h: int, n: int, damage: list, cooldown: list) -> int:`).
+6. EXAMPLES: Parse raw sample test cases into an array (`examples`). NEVER use newline strings (`\n`). Every individual test case must have its inputs parsed into a keyword-argument object (`input`), with keys matching the parameter names in the `run()` method signature. The output must be cast to its correct primitive type. Example: for a method `def run(self, n: int, rounds: list) -> str:`, produce `{"input": {"n": 3, "rounds": [["mike", 3], ["andrew", 5], ["mike", 2]]}, "output": "andrew"}`.
+7. BASE_CODE: Provide a friendly LeetCode-style starter code for students. Do NOT use a generic `parsed_input: list`. Instead, write explicit parameter names with clear type hints matching the problem's inputs (e.g., `def run(self, h: int, n: int, damage: list, cooldown: list) -> int:`). The parameters will be passed as keyword arguments (**kwargs), so parameter names MUST be meaningful and match the keys used in the `input` objects of the example test cases.
    Example template style:
    class Solution:
        def run(self, h: int, n: int, damage: list, cooldown: list) -> int:

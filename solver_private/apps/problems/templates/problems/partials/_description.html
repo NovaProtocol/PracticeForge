@@ -95,7 +95,7 @@
       <div class="sample-card">
         <button class="copy-btn" data-text='{{ sample.input|tojson }}' onclick="copyText(this)">Copy</button>
         <strong style="font-size: 0.78rem; color: var(--text-secondary);">Input:</strong>
-        <pre>{{ sample.input }}</pre>
+        <pre id="sample-input-{{ loop.index0 }}" class="sample-kwargs">{{ sample.input }}</pre>
         <button class="copy-btn" data-text='{{ sample.output|tojson }}' onclick="copyText(this)" style="top: auto; bottom: 3.5rem;">Copy</button>
         <strong style="font-size: 0.78rem; color: var(--text-secondary);">Output:</strong>
         <pre>{{ sample.output }}</pre>
@@ -221,5 +221,48 @@ if (solBtn) solBtn.addEventListener('click', function() {
     }
   });
   jQuery('#confirm-modal').modal('show');
+});
+
+function formatKwargs(obj, indent) {
+  indent = indent || 0;
+  var pad = ' '.repeat(indent);
+  var parts = [];
+  var keys = Object.keys(obj);
+  if (keys.length === 0) return '{}';
+  var maxKeyLen = 0;
+  keys.forEach(function(k) { if (k.length > maxKeyLen) maxKeyLen = k.length; });
+  keys.forEach(function(k) {
+    var val = obj[k];
+    var keyStr = k + ':';
+    var valStr = formatValue(val, indent + maxKeyLen + 2);
+    parts.push(pad + keyStr.padStart(maxKeyLen + 1) + ' ' + valStr);
+  });
+  return parts.join('\n');
+}
+function formatValue(val, indent) {
+  if (val === null) return 'null';
+  if (val === undefined) return 'undefined';
+  if (typeof val === 'string') return JSON.stringify(val);
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '[]';
+    var flat = JSON.stringify(val);
+    if (flat.length < 50) return flat;
+    var parts = val.map(function(v) { return ' '.repeat(indent + 2) + formatValue(v, indent + 2); });
+    return '[' + parts.join(',\n') + '\n' + ' '.repeat(indent) + ']';
+  }
+  if (typeof val === 'object') {
+    var keys = Object.keys(val);
+    if (keys.length === 0) return '{}';
+    var parts = keys.map(function(k) {
+      return ' '.repeat(indent + 2) + k + ': ' + formatValue(val[k], indent + 2);
+    });
+    return '{\n' + parts.join(',\n') + '\n' + ' '.repeat(indent) + '}';
+  }
+  return String(val);
+}
+
+document.querySelectorAll('.sample-kwargs').forEach(function(pre) {
+  try { var obj = JSON.parse(pre.textContent); pre.textContent = formatKwargs(obj); } catch(e) {}
 });
 </script>
