@@ -44,7 +44,7 @@
 
       <div id="result-comparison" class="result-comparison" style="display:none;">
         <table class="result-table">
-          <thead><tr><th>#</th><th>Result</th><th>Args</th><th>Expected</th><th>Got</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Result</th><th>Args</th><th>Expected</th><th>Got</th><th>Time</th><th></th></tr></thead>
           <tbody id="result-table-body"></tbody>
         </table>
       </div>
@@ -637,6 +637,23 @@
         }
         var tr = document.createElement('tr');
         tr.dataset.tcIdx = i;
+        var timeCell = '';
+        if (r.timing_ms != null) {
+          var t = r.timing_ms;
+          var sol = r.sol_timing;
+          if (sol != null) {
+            var diff = t - sol;
+            var cls = diff > 1 ? 'fail' : (diff < -1 ? 'pass' : '');
+            timeCell = '<td class="' + cls + '">' + sol.toFixed(3) + 'ms';
+            if (diff > 0) timeCell += ' <span class="fail">(+' + diff.toFixed(3) + 'ms)</span>';
+            else if (diff < 0) timeCell += ' <span class="pass">(' + diff.toFixed(3) + 'ms)</span>';
+            timeCell += '</td>';
+          } else {
+            timeCell = '<td>' + t.toFixed(3) + 'ms</td>';
+          }
+        } else {
+          timeCell = '<td></td>';
+        }
         var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-args="' + escHtml(r.input) + '" data-expected="' + escHtml(r.expected || '') + '">+TC</button>' : '';
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
@@ -644,6 +661,7 @@
           '<td>' + escHtml(r.input || '') + '</td>' +
           '<td>' + escHtml(r.expected || '') + '</td>' +
           '<td class="' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          timeCell +
           '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
         tbody.appendChild(tr);
         if (r.stdout || r.error) {
@@ -656,7 +674,7 @@
           var footer = '<span style="color:#888;">\u2500 Process exited \u2014 Return Code: ' + (r.passed ? '0' : '1') + '</span>';
           if (timing) footer += ' <span style="color:#888;">\u00b7 Finished at ' + timing + '</span>';
           if (mem) footer += ' <span style="color:#888;">\u00b7 Peak memory: ' + mem + '</span>';
-          or.innerHTML = '<td colspan="6"><div style="background:#0d0d14;border:1px solid #2a2a3e;border-radius:6px;overflow:hidden;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.6;">' +
+          or.innerHTML = '<td colspan="7"><div style="background:#0d0d14;border:1px solid #2a2a3e;border-radius:6px;overflow:hidden;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.6;">' +
             '<div style="padding:0.35rem 0.75rem;background:#0a0a0f;border-bottom:1px solid #2a2a3e;color:#64ffda;font-size:0.72rem;">' +
             '<span style="color:#f92672;">bwrap</span><span style="color:#888;">@</span><span style="color:#a6e22e;">ProjectNova</span><span style="color:#888;">:</span> python3 /tmp/temp.py' +
             '</div>' +
