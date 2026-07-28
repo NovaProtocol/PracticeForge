@@ -275,24 +275,26 @@ def create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, m
 
 
 def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_attempts=1000):
-    """Generate test cases using generator_code, validate with solution_code."""
+    """Generate test cases using generator_code, validate with solution_code. Returns (list | None, error_msg)."""
     with conn.cursor() as cur:
         cur.execute("SELECT generator_code, solution_code, method_name FROM problems WHERE id = %s", (problem_id,))
         row = cur.fetchone()
     if not row:
-        return None
+        return None, "generation failed", f"Problem #{problem_id} not found in database"
     generator_code = row.get("generator_code") or ""
     solution_code = row.get("solution_code") or ""
     method_name = row.get("method_name") or "run"
-    if not generator_code or not solution_code:
-        return None
+    if not generator_code:
+        return None, "generation failed", "Problem has no generator_code"
+    if not solution_code:
+        return None, "generation failed", "Problem has no solution_code"
 
     gen_path = f"/tmp/gen-{get_problem_label(conn, problem_id)}-{qid}.py"
     try:
         with open(gen_path, "w") as f:
             f.write(generator_code + "\n\nimport json\ntry:\n    result = generate()\n    print(json.dumps(result))\nexcept Exception as e:\n    print(json.dumps({'error': str(e)}))\n")
     except OSError:
-        return None
+        return None, "generation failed"
 
     valid = []
     gen_wrapper = generator_code + "\n\nimport json\nfor _ in range(" + str(max_attempts) + "):\n    try:\n        result = generate()\n        print(json.dumps(result))\n    except Exception:\n        pass\n"
@@ -300,7 +302,7 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         with open(gen_path, "w") as f:
             f.write(gen_wrapper)
     except OSError:
-        return None
+        return None, "generation failed"
 
     try:
         proc = subprocess.Popen([sys.executable, gen_path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
@@ -369,7 +371,7 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         os.unlink(gen_path)
     except OSError:
         pass
-    return valid if valid else None
+    return (valid, "") if valid else (None, "All 1000 attempts failed validation")
 
 
 def process_entry(conn, entry):
@@ -389,9 +391,9 @@ def process_entry(conn, entry):
         except (json.JSONDecodeError, TypeError):
             pass
     if exec_type in ("brute_force", "submit_brute"):
-        gen_cases = generate_brute_force_test_cases(conn, problem_id, qid)
+        gen_cases, gen_err = generate_brute_force_test_cases(conn, problem_id, qid)
         if gen_cases is None:
-            mark_failed(conn, qid, "Failed to generate test cases (missing generator or solution code)")
+            mark_failed(conn, qid, f"Failed to generate test cases: {gen_err}")
             return
         test_cases = gen_cases
 
