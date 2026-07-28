@@ -34,14 +34,10 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     <button id="reset-btn" title="Reset to original template">↺ Reset</button>
     <button id="lastran-btn" title="Restore last ran code">↻ Last Run</button>
     <button id="fullscreen-btn" title="Toggle fullscreen">⛶ Fullscreen</button>
+    <span style="flex:1"></span>
+    <button id="run-btn" class="btn-accent btn-sm" style="padding:0.3rem 1rem;font-size:0.82rem;"><i class="fas fa-play mr-1"></i>Run</button>
   </div>
   <div class="editor-wrapper" id="editor-wrapper"></div>
-  <div class="editor-actions">
-    <button id="run-btn" class="btn-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-play mr-1"></i>Run</button>
-    <button id="benchmark-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-bolt mr-1"></i>Benchmark</button>
-    <button id="submit-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-cloud-upload-alt mr-1"></i>Submit</button>
-    <span id="status-text" style="color:var(--text-secondary);font-size:0.8rem;margin-left:4px;"></span>
-  </div>
 </div>
 <script>
 (function() {
@@ -67,10 +63,8 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
     rulers: [{column: 79, color: '#2a2a3e'}],
     keyMap: 'sublime',
     extraKeys: {
-      'Ctrl-Enter': function() { var b=el('run-btn'); if(b) b.click(); },
-      'Cmd-Enter': function() { var b=el('run-btn'); if(b) b.click(); },
-      'Ctrl-Shift-Enter': function() { var b=el('submit-btn'); if(b) b.click(); },
-      'Cmd-Shift-Enter': function() { var b=el('submit-btn'); if(b) b.click(); },
+      'Ctrl-Enter': function() { el('run-btn').click(); },
+      'Cmd-Enter': function() { el('run-btn').click(); },
       'Ctrl-D': function(cm) { cm.execCommand('deleteLine'); },
       'Cmd-D': function(cm) { cm.execCommand('deleteLine'); },
       'Ctrl-S': function() { navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, new URLSearchParams({code: window.editor.getValue()})); },
@@ -121,16 +115,9 @@ body.editor-fullscreen .editor-wrapper { position: fixed; top: 56px; left: 0; ri
   });
 
   el('run-btn').addEventListener('click', function() {
-    jQuery('#result-modal').modal('show');
-    jQuery('#modal-test-btn').off('click').on('click', function() {
-      if (window.__consoleRun) window.__consoleRun(window.editor.getValue(), C.contestId, C.index);
-    });
-  });
-  el('benchmark-btn').addEventListener('click', function() {
-    if (window.__consoleBenchmark) window.__consoleBenchmark(window.editor.getValue(), C.contestId, C.index);
-  });
-  el('submit-btn').addEventListener('click', function() {
-    if (window.__consoleSubmit) window.__consoleSubmit(window.editor.getValue(), C.contestId, C.index);
+    jQuery('#solver-modal').modal('show');
+    jQuery('#solver-modal').data('action', 'run');
+    el('modal-tab-testcases').click();
   });
 })();
 </script>
