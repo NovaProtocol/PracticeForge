@@ -97,13 +97,13 @@ html, body { overflow: hidden; }
             <div class="tc-tab active" data-idx="0" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);white-space:nowrap;user-select:none;">Case 1</div>
           </div>
           <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem;padding:0.5rem 0;overflow-y:auto;">
-            <div class="tc-input-group" style="display:flex;flex-direction:column;flex:1;">
+            <div class="tc-input-group" style="display:flex;flex-direction:column;">
               <label style="font-size:0.7rem;font-weight:600;text-transform:uppercase;color:var(--text-secondary);margin-bottom:3px;">Input (JSON)</label>
-              <textarea id="modal-tc-input" class="tc-textarea" style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.82rem;padding:0.5rem;resize:vertical;outline:none;min-height:40px;" placeholder='e.g. {"n": 5, "arr": [1,2,3]}' spellcheck="false"></textarea>
+              <textarea id="modal-tc-input" class="tc-textarea" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.82rem;padding:0.5rem;resize:vertical;outline:none;min-height:40px;overflow:hidden;" placeholder='e.g. {"n": 5, "arr": [1,2,3]}' spellcheck="false"></textarea>
             </div>
-            <div class="tc-input-group" style="display:flex;flex-direction:column;flex:1;">
+            <div class="tc-input-group" style="display:flex;flex-direction:column;">
               <label style="font-size:0.7rem;font-weight:600;text-transform:uppercase;color:var(--text-secondary);margin-bottom:3px;">Expected Output</label>
-              <textarea id="modal-tc-expected" class="tc-textarea" style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.82rem;padding:0.5rem;resize:vertical;outline:none;min-height:40px;" placeholder='Expected stdout...' spellcheck="false"></textarea>
+              <textarea id="modal-tc-expected" class="tc-textarea" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.82rem;padding:0.5rem;resize:vertical;outline:none;min-height:40px;overflow:hidden;" placeholder='Expected stdout...' spellcheck="false"></textarea>
             </div>
           </div>
         </div>

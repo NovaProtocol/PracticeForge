@@ -4,6 +4,10 @@
 
   var modalTestCases = [];
 
+  document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('tc-textarea')) _autosize(e.target);
+  });
+
   function initTC(idx) {
     if (!modalTestCases.find(function(t) { return t.idx === idx; }))
       modalTestCases.push({ idx: idx, input: {}, output: null });
@@ -24,11 +28,17 @@
     tc.output = _parseJSON(document.getElementById('modal-tc-expected').value);
   }
 
+  function _autosize(el) { el.style.height = ''; el.style.height = Math.max(el.value.split('\n').length * 20 + 16, 40) + 'px'; }
+
   function loadTC(idx) {
     initTC(idx);
     var tc = modalTestCases.find(function(t) { return t.idx === idx; });
-    document.getElementById('modal-tc-input').value = tc.input && typeof tc.input === 'object' ? JSON.stringify(tc.input, null, 2) : String(tc.input || '');
-    document.getElementById('modal-tc-expected').value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : String(tc.output)) : '';
+    var inp = document.getElementById('modal-tc-input');
+    inp.value = tc.input && typeof tc.input === 'object' ? JSON.stringify(tc.input, null, 2) : String(tc.input || '');
+    _autosize(inp);
+    var exp = document.getElementById('modal-tc-expected');
+    exp.value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : String(tc.output)) : '';
+    _autosize(exp);
   }
 
   function switchTC(idx) {
@@ -120,6 +130,7 @@
   }
 
   function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _cc(val) { var s = String(val || ''); return s.split('\n').length > 5 || s.length > 200 ? 'cell-clamp' : ''; }
   function statusToClass(s) { switch(s){case'accepted':case'Accepted':return'accepted';case'wrong_answer':case'Wrong Answer':return'wrong-answer';case'time_limit_exceeded':case'Time Limit Exceeded':return'time-limit-exceeded';case'runtime_error':case'Runtime Error':return'runtime-error';default:return'pending';} }
   function statusLabel(s) { switch(s){case'accepted':case'Accepted':return'Accepted';case'wrong_answer':case'Wrong Answer':return'Wrong Answer';case'time_limit_exceeded':case'Time Limit Exceeded':return'Time Limit Exceeded';case'runtime_error':case'Runtime Error':return'Runtime Error';default:return s||'Pending';} }
 
@@ -203,9 +214,9 @@
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
-          '<td><div class="cell-clamp">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</div></td>' +
-          '<td><div class="cell-clamp">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</div></td>' +
-          '<td><div class="cell-clamp ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(String(displayGot)) + '</div></td>' +
+          '<td><div class="' + _cc(r.input) + '">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</div></td>' +
+          '<td><div class="' + _cc(r.expected) + '">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</div></td>' +
+          '<td><div class="' + _cc(r.got || r.error) + ' ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(String(displayGot)) + '</div></td>' +
           timeCell +
           '<td>' + outBtn + addBtn + '</td>';
         tbody.appendChild(tr);
