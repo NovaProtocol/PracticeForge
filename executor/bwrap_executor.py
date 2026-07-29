@@ -118,7 +118,7 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         lines.append("    got = json.dumps(result)")
         if expected_str:
             lines.append("    expected = json.loads(" + json.dumps(json.dumps(expected_str)) + ")")
-            lines.append("    passed = got == " + json.dumps(expected_str))
+            lines.append("    passed = got == " + json.dumps(json.dumps(expected_str)))
             lines.append("    status = 'passed' if passed else 'failed'")
         else:
             lines.append("    status = 'checked'")
