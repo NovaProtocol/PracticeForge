@@ -270,11 +270,8 @@
 .tc-input-group {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 .tc-input-group:last-child {
-  flex: 1;
 }
 .tc-label {
   font-size: 0.7rem;
@@ -285,7 +282,6 @@
   margin-bottom: 3px;
 }
 .tc-textarea {
-  flex: 1;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -296,6 +292,7 @@
   resize: vertical;
   outline: none;
   min-height: 40px;
+  overflow: hidden;
 }
 .tc-textarea:focus {
   border-color: var(--accent);
@@ -463,6 +460,11 @@
 (function() {
   var testCases = [];
 
+  function _autosize(el) { el.style.height = ''; el.style.height = Math.max(el.value.split('\n').length * 20 + 16, 40) + 'px'; }
+  document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('tc-textarea')) _autosize(e.target);
+  });
+
   function _parseJSON(val) {
     if (!val || !val.trim()) return null;
     try { return JSON.parse(val); } catch(e) { return val; }
@@ -488,8 +490,12 @@
   function loadCase(idx) {
     initTestCase(idx);
     var tc = testCases.find(function(t) { return t.idx === idx; });
-    document.getElementById('tc-input').value = tc.input && typeof tc.input === 'object' ? JSON.stringify(tc.input, null, 2) : String(tc.input || '');
-    document.getElementById('tc-expected').value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : String(tc.output)) : '';
+    var inp = document.getElementById('tc-input');
+    inp.value = tc.input && typeof tc.input === 'object' ? JSON.stringify(tc.input, null, 2) : String(tc.input || '');
+    _autosize(inp);
+    var exp = document.getElementById('tc-expected');
+    exp.value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : String(tc.output)) : '';
+    _autosize(exp);
   }
 
   function switchTab(idx) {
@@ -676,9 +682,9 @@
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
-          '<td class="cell-clamped">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</td>' +
-          '<td class="cell-clamped">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</td>' +
-          '<td class="cell-clamped ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          '<td class="' + _cc(r.input) + '">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</td>' +
+          '<td class="' + _cc(r.expected) + '">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</td>' +
+          '<td class="' + _cc(r.got || r.error) + ' ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
           timeCell +
           '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
         tbody.appendChild(tr);
@@ -722,6 +728,8 @@
   function showSubmissionResult(data) {
     showResult(data);
   }
+
+  function _cc(val) { var s = String(val || ''); return s.split('\n').length > 5 || s.length > 200 ? 'cell-clamped' : ''; }
 
   function escHtml(str) {
     if (!str) return '';
@@ -785,9 +793,9 @@
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
-          '<td class="cell-clamped">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</td>' +
-          '<td class="cell-clamped">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</td>' +
-          '<td class="cell-clamped ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
+          '<td class="' + _cc(r.input) + '">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</td>' +
+          '<td class="' + _cc(r.expected) + '">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</td>' +
+          '<td class="' + _cc(r.got || r.error) + ' ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
           timeCell +
           '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
         tbody.appendChild(tr);
