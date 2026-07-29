@@ -149,7 +149,11 @@ def run_code(contest_id: int, index: str):
     code = request.form.get("code", "")
     filename = request.form.get("filename", "main.py")
     method_name = problem.get("method_name") or "run"
-    test_cases = request.form.get("testcases", "[]")
+    raw_tcs = request.form.get("testcases", "[]")
+    try:
+        test_cases = json.loads(raw_tcs)
+    except (json.JSONDecodeError, TypeError):
+        test_cases = []
     save_last_ran(problem["id"], code, filename)
     qid = _queue_execution(problem["id"], code, method_name, "run", test_cases)
     return jsonify({"queue_id": qid, "status": "queued"})
