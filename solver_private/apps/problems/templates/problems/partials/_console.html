@@ -463,10 +463,15 @@
 (function() {
   var testCases = [];
 
+  function _parseJSON(val) {
+    if (!val || !val.trim()) return null;
+    try { return JSON.parse(val); } catch(e) { return val; }
+  }
+
   function initTestCase(caseIdx) {
     var i = testCases.findIndex(function(tc) { return tc.idx === caseIdx; });
     if (i === -1) {
-      testCases.push({ idx: caseIdx, args: '', expected: '' });
+      testCases.push({ idx: caseIdx, input: {}, output: null });
     }
   }
 
@@ -476,15 +481,15 @@
     var idx = parseInt(activeTab.dataset.idx, 10);
     initTestCase(idx);
     var tc = testCases.find(function(t) { return t.idx === idx; });
-    tc.args = document.getElementById('tc-input').value;
-    tc.expected = document.getElementById('tc-expected').value;
+    tc.input = _parseJSON(document.getElementById('tc-input').value) || {};
+    tc.output = _parseJSON(document.getElementById('tc-expected').value);
   }
 
   function loadCase(idx) {
     initTestCase(idx);
     var tc = testCases.find(function(t) { return t.idx === idx; });
-    document.getElementById('tc-input').value = tc.args;
-    document.getElementById('tc-expected').value = tc.expected;
+    document.getElementById('tc-input').value = tc.input && typeof tc.input === 'object' ? JSON.stringify(tc.input, null, 2) : String(tc.input || '');
+    document.getElementById('tc-expected').value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : String(tc.output)) : '';
   }
 
   function switchTab(idx) {
@@ -520,7 +525,7 @@
     var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
     if (tabs.length <= 1) return;
     var tc = testCases.find(function(t) { return t.idx === idx; });
-    if (tc && (tc.args || tc.expected || tc.input)) {
+    if (tc && (JSON.stringify(tc.input) !== '{}' || tc.output !== null)) {
       if (!confirm('Delete this test case?')) return;
     }
     testCases = testCases.filter(function(t) { return t.idx !== idx; });
@@ -542,9 +547,9 @@
       var idx = parseInt(t.dataset.idx, 10);
       var tc = testCases.find(function(tc) { return tc.idx === idx; });
       if (tc) {
-        result.push({ args: tc.args, expected: tc.expected });
+        result.push({ input: tc.input || {}, output: tc.output });
       } else {
-        result.push({ input: '', expected: '' });
+        result.push({ input: {}, output: null });
       }
     });
     return result;
@@ -627,9 +632,7 @@
       }
       var addBtn = e.target.closest('.add-tc-btn');
       if (addBtn) {
-        var input = addBtn.dataset.args;
-        var expected = addBtn.dataset.expected;
-        addTestCaseFromResult(input, expected);
+        addTestCaseFromResult(JSON.parse(addBtn.dataset.input), JSON.parse(addBtn.dataset.output));
         return;
       }
       var cell = e.target.closest('.cell-clamped');
@@ -669,12 +672,12 @@
         } else {
           timeCell = '<td></td>';
         }
-        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-args="' + escHtml(r.input) + '" data-expected="' + escHtml(r.expected || '') + '">+TC</button>' : '';
+        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-input="' + escHtml(JSON.stringify(r.input)) + '" data-output="' + escHtml(JSON.stringify(r.expected !== undefined ? r.expected : null)) + '">+TC</button>' : '';
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
-          '<td class="cell-clamped">' + escHtml(r.input || '') + '</td>' +
-          '<td class="cell-clamped">' + escHtml(r.expected || '') + '</td>' +
+          '<td class="cell-clamped">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</td>' +
+          '<td class="cell-clamped">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</td>' +
           '<td class="cell-clamped ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
           timeCell +
           '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
@@ -778,12 +781,12 @@
             timeCell += '</td>';
           } else { timeCell = '<td>' + t.toFixed(3) + 'ms</td>'; }
         } else { timeCell = '<td></td>'; }
-        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-args="' + escHtml(r.input) + '" data-expected="' + escHtml(r.expected || '') + '">+TC</button>' : '';
+        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-input="' + escHtml(JSON.stringify(r.input)) + '" data-output="' + escHtml(JSON.stringify(r.expected !== undefined ? r.expected : null)) + '">+TC</button>' : '';
         tr.innerHTML =
           '<td>' + (i + 1) + '</td>' +
           '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
-          '<td class="cell-clamped">' + escHtml(r.input || '') + '</td>' +
-          '<td class="cell-clamped">' + escHtml(r.expected || '') + '</td>' +
+          '<td class="cell-clamped">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</td>' +
+          '<td class="cell-clamped">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</td>' +
           '<td class="cell-clamped ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(r.got || r.error || '') + '</td>' +
           timeCell +
           '<td>' + (r.stdout || r.error ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '') + addBtn + '</td>';
@@ -929,9 +932,7 @@
 
   // Load sample test cases from server-embedded data
   var sampleCases = (window.__sampleCases || []).map(function(tc) {
-    var args = tc.input;
-    if (typeof args !== 'string') args = JSON.stringify(args);
-    return { args: args, expected: tc.output || tc.expected || '' };
+    return { input: typeof tc.input === 'object' ? tc.input : {}, output: tc.output !== undefined ? tc.output : null };
   });
   if (sampleCases.length > 0) {
     testCases = [];
@@ -944,13 +945,13 @@
       tab.innerHTML = 'Sample ' + (i + 1);
       var addBtn = document.getElementById('tc-add');
       addBtn.parentNode.insertBefore(tab, addBtn);
-      testCases.push({ idx: idx, args: tc.args || '', expected: tc.expected || '' });
+      testCases.push({ idx: idx, input: tc.input || {}, output: tc.output });
     });
     loadCase(0);
   }
   initTestCase(0);
 
-  function addTestCaseFromResult(args, expected) {
+  function addTestCaseFromResult(input_val, output_val) {
     saveCurrentCase();
     var tabs = document.querySelectorAll('#tc-tabs .tc-tab');
     var maxIdx = 0;
@@ -966,7 +967,7 @@
     tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close">&times;</button>';
     var addBtn = document.getElementById('tc-add');
     addBtn.parentNode.insertBefore(tab, addBtn);
-    testCases.push({ idx: newIdx, args: args, expected: expected || '' });
+    testCases.push({ idx: newIdx, input: typeof input_val === 'object' ? input_val : {}, output: output_val !== undefined ? output_val : null });
     loadCase(newIdx);
     var panel = document.getElementById('console');
     if (panel.classList.contains('collapsed')) panel.classList.remove('collapsed');
