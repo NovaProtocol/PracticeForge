@@ -373,11 +373,14 @@ def process_entry(conn, entry):
 
     test_cases = None
     raw = entry.get("test_cases_json")
-    if raw:
-        try:
-            test_cases = json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            pass
+    if raw is not None:
+        if isinstance(raw, (list, dict)):
+            test_cases = raw if isinstance(raw, list) else [raw]
+        elif isinstance(raw, str):
+            try:
+                test_cases = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
     if exec_type in ("brute_force", "submit_brute"):
         gen_cases, gen_err = generate_brute_force_test_cases(conn, problem_id, qid)
         if gen_cases is None:
