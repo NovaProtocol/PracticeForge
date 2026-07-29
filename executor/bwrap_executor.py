@@ -280,98 +280,86 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         cur.execute("SELECT generator_code, solution_code, method_name FROM problems WHERE id = %s", (problem_id,))
         row = cur.fetchone()
     if not row:
-        return None, "generation failed", f"Problem #{problem_id} not found in database"
+        return None, f"Problem #{problem_id} not found in database"
     generator_code = row.get("generator_code") or ""
     solution_code = row.get("solution_code") or ""
     method_name = row.get("method_name") or "run"
     if not generator_code:
-        return None, "generation failed", "Problem has no generator_code"
+        return None, "Problem has no generator_code"
     if not solution_code:
-        return None, "generation failed", "Problem has no solution_code"
+        return None, "Problem has no solution_code"
 
     gen_path = f"/tmp/gen-{get_problem_label(conn, problem_id)}-{qid}.py"
-    try:
-        with open(gen_path, "w") as f:
-            f.write(generator_code + "\n\nimport json\ntry:\n    result = generate()\n    print(json.dumps(result))\nexcept Exception as e:\n    print(json.dumps({'error': str(e)}))\n")
-    except OSError:
-        return None, "generation failed"
-
-    valid = []
-    gen_wrapper = generator_code + "\n\nimport json\nfor _ in range(" + str(max_attempts) + "):\n    try:\n        result = generate()\n        print(json.dumps(result))\n    except Exception:\n        pass\n"
+    gen_wrapper = generator_code + "\n\nimport json\ntry:\n    result = generate()\n    print(json.dumps(result))\nexcept Exception as e:\n    print(json.dumps({'error': str(e)}))\n"
     try:
         with open(gen_path, "w") as f:
             f.write(gen_wrapper)
     except OSError:
-        return None, "generation failed"
+        return None, "Failed to write generator file"
 
+    valid = []
     try:
         proc = subprocess.Popen([sys.executable, gen_path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-        stdout, _ = proc.communicate(timeout=120)
-        for line in stdout.strip().split("\n"):
-            if len(valid) >= max_valid:
-                break
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                tc_data = json.loads(line)
-            except (json.JSONDecodeError, ValueError):
-                continue
+        stdout, _ = proc.communicate(timeout=30)
+        all_cases = json.loads(stdout.strip().split("\n")[0] or "[]")
+    except (json.JSONDecodeError, ValueError, subprocess.TimeoutExpired):
+        all_cases = []
+    finally:
+        try:
+            os.unlink(gen_path)
+        except OSError:
+            pass
 
-            if isinstance(tc_data, dict) and "kwargs" in tc_data:
-                kwargs_str = json.dumps(tc_data["kwargs"])
-            elif isinstance(tc_data, dict):
-                kwargs_str = json.dumps(tc_data)
-            else:
-                continue
+    if not isinstance(all_cases, list) or len(all_cases) == 0:
+        return None, "Generator produced no valid test cases"
 
-            sol_path = f"/tmp/sol-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
-            try:
-                with open(sol_path, "w") as f:
-                    f.write(solution_code)
-            except OSError:
-                continue
+    for tc_data in all_cases:
+        if len(valid) >= max_valid:
+            break
+        if not isinstance(tc_data, dict):
+            continue
 
-            sol_wrapper = build_wrapper(sol_path, method_name, [{"kwargs": kwargs_str, "expected": ""}])
-            sol_wrap_path = f"/tmp/solwrap-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
-            sol_result = run_code(sol_wrapper, sol_wrap_path, sol_path, timeout=15)
+        kwargs_str = json.dumps(tc_data)
 
-            try:
-                os.unlink(sol_path)
-            except OSError:
-                pass
-            try:
-                os.unlink(sol_wrap_path)
-            except OSError:
-                pass
+        sol_path = f"/tmp/sol-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
+        try:
+            with open(sol_path, "w") as f:
+                f.write(solution_code)
+        except OSError:
+            continue
 
-            if sol_result["returncode"] != 0:
-                continue
-            try:
-                tc_results = json.loads(sol_result["results_json"])
-            except (json.JSONDecodeError, ValueError):
-                continue
-            if not tc_results or tc_results[0].get("status") == "failed":
-                continue
+        sol_wrapper = build_wrapper(sol_path, method_name, [{"kwargs": kwargs_str, "expected": ""}])
+        sol_wrap_path = f"/tmp/solwrap-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
+        sol_result = run_code(sol_wrapper, sol_wrap_path, sol_path, timeout=15)
 
-            got = tc_results[0].get("got", "")
-            try:
-                expected_raw = json.loads(got)
-            except (json.JSONDecodeError, ValueError):
-                expected_raw = got
-            valid.append({"kwargs": kwargs_str, "expected": expected_raw, "input": "", "expected_output": ""})
-        proc.wait(timeout=60)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
-    except subprocess.CalledProcessError:
-        pass
+        try:
+            os.unlink(sol_path)
+        except OSError:
+            pass
+        try:
+            os.unlink(sol_wrap_path)
+        except OSError:
+            pass
 
-    try:
-        os.unlink(gen_path)
-    except OSError:
-        pass
-    return (valid, "") if valid else (None, "All 1000 attempts failed validation")
+        if sol_result["returncode"] != 0:
+            continue
+        try:
+            tc_results = json.loads(sol_result["results_json"])
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if not tc_results or tc_results[0].get("status") == "failed":
+            continue
+
+        got = tc_results[0].get("got", "")
+        try:
+            expected_raw = json.loads(got)
+        except (json.JSONDecodeError, ValueError):
+            expected_raw = got
+        valid.append({"kwargs": kwargs_str, "expected": expected_raw, "input": "", "expected_output": ""})
+
+    if not valid:
+        return None, f"All {len(all_cases)} generated cases failed validation"
+    return valid, ""
 
 
 def process_entry(conn, entry):
