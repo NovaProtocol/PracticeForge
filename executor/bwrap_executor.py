@@ -13,6 +13,12 @@ from pymysql.cursors import DictCursor
 POLL_INTERVAL = 1
 TIMEOUT = 30
 BWRAP = "/usr/bin/bwrap"
+_LOG_INDENT = 0
+
+
+def _log(msg: str, indent: int = 0):
+    pad = "    " * (_LOG_INDENT + indent)
+    print(f"[bwrap-executor] {pad}{msg}", flush=True)
 
 
 def get_connection():
@@ -80,6 +86,15 @@ def get_problem_label(conn, problem_id):
         return str(problem_id)
 
 
+def _pyval(v):
+    """JSON -> Python literal: None -> 'None', True->'True', etc."""
+    if v is None:
+        return "None"
+    if isinstance(v, bool):
+        return "True" if v else "False"
+    return json.dumps(v)
+
+
 def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict], stop_on_failure: bool = False) -> str:
     lines = [
         "import json, sys, io, time, traceback, signal",
@@ -94,13 +109,13 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         "signal.signal(signal.SIGALRM, _timeout_handler)",
     ]
     for tc in test_cases:
-        kwargs_str = tc.get("kwargs") or tc.get("input") or ""
-        expected_str = tc.get("expected") or tc.get("expected_output") or ""
-        inp_display = tc.get("kwargs") or tc.get("input") or ""
-        exp_display = tc.get("expected") or tc.get("expected_output") or ""
+        input_data = tc.get("input") or {}
+        expected = tc.get("output")
+        inp_display = input_data
+        exp_display = expected
 
-        if not kwargs_str:
-            lines.append("results.append({'input': " + json.dumps(inp_display) + ", 'expected': " + json.dumps(exp_display) + ", 'got': '', 'error': '', 'passed': True, 'stdout': '', 'status': 'skipped'})")
+        if not input_data:
+            lines.append("results.append({'input': " + json.dumps(inp_display) + ", 'expected': " + _pyval(exp_display) + ", 'got': '', 'error': '', 'passed': True, 'stdout': '', 'status': 'skipped'})")
             continue
 
         lines.append("if not _abort:")
@@ -109,16 +124,14 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         lines.append("  _old_stdout = sys.stdout")
         lines.append("  sys.stdout = _cap")
         lines.append("  _r_input = " + json.dumps(inp_display))
-        lines.append("  _r_expected = " + json.dumps(exp_display))
+        lines.append("  _r_expected = " + _pyval(exp_display))
         lines.append("  err = ''")
         lines.append("  _t0 = time.perf_counter()")
         lines.append("  try:")
-        lines.append("    kwargs = json.loads(" + json.dumps(kwargs_str) + ")")
-        lines.append("    result = method(**kwargs)")
+        lines.append("    result = method(**" + json.dumps(input_data) + ")")
         lines.append("    got = json.dumps(result)")
-        if expected_str:
-            lines.append("    expected = json.loads(" + json.dumps(json.dumps(expected_str)) + ")")
-            lines.append("    passed = got == " + json.dumps(json.dumps(expected_str)))
+        if expected is not None:
+            lines.append("    passed = got == json.dumps(" + json.dumps(expected) + ")")
             lines.append("    status = 'passed' if passed else 'failed'")
         else:
             lines.append("    status = 'checked'")
@@ -298,11 +311,19 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         return None, "Failed to write generator file"
 
     valid = []
+    gen_stderr = ""
     try:
-        proc = subprocess.Popen([sys.executable, gen_path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-        stdout, _ = proc.communicate(timeout=30)
+        proc = subprocess.Popen([sys.executable, gen_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, gen_stderr = proc.communicate(timeout=30)
+        if gen_stderr:
+            for line in gen_stderr.strip().split("\n"):
+                _log(f"generator stderr: {line}", indent=2)
         all_cases = json.loads(stdout.strip().split("\n")[0] or "[]")
-    except (json.JSONDecodeError, ValueError, subprocess.TimeoutExpired):
+    except (json.JSONDecodeError, ValueError, subprocess.TimeoutExpired) as e:
+        _log(f"generator run failed: {e}", indent=2)
+        if gen_stderr:
+            for line in gen_stderr.strip().split("\n"):
+                _log(f"generator stderr: {line}", indent=2)
         all_cases = []
     finally:
         try:
@@ -319,8 +340,6 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         if not isinstance(tc_data, dict):
             continue
 
-        kwargs_str = json.dumps(tc_data)
-
         sol_path = f"/tmp/sol-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
         try:
             with open(sol_path, "w") as f:
@@ -328,7 +347,7 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         except OSError:
             continue
 
-        sol_wrapper = build_wrapper(sol_path, method_name, [{"kwargs": kwargs_str, "expected": ""}])
+        sol_wrapper = build_wrapper(sol_path, method_name, [{"input": tc_data, "output": None}])
         sol_wrap_path = f"/tmp/solwrap-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
         sol_result = run_code(sol_wrapper, sol_wrap_path, sol_path, timeout=15)
 
@@ -341,13 +360,28 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         except OSError:
             pass
 
+        inp_str = json.dumps(tc_data)
         if sol_result["returncode"] != 0:
+            _log(f"gen case: {inp_str} — runtime error (rc={sol_result['returncode']})", indent=2)
+            for line in (sol_result['stderr'] or '').strip().split('\n'):
+                _log(f"stderr: {line}", indent=3)
             continue
         try:
             tc_results = json.loads(sol_result["results_json"])
-        except (json.JSONDecodeError, ValueError):
+        except (json.JSONDecodeError, ValueError) as e:
+            _log(f"gen case: {inp_str} — parse error: {e}", indent=2)
+            _log(f"raw output: {sol_result['stdout'][:500]}", indent=3)
             continue
-        if not tc_results or tc_results[0].get("status") == "failed":
+        if not tc_results:
+            _log(f"gen case: {inp_str} — no results returned", indent=2)
+            continue
+        if tc_results[0].get("status") == "failed":
+            got = tc_results[0].get("got", "")
+            err = tc_results[0].get("error", "")
+            _log(f"gen case: {inp_str} — solution failed", indent=2)
+            _log(f"got: {got}", indent=3)
+            for line in (err or '').strip().split('\n'):
+                _log(f"{line}", indent=3)
             continue
 
         got = tc_results[0].get("got", "")
@@ -355,7 +389,7 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
             expected_raw = json.loads(got)
         except (json.JSONDecodeError, ValueError):
             expected_raw = got
-        valid.append({"kwargs": kwargs_str, "expected": expected_raw, "input": "", "expected_output": ""})
+        valid.append({"input": tc_data, "output": expected_raw})
 
     if not valid:
         return None, f"All {len(all_cases)} generated cases failed validation"
@@ -363,106 +397,144 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
 
 
 def process_entry(conn, entry):
+    global _LOG_INDENT
     qid = entry["id"]
     problem_id = entry["problem_id"]
     code = entry["code"]
     method_name = entry.get("method_name") or "run"
     exec_type = entry.get("exec_type") or "run"
 
-    mark_running(conn, qid)
-
-    test_cases = None
-    raw = entry.get("test_cases_json")
-    if raw is not None:
-        if isinstance(raw, (list, dict)):
-            test_cases = raw if isinstance(raw, list) else [raw]
-        elif isinstance(raw, str):
-            try:
-                test_cases = json.loads(raw)
-            except (json.JSONDecodeError, TypeError):
-                pass
-    if exec_type in ("brute_force", "submit_brute"):
-        gen_cases, gen_err = generate_brute_force_test_cases(conn, problem_id, qid)
-        if gen_cases is None:
-            mark_failed(conn, qid, f"Failed to generate test cases: {gen_err}")
-            return
-        test_cases = gen_cases
-
-    if not test_cases:
-        mark_failed(conn, qid, "No test cases found")
-        return
-
-    user_code_path = f"/tmp/solver-{get_problem_label(conn, problem_id)}-{qid}.py"
-    try:
-        with open(user_code_path, "w") as f:
-            f.write(code)
-    except OSError as e:
-        mark_failed(conn, qid, f"Failed to write user code: {e}")
-        return
-
-    wrapper_path = f"/tmp/wrapper-{get_problem_label(conn, problem_id)}-{qid}.py"
-    stop_on_failure = exec_type in ("brute_force", "submit_brute")
-    wrapper = build_wrapper(user_code_path, method_name, test_cases, stop_on_failure)
-    result = run_bwrap(wrapper, wrapper_path, user_code_path)
-
-    if result["returncode"] != 0:
-        mark_failed(conn, qid, result["stderr"] or result["stdout"])
-        return
+    label = get_problem_label(conn, problem_id)
+    _log(f"queue [{qid}] ({label}) {exec_type} — started")
+    _LOG_INDENT += 1
 
     try:
-        tc_results = json.loads(result["results_json"])
-    except json.JSONDecodeError as e:
-        mark_failed(conn, qid, f"Failed to parse output: {e}\nRaw: {result['stdout']}")
-        return
+        mark_running(conn, qid)
 
-    passed = sum(1 for t in tc_results if t.get("passed"))
-    total = len(tc_results)
-    timing_ms = result["timing_ms"]
-    memory_kb = result.get("memory_kb", 0) or 0
-
-    all_stdout = "\n".join(t.get("stdout", "") for t in tc_results if t.get("stdout"))
-
-    # Run solution code against same test cases for timing comparison
-    with conn.cursor() as cur:
-        cur.execute("SELECT solution_code FROM problems WHERE id = %s", (problem_id,))
-        sol_row = cur.fetchone()
-    if sol_row and sol_row.get("solution_code"):
-        sol_code = sol_row["solution_code"]
-        sol_path = f"/tmp/solcompare-{get_problem_label(conn, problem_id)}-{qid}.py"
-        sol_wrap_path = f"/tmp/solcomparewrap-{get_problem_label(conn, problem_id)}-{qid}.py"
-        try:
-            with open(sol_path, "w") as f:
-                f.write(sol_code)
-            sol_wrapper = build_wrapper(sol_path, method_name, test_cases, stop_on_failure=False)
-            sol_result = run_bwrap(sol_wrapper, sol_wrap_path, sol_path, timeout=30)
-            if sol_result["returncode"] == 0:
+        test_cases = None
+        raw = entry.get("test_cases_json")
+        if raw is not None:
+            if isinstance(raw, (list, dict)):
+                test_cases = raw if isinstance(raw, list) else [raw]
+            elif isinstance(raw, str):
                 try:
-                    sol_tc_results = json.loads(sol_result["results_json"])
-                except (json.JSONDecodeError, ValueError):
-                    sol_tc_results = None
-                if sol_tc_results:
-                    for i, t in enumerate(sol_tc_results):
-                        if i < len(tc_results):
-                            tc_results[i]["sol_timing"] = t.get("timing_ms", None)
-        finally:
-            for p in [sol_path, sol_wrap_path]:
-                try:
-                    os.unlink(p)
-                except OSError:
+                    test_cases = json.loads(raw)
+                except (json.JSONDecodeError, TypeError):
                     pass
+        if exec_type in ("brute_force", "submit_brute"):
+            _log("generating test cases from generator...", indent=1)
+            gen_cases, gen_err = generate_brute_force_test_cases(conn, problem_id, qid)
+            if gen_cases is None:
+                _log(f"generator failed: {gen_err}", indent=1)
+                mark_failed(conn, qid, f"Failed to generate test cases: {gen_err}")
+                return
+            test_cases = gen_cases
+            _log(f"generated {len(test_cases)} test cases", indent=1)
 
-    result_data = json.dumps({
-        "results": tc_results,
-        "stdout": all_stdout,
-    })
+        if not test_cases:
+            _log("no test cases found", indent=1)
+            mark_failed(conn, qid, "No test cases found")
+            return
 
-    verdict = "Accepted" if passed == total else "Wrong Answer"
-    mark_completed(conn, qid, result_data, all_stdout, "", timing_ms, memory_kb)
+        source = "examples" if exec_type == "run" else "generator"
+        _log(f"running {len(test_cases)} test cases ({source})", indent=1)
 
-    if exec_type == "submit":
-        sid = create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, memory_kb)
+        user_code_path = f"/tmp/solver-{label}-{qid}.py"
+        try:
+            with open(user_code_path, "w") as f:
+                f.write(code)
+        except OSError as e:
+            _log(f"failed to write user code: {e}", indent=1)
+            mark_failed(conn, qid, f"Failed to write user code: {e}")
+            return
+
+        wrapper_path = f"/tmp/wrapper-{label}-{qid}.py"
+        stop_on_failure = exec_type in ("brute_force", "submit_brute")
+        wrapper = build_wrapper(user_code_path, method_name, test_cases, stop_on_failure)
+        result = run_bwrap(wrapper, wrapper_path, user_code_path)
+
+        if result["returncode"] != 0:
+            _log(f"execution failed: {result['stderr'] or result['stdout']}", indent=1)
+            mark_failed(conn, qid, result["stderr"] or result["stdout"])
+            return
+
+        try:
+            tc_results = json.loads(result["results_json"])
+        except json.JSONDecodeError as e:
+            _log(f"parse error: {e}", indent=1)
+            mark_failed(conn, qid, f"Failed to parse output: {e}\nRaw: {result['stdout']}")
+            return
+
+        _LOG_INDENT += 1
+        for i, tc in enumerate(tc_results):
+            inp = json.dumps(tc.get("input", ""))
+            exp = json.dumps(tc.get("expected", ""))
+            got = tc.get("got", "")
+            status = tc.get("status", "unknown")
+            timing = tc.get("timing_ms")
+            t_str = f"  ({timing:.3f}ms)" if timing is not None else ""
+            if status == "passed":
+                _log(f"✓ test ({i+1}/{len(tc_results)})  {inp}  →  {got}{t_str}", indent=1)
+            elif status == "failed":
+                _log(f"✗ test ({i+1}/{len(tc_results)})  {inp}  expected {exp}  got {got}{t_str}", indent=1)
+            elif status == "skipped":
+                _log(f"− test ({i+1}/{len(tc_results)})  skipped (no input)", indent=1)
+        _LOG_INDENT -= 1
+
+        passed = sum(1 for t in tc_results if t.get("passed"))
+        total = len(tc_results)
+        timing_ms = result["timing_ms"]
+        memory_kb = result.get("memory_kb", 0) or 0
+
+        all_stdout = "\n".join(t.get("stdout", "") for t in tc_results if t.get("stdout"))
+
+        # Run solution code against same test cases for timing comparison
         with conn.cursor() as cur:
-            cur.execute("UPDATE execution_queue SET solution_id = %s WHERE id = %s", (sid, qid))
+            cur.execute("SELECT solution_code FROM problems WHERE id = %s", (problem_id,))
+            sol_row = cur.fetchone()
+        if sol_row and sol_row.get("solution_code"):
+            sol_code = sol_row["solution_code"]
+            sol_path = f"/tmp/solcompare-{label}-{qid}.py"
+            sol_wrap_path = f"/tmp/solcomparewrap-{label}-{qid}.py"
+            try:
+                with open(sol_path, "w") as f:
+                    f.write(sol_code)
+                sol_wrapper = build_wrapper(sol_path, method_name, test_cases, stop_on_failure=False)
+                sol_result = run_bwrap(sol_wrapper, sol_wrap_path, sol_path, timeout=30)
+                if sol_result["returncode"] == 0:
+                    try:
+                        sol_tc_results = json.loads(sol_result["results_json"])
+                    except (json.JSONDecodeError, ValueError):
+                        sol_tc_results = None
+                    if sol_tc_results:
+                        for i, t in enumerate(sol_tc_results):
+                            if i < len(tc_results):
+                                tc_results[i]["sol_timing"] = t.get("timing_ms", None)
+            finally:
+                for p in [sol_path, sol_wrap_path]:
+                    try:
+                        os.unlink(p)
+                    except OSError:
+                        pass
+
+        result_data = json.dumps({
+            "results": tc_results,
+            "stdout": all_stdout,
+        })
+
+        verdict = "Accepted" if passed == total else "Wrong Answer"
+        _log(f"verdict: {verdict} ({passed}/{total} passed, {timing_ms}ms, {memory_kb}KB)", indent=1)
+        mark_completed(conn, qid, result_data, all_stdout, "", timing_ms, memory_kb)
+
+        if exec_type == "submit":
+            sid = create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, memory_kb)
+            with conn.cursor() as cur:
+                cur.execute("UPDATE execution_queue SET solution_id = %s WHERE id = %s", (sid, qid))
+            _log(f"solution #{sid} created", indent=1)
+
+        _log(f"queue [{qid}] — done ({timing_ms}ms)")
+    finally:
+        _LOG_INDENT -= 1
 
 
 def main():
@@ -475,18 +547,16 @@ def main():
                 try:
                     entry = fetch_queued(conn)
                     if entry:
-                        print(f"[bwrap-executor] Processing queue #{entry['id']}...", flush=True)
                         try:
                             process_entry(conn, entry)
                         except Exception as e:
                             import traceback
                             traceback.print_exc(file=sys.stderr)
-                            print(f"[bwrap-executor] FATAL: queue #{entry['id']} crashed: {e}", file=sys.stderr, flush=True)
+                            _log(f"FATAL: queue #{entry['id']} crashed: {e}", indent=1)
                             try:
                                 mark_failed(conn, entry["id"], f"Executor error: {e}")
-                            except Exception:
-                                pass
-                        print(f"[bwrap-executor] Queue #{entry['id']} done.", flush=True)
+                            except Exception as e2:
+                                _log(f"mark_failed also crashed: {e2}", indent=1)
                     else:
                         time.sleep(POLL_INTERVAL)
                 except Exception as e:
