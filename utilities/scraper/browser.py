@@ -19,6 +19,13 @@ class Browser:
     def __init__(self):
         self._driver = None
 
+    def start(self):
+        try:
+            self._start()
+        except Exception as e:
+            self._driver = None
+            raise e
+
     def _start(self):
         from selenium import webdriver
         from selenium.webdriver.chrome.service import Service

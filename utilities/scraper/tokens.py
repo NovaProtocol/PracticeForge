@@ -25,7 +25,7 @@ def _save(state: dict):
 
 
 def record(tokens: int):
-    """Record actual tokens used after an AI call. Exits if over limit."""
+    """Record actual tokens used after an AI call. Warns if over limit but doesn't stop."""
     state = _load()
     now = time.time()
     elapsed = now - state["window_start"]
@@ -38,9 +38,8 @@ def record(tokens: int):
     projected = state["tokens_used"] + tokens
     if projected > TOKEN_LIMIT:
         reset_at = datetime.fromtimestamp(state["window_start"] + WINDOW_SECONDS, tz=timezone.utc)
-        log.error(f"Token limit reached ({state['tokens_used']}/{TOKEN_LIMIT})")
-        log.error(f"Window resets at {reset_at.isoformat()}")
-        raise SystemExit(0)
+        log.warn(f"Token limit exceeded ({state['tokens_used']}/{TOKEN_LIMIT}) — overage allowed")
+        log.warn(f"Window resets at {reset_at.isoformat()}")
 
     state["tokens_used"] += tokens
     _save(state)
