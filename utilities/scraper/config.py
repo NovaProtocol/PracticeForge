@@ -22,3 +22,6 @@ CF_POLL = 3       # seconds between checks for Cloudflare captcha
 # Limit — set to int to process that many per run. None = process all pending.
 # Order: oldest problems first (1/A, 1/B, ...).
 LIMIT = 5
+
+# AI
+RETRY_LIMIT = 5  # max retries for solution/generator validation

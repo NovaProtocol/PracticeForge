@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 
-from .config import AI_KEY, AI_MODEL, AI_URL
+from .config import AI_KEY, AI_MODEL, AI_URL, RETRY_LIMIT
 from . import log
 from .tokens import record
 
@@ -45,7 +45,7 @@ Guidelines (Strictly Python-Centric):
        def run(self, h: int, n: int, damage: list, cooldown: list) -> int:
            # Write your code here
            pass
-8. SOLUTION_CODE: Provide the CORRECT working reference solution matching the base code signature for student review when stuck. This solution will be AUTOMATICALLY RUN against all example test cases to verify correctness. If it fails any example, you will be asked to fix it. Test your logic carefully — this is the ground truth used by the platform. Do NOT use recursion deeper than Python's default limit. Do NOT use external libraries. Handle ALL edge cases mentioned in the constraints. The solution MUST pass every example test case.
+ 8. SOLUTION_CODE: Provide a CORRECT, general-purpose solution matching the base code signature. This is the ground truth — it will be AUTOMATICALLY RUN against all example test cases AND generated test cases. It must solve the problem generally, not just pass the provided examples. No hardcoded example-to-answer mapping. The code should be readable and demonstrate good Python techniques (clear variable names, appropriate data structures, proper control flow). It does not need to be overly verbose. Do NOT use recursion deeper than Python's default limit. Do NOT use external libraries. Handle ALL edge cases mentioned in the constraints.
 9. GENERATOR_CODE: Provide a Python script that dynamically generates valid test cases conforming to the problem's constraints. The script MUST have a function called `generate()` that returns a list of dictionaries, where each dictionary has keyword argument keys matching the `run()` method parameters and their corresponding values. Example structure:
    ```python
    import random
@@ -67,10 +67,9 @@ Guidelines (Strictly Python-Centric):
 
 class AIEnricher:
 
-    MAX_RETRIES = 5
-
     def __init__(self):
         self._client = None
+        self.last_error = ""
 
     @property
     def _openai_client(self):
@@ -82,20 +81,23 @@ class AIEnricher:
         return self._client
 
     def enrich(self, problem_text: str) -> dict | None:
+        self.last_error = ""
         if not AI_KEY:
+            self.last_error = "ZEN_API_KEY not set"
             log.warn("ZEN_API_KEY not set — skipping AI enrichment")
             return None
 
         # First call: raw HTML + system prompt
         data = self._call_ai(problem_text, None)
         if not data:
+            self.last_error = "AI returned no data (empty or parse failure)"
             return None
 
         # Solution validation — retry with cleaned problem data
         solution_ok, solution_err = self._validate_solution(data)
         if not solution_ok:
-            for attempt in range(self.MAX_RETRIES):
-                log.warn(f"Solution failed (attempt {attempt+1}/{self.MAX_RETRIES}): {solution_err[:200]}")
+            for attempt in range(RETRY_LIMIT):
+                log.warn(f"Solution failed (attempt {attempt+1}/{RETRY_LIMIT}): {solution_err}")
                 ctx = self._build_solution_retry_context(data, solution_err)
                 retry_data = self._call_ai(None, ctx)
                 if retry_data:
@@ -105,14 +107,15 @@ class AIEnricher:
                 if solution_ok:
                     break
             if not solution_ok:
+                self.last_error = f"Solution validation failed: {solution_err}"
                 log.error(f"Solution validation failed after max retries: {solution_err}")
                 return None
 
         # Generator validation — retry with cleaned problem data + solution + generator
         gen_ok, gen_err = self._validate_generator(data)
         if not gen_ok:
-            for attempt in range(self.MAX_RETRIES):
-                log.warn(f"Generator failed (attempt {attempt+1}/{self.MAX_RETRIES}): {gen_err[:200]}")
+            for attempt in range(RETRY_LIMIT):
+                log.warn(f"Generator failed (attempt {attempt+1}/{RETRY_LIMIT}): {gen_err}")
                 ctx = self._build_generator_retry_context(data, gen_err)
                 retry_data = self._call_ai(None, ctx)
                 if retry_data:
@@ -122,6 +125,7 @@ class AIEnricher:
                 if gen_ok:
                     break
             if not gen_ok:
+                self.last_error = f"Generator validation failed: {gen_err}"
                 log.error(f"Generator validation failed after max retries: {gen_err}")
                 return None
 
