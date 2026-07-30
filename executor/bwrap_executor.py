@@ -131,7 +131,7 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         lines.append("    result = method(**" + json.dumps(input_data) + ")")
         lines.append("    got = json.dumps(result)")
         if expected is not None:
-            lines.append("    passed = got == json.dumps(" + json.dumps(expected) + ")")
+            lines.append("    passed = got == json.dumps(" + _pyval(expected) + ")")
             lines.append("    status = 'passed' if passed else 'failed'")
         else:
             lines.append("    status = 'checked'")

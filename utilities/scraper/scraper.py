@@ -19,12 +19,36 @@ from . import log
 FAIL_PATH = BASE / "fail.json"
 
 
+FAILED_IDS_CACHE = None
+
+
+def _load_failed_ids():
+    global FAILED_IDS_CACHE
+    if FAILED_IDS_CACHE is not None:
+        return FAILED_IDS_CACHE
+    FAILED_IDS_CACHE = set()
+    if FAIL_PATH.exists():
+        try:
+            for entry in json.loads(FAIL_PATH.read_text()):
+                FAILED_IDS_CACHE.add(entry.get("id"))
+        except (json.JSONDecodeError, Exception):
+            pass
+    return FAILED_IDS_CACHE
+
+
 class CodeforcesScraper:
 
     def __init__(self):
-        self.browser = Browser()
+        self._browser = None
         self.ai = AIEnricher()
         self.uploader = Uploader()
+
+    @property
+    def browser(self):
+        if self._browser is None:
+            self._browser = Browser()
+            self._browser.start()
+        return self._browser
 
     def _record_failure(self, problem_id: str, problem_name: str, reason: str):
         failures = []
@@ -35,6 +59,19 @@ class CodeforcesScraper:
                 pass
         failures.append({"id": problem_id, "name": problem_name, "reason": reason, "ts": time.time()})
         FAIL_PATH.write_text(json.dumps(failures, indent=2))
+        global FAILED_IDS_CACHE
+        FAILED_IDS_CACHE = None  # invalidate cache
+
+    def _ensure_browser(self):
+        if self._browser is not None:
+            return True
+        try:
+            self._browser = Browser()
+            self._browser.start()
+            return True
+        except Exception as e:
+            log.error(f"Browser startup failed: {e}")
+            return False
 
     def run(self):
         log.info(f"Server: {API_BASE}")
@@ -47,6 +84,7 @@ class CodeforcesScraper:
         total = len(to_process)
         log.info(f"Processing {total} problems")
 
+        failed_ids = _load_failed_ids()
         ok = 0
         try:
             for i, cf_data in enumerate(to_process):
@@ -59,7 +97,27 @@ class CodeforcesScraper:
                 if self.uploader.exists_on_server(cid, idx):
                     continue
 
-                html = self.browser.scrape_problem_page(cid, idx)
+                if pid_str in failed_ids:
+                    log.info(f"{pid_str} previously failed, skipping")
+                    continue
+
+                if not self._ensure_browser():
+                    self._record_failure(pid_str, name, "Browser failed to start")
+                    continue
+
+                try:
+                    html = self.browser.scrape_problem_page(cid, idx)
+                except Exception as e:
+                    log.error(f"Browser error: {e}, reinitializing...")
+                    try:
+                        self._browser.close()
+                    except Exception:
+                        pass
+                    self._browser = None
+                    if not self._ensure_browser():
+                        self._record_failure(pid_str, name, f"Browser error: {e}")
+                        continue
+                    html = self.browser.scrape_problem_page(cid, idx)
                 if not html:
                     msg = "Cloudflare blocked — no page content"
                     log.warn(f"{pid_str} {msg}")
