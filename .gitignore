@@ -11,3 +11,4 @@ test_zone/
 utilities/scraper/*.db
 utilities/scraper/browser_profile/
 utilities/scraper/token_usage.json
+utilities/scraper/fail.json

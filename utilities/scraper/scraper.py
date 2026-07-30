@@ -7,11 +7,16 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from .config import CF_API, AI_DELAY, SCRAPE_DELAY, LIMIT, API_BASE
+from pathlib import Path
+
+from .config import BASE, CF_API, AI_DELAY, SCRAPE_DELAY, LIMIT, API_BASE
 from .browser import Browser
 from .ai import AIEnricher
 from .uploader import Uploader
 from . import log
+
+
+FAIL_PATH = BASE / "fail.json"
 
 
 class CodeforcesScraper:
@@ -20,6 +25,16 @@ class CodeforcesScraper:
         self.browser = Browser()
         self.ai = AIEnricher()
         self.uploader = Uploader()
+
+    def _record_failure(self, problem_id: str, problem_name: str, reason: str):
+        failures = []
+        if FAIL_PATH.exists():
+            try:
+                failures = json.loads(FAIL_PATH.read_text())
+            except (json.JSONDecodeError, Exception):
+                pass
+        failures.append({"id": problem_id, "name": problem_name, "reason": reason, "ts": time.time()})
+        FAIL_PATH.write_text(json.dumps(failures, indent=2))
 
     def run(self):
         log.info(f"Server: {API_BASE}")
@@ -37,15 +52,18 @@ class CodeforcesScraper:
             for i, cf_data in enumerate(to_process):
                 cid = cf_data["contestId"]
                 idx = cf_data["index"]
+                pid_str = f"{cid}/{idx}"
                 name = cf_data.get("name", "")
-                log.info(f"[{i+1}/{total}] {cid}/{idx} — {name}")
+                log.info(f"[{i+1}/{total}] {pid_str} — {name}")
 
                 if self.uploader.exists_on_server(cid, idx):
                     continue
 
                 html = self.browser.scrape_problem_page(cid, idx)
                 if not html:
-                    log.warn(f"{cid}/{idx} blocked by CF, skipping")
+                    msg = "Cloudflare blocked — no page content"
+                    log.warn(f"{pid_str} {msg}")
+                    self._record_failure(pid_str, name, msg)
                     continue
 
                 clean = self._extract_text(html)
@@ -53,7 +71,9 @@ class CodeforcesScraper:
 
                 ai_data = self.ai.enrich(clean)
                 if not ai_data:
-                    log.warn(f"{cid}/{idx} AI enrichment failed, skipping")
+                    msg = self.ai.last_error or "AI enrichment failed (unknown)"
+                    log.warn(f"{pid_str} {msg}")
+                    self._record_failure(pid_str, name, msg)
                     continue
 
                 payload = self.uploader.build_payload(cf_data, ai_data)
@@ -61,9 +81,13 @@ class CodeforcesScraper:
                 if pid:
                     ok += 1
                     if not self.uploader.verify_upload(payload):
-                        log.warn(f"Upload verification failed for {cid}/{idx}")
+                        msg = "Upload verification failed — server data mismatch"
+                        log.warn(f"{pid_str} {msg}")
+                        self._record_failure(pid_str, name, msg)
                 else:
-                    log.warn(f"{cid}/{idx} upload failed")
+                    msg = "Upload to server failed"
+                    log.warn(f"{pid_str} {msg}")
+                    self._record_failure(pid_str, name, msg)
 
                 time.sleep(AI_DELAY)
 
