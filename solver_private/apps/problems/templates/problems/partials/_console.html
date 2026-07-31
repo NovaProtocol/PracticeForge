@@ -494,7 +494,7 @@
     inp.value = tc.input && typeof tc.input === 'object' ? JSON.stringify(tc.input, null, 2) : String(tc.input || '');
     _autosize(inp);
     var exp = document.getElementById('tc-expected');
-    exp.value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : String(tc.output)) : '';
+    exp.value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : (typeof tc.output === 'number' ? JSON.stringify(tc.output) : String(tc.output))) : '';
     _autosize(exp);
   }
 

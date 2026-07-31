@@ -206,8 +206,9 @@ class AIEnricher:
             result = _run_code(solution_code, kwargs)
             if result["error"]:
                 return False, f"Example {i+1}: raised {result['error']}"
-            # Compare JSON-serialized forms (matches executor's build_wrapper)
-            if json.dumps(result["output"]) != json.dumps(expected):
+            # Same comparison as executor's _matches: exact JSON equality
+            # OR numeric equivalence for int/float (1 == 1.0)
+            if not _val_equal(result["output"], expected):
                 return False, f"Example {i+1}: expected {expected!r}, got {result['output']!r}"
         return True, ""
 
@@ -229,6 +230,16 @@ class AIEnricher:
         if failed:
             return False, f"{len(failed)}/100 generated cases failed. First failures:\n" + "\n".join(failed[:5])
         return True, ""
+
+
+def _val_equal(a, b):
+    """Same comparison as executor's _matches: exact JSON equality or
+    numeric equivalence for int/float (1 == 1.0)."""
+    if json.dumps(a) == json.dumps(b):
+        return True
+    if isinstance(a, (int, float)) and not isinstance(a, bool) and isinstance(b, (int, float)) and not isinstance(b, bool):
+        return abs(a - b) < 1e-9
+    return False
 
 
 def _run_code(user_code: str, kwargs: dict) -> dict:
