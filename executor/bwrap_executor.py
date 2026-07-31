@@ -99,6 +99,12 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
     lines = [
         "import json, sys, io, time, traceback, signal",
         "from typing import List, Optional, Dict, Tuple, Set",
+        "def _matches(got, expected):",
+        "    if got == json.dumps(expected): return True",
+        "    if isinstance(expected, (int, float)) and not isinstance(expected, bool):",
+        "        try: return abs(float(got) - float(expected)) < 1e-9",
+        "        except (ValueError, TypeError): return False",
+        "    return False",
         f"exec(compile(open({json.dumps(user_code_path)}).read(), {json.dumps(user_code_path)}, 'exec'))",
         "solution = Solution()",
         "method = getattr(solution, " + json.dumps(method_name) + ")",
@@ -131,7 +137,7 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         lines.append("    result = method(**" + json.dumps(input_data) + ")")
         lines.append("    got = json.dumps(result)")
         if expected is not None:
-            lines.append("    passed = got == json.dumps(" + _pyval(expected) + ")")
+            lines.append("    passed = _matches(got, " + _pyval(expected) + ")")
             lines.append("    status = 'passed' if passed else 'failed'")
         else:
             lines.append("    status = 'checked'")
