@@ -21,7 +21,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from utilities.scraper.config import CF_API, SCRAPE_DELAY, LIMIT, BASE
+from utilities.scraper.config import CF_API, SCRAPE_DELAY, BASE
 from utilities.scraper.browser import Browser
 from utilities.scraper import log
 
@@ -50,7 +50,7 @@ def main():
         return
 
     HTML_DIR.mkdir(parents=True, exist_ok=True)
-    to_process = problems[:LIMIT] if LIMIT else problems
+    to_process = problems  # scrape everything, LIMIT not applied here
     total = len(to_process)
     log.info(f"Processing {total} problems")
 
