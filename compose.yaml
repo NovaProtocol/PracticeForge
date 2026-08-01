@@ -18,6 +18,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    volumes:
+      - ./static/images:/app/static/images
     networks:
       - default
       - gatekeeper
@@ -41,6 +43,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    volumes:
+      - ./static/images:/app/static/images
     networks:
       - default
 
