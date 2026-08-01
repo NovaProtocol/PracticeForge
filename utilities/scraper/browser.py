@@ -62,9 +62,13 @@ class Browser:
             log.error("Page load timeout (30s)")
             return None
 
-        while self._is_cloudflare_blocked():
-            log.info("Cloudflare captcha — solve it in the browser window, waiting...")
-            time.sleep(CF_POLL)
+        try:
+            while self._is_cloudflare_blocked():
+                log.info("Cloudflare captcha — solve it in the browser window, waiting...")
+                time.sleep(CF_POLL)
+        except Exception as e:
+            log.error(f"Cloudflare check failed (browser gone?): {e}")
+            return None
 
         time.sleep(2)
         return self.driver.page_source

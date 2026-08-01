@@ -70,9 +70,21 @@ def main():
                 log.info(f"{pid_str} already scraped, skipping")
                 continue
 
-            html = browser.scrape_problem_page(cid, idx)
+            try:
+                html = browser.scrape_problem_page(cid, idx)
+            except Exception as e:
+                import traceback
+                log.error(f"{pid_str} browser crashed: {e}")
+                log.error(traceback.format_exc())
+                try:
+                    browser.close()
+                except Exception:
+                    pass
+                browser = Browser()
+                html = None
+
             if not html:
-                log.warn(f"{pid_str} blocked by Cloudflare, skipping")
+                log.warn(f"{pid_str} no content, skipping")
                 continue
 
             soup = BeautifulSoup(html, "html.parser")
@@ -87,6 +99,10 @@ def main():
             ok += 1
             time.sleep(SCRAPE_DELAY)
 
+    except Exception as e:
+        import traceback
+        log.error(f"FATAL: {e}")
+        log.error(traceback.format_exc())
     finally:
         browser.close()
 
