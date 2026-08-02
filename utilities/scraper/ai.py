@@ -24,10 +24,10 @@ SYSTEM_PROMPT = r"""You are an expert Python educational coding platform engine 
   ],
   "constraints": ["1 <= n <= 10^5"],
   "hints": ["Think about using two pointers."],
-  "is_interactive": false,
   "base_code": "class Solution:\n    def run(self, n: int, arr: list) -> int:\n        pass",
   "solution_code": "class Solution:\n    def run(self, n: int, arr: list) -> int:\n        return sum(arr)",
-  "generator_code": "import random\n\ndef generate():\n    cases = []\n    for _ in range(100):\n        n = random.randint(1, 10)\n        arr = [random.randint(1, 100) for _ in range(n)]\n        cases.append({'n': n, 'arr': arr})\n    return cases"
+  "generator_code": "import random\n\ndef generate():\n    cases = []\n    for _ in range(100):\n        n = random.randint(1, 10)\n        arr = [random.randint(1, 100) for _ in range(n)]\n        cases.append({'n': n, 'arr': arr})\n    return cases",
+  "executor_code": ""
 }
 
 Guidelines (Strictly Python-Centric):
@@ -36,7 +36,17 @@ Guidelines (Strictly Python-Centric):
    IMAGES: A marker like `[image: <filename>]` in the problem text indicates a figure or diagram at that position in the original statement. Keep the marker in its original position in the description so the figure placement is preserved. The marker MUST be on its own line with no other text on that line — place it as a standalone line between the surrounding paragraphs. If the surrounding text explains what the figure shows (e.g., "according to the picture"), include that explanation in your own words in the adjacent paragraph. Do not invent facts about the image that the text does not support.
 3. CONSTRAINTS: Bulleted list of constraints inferred or stated.
 4. HINTS: Python-friendly logic tips and algorithmic hints.
-5. IS_INTERACTIVE: Set to true if the problem requires real-time interaction (flushing stdout/reading queries interactively), otherwise false.
+5. EXECUTOR_CODE: This is for INTERACTIVE problems (problems where the solution must query the judge, e.g. "you can ask up to 20 queries", "this is an interactive problem", reading responses after printing queries). If the problem is interactive, provide Python source code in `executor_code` that defines the judge's state and query functions. This code is exec'd AFTER the user's `Solution` class is defined, in the same namespace, so it can attach functions to the class via `Solution.<name> = staticmethod(<function>)`. Use `staticmethod` so the user can call `self.<name>(...)` inside `run()` without binding issues. Example for a "guess the hidden number" problem:
+   HIDDEN = 42
+   _queries = 0
+   def query(x):
+       global _queries
+       _queries += 1
+       if _queries > 20:
+           raise Exception("query limit exceeded")
+       return HIDDEN % x == 0
+   Solution.query = staticmethod(query)
+   The user's solution then calls `self.query(...)` inside `run()`. The `HIDDEN` variable and `_queries` counter are reset by the executor before each test case from the test case's `hidden` field — your `base_code`, `solution_code`, and `generator_code` must reference `self.query` (or whatever you name it). The generator must emit cases with a `hidden` key carrying the judge's secret plus the expected final answer. The `run()` method should receive no input params for interactive problems (the interaction happens via the query functions) and return the final answer. If the problem is NOT interactive, set `executor_code` to an empty string.
 6. EXAMPLES: Parse raw sample test cases into an array (`examples`). NEVER use newline strings (`\n`) in output. Every test case's `input` must be a keyword-argument object with keys matching the parameter names in `run()`. The `output` must be cast to its correct type: if the correct answer is a number, use int/float; if a string, use string; if multiple values, use a list. For example, if sample output is "4\n()()", produce `"output": [4, "()()"]`. If it's just "4", produce `"output": 4`.
 7. BASE_CODE: Provide a friendly LeetCode-style starter code with explicit parameter names and type hints. Parameters will be passed as **kwargs. Example:
    class Solution:
@@ -198,13 +208,15 @@ class AIEnricher:
 
     def _validate_solution(self, data: dict) -> tuple[bool, str]:
         solution_code = data.get("solution_code", "")
+        executor_code = data.get("executor_code", "") or ""
         examples = data.get("examples", [])
         if not solution_code or not examples:
             return False, "Missing solution_code or examples"
         for i, ex in enumerate(examples):
             kwargs = ex.get("input", {})
             expected = ex.get("output")
-            result = _run_code(solution_code, kwargs)
+            hidden = ex.get("hidden")
+            result = _run_code(solution_code, kwargs, executor_code, hidden)
             if result["error"]:
                 return False, f"Example {i+1}: raised {result['error']}"
             # Same comparison as executor's _matches: exact JSON equality
@@ -216,6 +228,7 @@ class AIEnricher:
     def _validate_generator(self, data: dict) -> tuple[bool, str]:
         generator_code = data.get("generator_code", "")
         solution_code = data.get("solution_code", "")
+        executor_code = data.get("executor_code", "") or ""
         if not generator_code or not solution_code:
             return False, "Missing generator_code or solution_code"
         cases = _run_generator(generator_code, count=100)
@@ -225,7 +238,8 @@ class AIEnricher:
             return False, "Generator returned empty list"
         failed = []
         for i, kwargs in enumerate(cases):
-            result = _run_code(solution_code, kwargs)
+            hidden = kwargs.get("hidden") if isinstance(kwargs, dict) else None
+            result = _run_code(solution_code, kwargs, executor_code, hidden)
             if result["error"]:
                 failed.append(f"Case {i+1}: solution crashed with {result['error']}")
         if failed:
@@ -243,12 +257,17 @@ def _val_equal(a, b):
     return False
 
 
-def _run_code(user_code: str, kwargs: dict) -> dict:
+def _run_code(user_code: str, kwargs: dict, executor_code: str = "", hidden=None) -> dict:
     wrapper = f"""
 import json, sys
 {user_code}
+HIDDEN = None
+_queries = 0
+{executor_code}
 try:
     solution = Solution()
+    HIDDEN = {json.dumps(hidden)}
+    _queries = 0
     result = solution.run(**json.loads(sys.argv[1]))
     print(json.dumps({{"output": result}}))
 except Exception as e:
