@@ -27,6 +27,7 @@ class Problem(Base):
     constraints_json = Column(JSON)
     solution_code = Column(Text)
     generator_code = Column(Text)
+    executor_code = Column(Text)
     hints = Column(JSON)
     url = Column(String(255))
     created_at = Column(DateTime, server_default=func.current_timestamp())

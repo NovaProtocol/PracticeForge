@@ -56,6 +56,7 @@ class Uploader:
             "constraints_json": json.dumps(ai_data.get("constraints", [])),
             "solution_code": ai_data.get("solution_code", ""),
             "generator_code": ai_data.get("generator_code", ""),
+            "executor_code": ai_data.get("executor_code", ""),
             "hints": json.dumps(ai_data.get("hints", [])),
         }
 

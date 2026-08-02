@@ -95,7 +95,7 @@ def _pyval(v):
     return json.dumps(v)
 
 
-def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict], stop_on_failure: bool = False) -> str:
+def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict], stop_on_failure: bool = False, executor_code: str = "") -> str:
     lines = [
         "import json, sys, io, time, traceback, signal",
         "from typing import List, Optional, Dict, Tuple, Set",
@@ -106,6 +106,12 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         "        except (ValueError, TypeError): return False",
         "    return False",
         f"exec(compile(open({json.dumps(user_code_path)}).read(), {json.dumps(user_code_path)}, 'exec'))",
+    ]
+    if executor_code:
+        lines.append("HIDDEN = None")
+        lines.append("_queries = 0")
+        lines.append("exec(compile(" + json.dumps(executor_code) + ", '<executor_code>', 'exec'))")
+    lines += [
         "solution = Solution()",
         "method = getattr(solution, " + json.dumps(method_name) + ")",
         "results = []",
@@ -117,10 +123,11 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
     for tc in test_cases:
         input_data = tc.get("input") or {}
         expected = tc.get("output")
-        inp_display = input_data
+        hidden = tc.get("hidden")
+        inp_display = input_data if input_data else ({"hidden": hidden} if hidden is not None else {})
         exp_display = expected
 
-        if not input_data:
+        if not input_data and hidden is None:
             lines.append("results.append({'input': " + json.dumps(inp_display) + ", 'expected': " + _pyval(exp_display) + ", 'got': '', 'error': '', 'passed': True, 'stdout': '', 'status': 'skipped'})")
             continue
 
@@ -134,6 +141,9 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         lines.append("  err = ''")
         lines.append("  _t0 = time.perf_counter()")
         lines.append("  try:")
+        if hidden is not None:
+            lines.append("    HIDDEN = " + _pyval(hidden))
+            lines.append("    _queries = 0")
         lines.append("    result = method(**" + json.dumps(input_data) + ")")
         lines.append("    got = json.dumps(result)")
         if expected is not None:
@@ -296,13 +306,14 @@ def create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, m
 def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_attempts=1000):
     """Generate test cases using generator_code, validate with solution_code. Returns (list | None, error_msg)."""
     with conn.cursor() as cur:
-        cur.execute("SELECT generator_code, solution_code, method_name FROM problems WHERE id = %s", (problem_id,))
+        cur.execute("SELECT generator_code, solution_code, method_name, executor_code FROM problems WHERE id = %s", (problem_id,))
         row = cur.fetchone()
     if not row:
         return None, f"Problem #{problem_id} not found in database"
     generator_code = row.get("generator_code") or ""
     solution_code = row.get("solution_code") or ""
     method_name = row.get("method_name") or "run"
+    executor_code = row.get("executor_code") or ""
     if not generator_code:
         return None, "Problem has no generator_code"
     if not solution_code:
@@ -353,7 +364,7 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         except OSError:
             continue
 
-        sol_wrapper = build_wrapper(sol_path, method_name, [{"input": tc_data, "output": None}])
+        sol_wrapper = build_wrapper(sol_path, method_name, [{"input": tc_data, "output": None, "hidden": tc_data.get("hidden") if isinstance(tc_data, dict) else None}], executor_code=executor_code)
         sol_wrap_path = f"/tmp/solwrap-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
         sol_result = run_code(sol_wrapper, sol_wrap_path, sol_path, timeout=15)
 
@@ -417,6 +428,13 @@ def process_entry(conn, entry):
     try:
         mark_running(conn, qid)
 
+        executor_code = ""
+        with conn.cursor() as cur:
+            cur.execute("SELECT executor_code FROM problems WHERE id = %s", (problem_id,))
+            p_row = cur.fetchone()
+        if p_row and p_row.get("executor_code"):
+            executor_code = p_row["executor_code"]
+
         test_cases = None
         raw = entry.get("test_cases_json")
         if raw is not None:
@@ -456,7 +474,7 @@ def process_entry(conn, entry):
 
         wrapper_path = f"/tmp/wrapper-{label}-{qid}.py"
         stop_on_failure = exec_type in ("brute_force", "submit_brute")
-        wrapper = build_wrapper(user_code_path, method_name, test_cases, stop_on_failure)
+        wrapper = build_wrapper(user_code_path, method_name, test_cases, stop_on_failure, executor_code)
         result = run_bwrap(wrapper, wrapper_path, user_code_path)
 
         if result["returncode"] != 0:
@@ -505,7 +523,7 @@ def process_entry(conn, entry):
             try:
                 with open(sol_path, "w") as f:
                     f.write(sol_code)
-                sol_wrapper = build_wrapper(sol_path, method_name, test_cases, stop_on_failure=False)
+                sol_wrapper = build_wrapper(sol_path, method_name, test_cases, stop_on_failure=False, executor_code=executor_code)
                 sol_result = run_bwrap(sol_wrapper, sol_wrap_path, sol_path, timeout=30)
                 if sol_result["returncode"] == 0:
                     try:

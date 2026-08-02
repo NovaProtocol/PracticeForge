@@ -237,8 +237,8 @@ def upsert_problem(data: dict) -> int:
         """INSERT INTO problems (contest_id, problem_index, title, slug, difficulty_rating, tags,
             base_code, method_name, description_html, time_limit, memory_limit,
             input_spec, output_spec, examples_json, constraints_json,
-            solution_code, generator_code, hints, url)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            solution_code, generator_code, executor_code, hints, url)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
            ON DUPLICATE KEY UPDATE
             title=VALUES(title), slug=VALUES(slug), difficulty_rating=VALUES(difficulty_rating),
             tags=VALUES(tags), base_code=VALUES(base_code), method_name=VALUES(method_name),
@@ -247,6 +247,7 @@ def upsert_problem(data: dict) -> int:
             output_spec=VALUES(output_spec), examples_json=VALUES(examples_json),
             constraints_json=VALUES(constraints_json),
             solution_code=VALUES(solution_code), generator_code=VALUES(generator_code),
+            executor_code=VALUES(executor_code),
             hints=VALUES(hints), url=VALUES(url)""",
         (data["contest_id"], data["problem_index"], data["title"], slug,
          data.get("difficulty_rating"), data.get("tags"),
@@ -256,7 +257,7 @@ def upsert_problem(data: dict) -> int:
          data.get("output_spec"), data.get("examples_json"),
          data.get("constraints_json"),
          data.get("solution_code"), data.get("generator_code"),
-         data.get("hints"), data.get("url")),
+         data.get("executor_code"), data.get("hints"), data.get("url")),
     )
     row = query_one("SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
                      (data["contest_id"], data["problem_index"]))
