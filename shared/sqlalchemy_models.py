@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, JSON, Enum, ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, JSON, Enum, ForeignKey, UniqueConstraint, LargeBinary
+from sqlalchemy.dialects.mysql import LONGTEXT, LONGBLOB
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
@@ -85,3 +85,13 @@ class AutoSave(Base):
     last_ran = Column(Text)
     active = Column(Boolean, default=True)
     updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+
+class ProblemImage(Base):
+    __tablename__ = "problem_images"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    filename = Column(String(255), nullable=False, unique=True)
+    data = Column(LargeBinary().with_variant(LONGBLOB, "mysql"))
+    content_type = Column(String(50), default="image/png")
+    created_at = Column(DateTime, server_default=func.current_timestamp())

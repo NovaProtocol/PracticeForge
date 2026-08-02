@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Scrape Codeforces problem pages and save problem-statement HTML to disk.
+"""STAGE 1 — Scrape Codeforces problem pages and save problem-statement HTML.
 
 Usage:  cd Projects/SolveSpace && python3 utilities/scraper/scrape.py
 
 Saves:  utilities/scraper/html/<contest_id>-<index>.html
-        Contains the inner HTML of div.problem-statement.
+        Inner HTML of div.problem-statement, image src URLs left as-is.
+
+Then run:
+  python3 utilities/scraper/images_download.py   (stage 2)
+  python3 utilities/scraper/images_upload.py     (stage 3)
+  python3 utilities/scraper/ai_process.py        (AI enrichment)
 
 Cloudflare captcha: solve it in the browser window — the script waits.
 """
@@ -15,7 +20,6 @@ from pathlib import Path
 _project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
-import hashlib
 import json
 import time
 
@@ -27,40 +31,6 @@ from utilities.scraper.browser import Browser
 from utilities.scraper import log
 
 HTML_DIR = BASE / "html"
-IMG_DIR = _project_root / "static" / "images"
-
-
-def download_images(html: str, pid_str: str) -> str:
-    """Download espresso.codeforces.com images referenced in the HTML,
-    store them in static/images/, and rewrite img src to /static/images/.
-    Returns the HTML with rewritten srcs."""
-    IMG_DIR.mkdir(parents=True, exist_ok=True)
-    soup = BeautifulSoup(html, "html.parser")
-    changed = False
-    for img in soup.find_all("img"):
-        src = img.get("src", "")
-        if "espresso.codeforces.com" not in src:
-            continue
-        ext = src.rsplit(".", 1)[-1] if "." in src else "png"
-        if len(ext) > 5 or not ext.isalnum():
-            ext = "png"
-        hashname = hashlib.sha1(src.encode()).hexdigest()[:16]
-        out_path = IMG_DIR / f"{hashname}.{ext}"
-        if not out_path.exists():
-            try:
-                r = requests.get(src, timeout=30)
-                if r.status_code == 200:
-                    out_path.write_bytes(r.content)
-                    log.info(f"  image saved: {hashname}.{ext} ({len(r.content)} bytes)")
-                else:
-                    log.warn(f"  image download failed HTTP {r.status_code}: {src}")
-                    continue
-            except Exception as e:
-                log.warn(f"  image download error: {e} — {src}")
-                continue
-        img["src"] = f"/static/images/{hashname}.{ext}"
-        changed = True
-    return str(soup) if changed else html
 
 
 def fetch_problems():
@@ -85,7 +55,6 @@ def main():
         return
 
     HTML_DIR.mkdir(parents=True, exist_ok=True)
-    IMG_DIR.mkdir(parents=True, exist_ok=True)
     to_process = problems  # scrape everything, LIMIT not applied here
     if TEST_TARGET:
         parts = TEST_TARGET.split("/")
@@ -133,7 +102,7 @@ def main():
             soup = BeautifulSoup(html, "html.parser")
             problem_div = soup.select_one("div.problemindexholder") or soup.select_one("div.problem-statement")
             if problem_div:
-                saved_html = download_images(str(problem_div), pid_str)
+                saved_html = str(problem_div)
                 out_file.write_text(saved_html)
                 log.info(f"{pid_str} saved — problem statement, {len(saved_html)} chars")
             else:

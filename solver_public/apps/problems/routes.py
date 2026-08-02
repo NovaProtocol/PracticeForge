@@ -23,7 +23,7 @@ def _sanitize_html(html: str) -> str:
     # Convert [image: <filename>] markers (from AI description) to img tags
     result = re.sub(
         r'\[image:\s*([a-zA-Z0-9_.-]+)\]',
-        r'<img src="/static/images/\1" style="max-width:100%;border-radius:6px;">',
+        r'<img src="/api/images/\1" style="max-width:100%;border-radius:6px;">',
         result,
     )
     return result
