@@ -47,7 +47,8 @@ Guidelines (Strictly Python-Centric):
        return HIDDEN % x == 0
    Solution.query = staticmethod(query)
    The user's solution then calls `self.query(...)` inside `run()`. The `HIDDEN` variable and `_queries` counter are reset by the executor before each test case from the test case's `hidden` field — your `base_code`, `solution_code`, and `generator_code` must reference `self.query` (or whatever you name it). The generator must emit cases with a `hidden` key carrying the judge's secret plus the expected final answer. The `run()` method should receive no input params for interactive problems (the interaction happens via the query functions) and return the final answer. If the problem is NOT interactive, set `executor_code` to an empty string.
-6. EXAMPLES: Parse raw sample test cases into an array (`examples`). NEVER use newline strings (`\n`) in output. Every test case's `input` must be a keyword-argument object with keys matching the parameter names in `run()`. The `output` must be cast to its correct type: if the correct answer is a number, use int/float; if a string, use string; if multiple values, use a list. For example, if sample output is "4\n()()", produce `"output": [4, "()()"]`. If it's just "4", produce `"output": 4`.
+6. EXAMPLES: Parse raw sample test cases into an array (`examples`). NEVER use newline strings (`\n`) in output. Every test case's `input` must be a keyword-argument object with keys matching the parameter names in `run()`. The `output` must be cast to its correct type: if the correct answer is a number, use int/float; if a string, use string; if multiple values, use a list. For example, if sample output is "4\n()()", produce `"output": [4, "()()"]`. If it's just "4", produce `"output": 4`. For interactive problems, each example must include a `hidden` key carrying the judge's secret value (extracted from the note/statement if possible) alongside the expected `output`.
+   SIMULATED TEST CASES: If an example test case from the problem is unreliable, ambiguous, or does not make sense (e.g., the interaction transcript is contradictory or the expected answer cannot be determined), you MAY replace it with a test case you generate yourself that you are confident is correct. LIMIT this — only do it when necessary, as invented test cases have a higher chance of being wrong. If you DO substitute a simulated test case, append the exact hidden signal text "Simulated Test Case" inside that test case's `input` object under a key named `_hint` (e.g. `"input": {"_hint": "Simulated Test Case", ...}`) so it is visible to the platform as a marker that this case was possibly not reliable.
 7. BASE_CODE: Provide a friendly LeetCode-style starter code with explicit parameter names and type hints. Parameters will be passed as **kwargs. Example:
    class Solution:
        def run(self, h: int, n: int, damage: list, cooldown: list) -> int:
@@ -258,6 +259,8 @@ def _val_equal(a, b):
 
 
 def _run_code(user_code: str, kwargs: dict, executor_code: str = "", hidden=None) -> dict:
+    kwargs = dict(kwargs)
+    kwargs.pop("_hint", None)  # marker only, never passed to run()
     wrapper = f"""
 import json, sys
 {user_code}
@@ -266,8 +269,7 @@ _queries = 0
 {executor_code}
 try:
     solution = Solution()
-    HIDDEN = {json.dumps(hidden)}
-    _queries = 0
+    {('HIDDEN = ' + json.dumps(hidden) + '\n    _queries = 0') if hidden is not None else ''}
     result = solution.run(**json.loads(sys.argv[1]))
     print(json.dumps({{"output": result}}))
 except Exception as e:
