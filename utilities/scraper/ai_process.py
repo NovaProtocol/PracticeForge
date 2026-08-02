@@ -18,7 +18,9 @@ sys.path.insert(0, str(_project_root))
 import json
 import time
 
-from utilities.scraper.config import AI_DELAY, LIMIT, API_BASE, BASE, TEST_TARGET
+import requests
+
+from utilities.scraper.config import AI_DELAY, LIMIT, API_BASE, BASE, TEST_TARGET, CF_API
 from utilities.scraper.ai import AIEnricher
 from utilities.scraper.extract import extract_text
 from utilities.scraper.uploader import Uploader
@@ -68,12 +70,40 @@ def _collect_html_files():
     return files
 
 
+def _fetch_cf_metadata():
+    """Fetch problem metadata (tags, rating, name) from Codeforces API.
+    Returns dict keyed by 'contestId/index'."""
+    log.info("Fetching problem metadata from Codeforces API")
+    try:
+        r = requests.get(CF_API, headers={"Accept-Language": "en"}, timeout=30)
+        data = r.json()
+        if data["status"] != "OK":
+            log.error(f"CF API error: {data.get('comment', 'unknown')}")
+            return {}
+        meta = {}
+        for p in data["result"]["problems"]:
+            key = f"{p['contestId']}/{p['index']}"
+            meta[key] = {
+                "contestId": p["contestId"],
+                "index": p["index"],
+                "name": p.get("name", ""),
+                "tags": p.get("tags", []),
+                "rating": p.get("rating"),
+            }
+        log.info(f"Loaded metadata for {len(meta)} problems")
+        return meta
+    except Exception as e:
+        log.error(f"CF metadata fetch failed: {e}")
+        return {}
+
+
 def main():
     log.info(f"Server: {API_BASE}")
 
     uploader = Uploader()
     ai = AIEnricher()
     failed_ids = _load_failed_ids()
+    cf_meta = _fetch_cf_metadata()
 
     all_files = _collect_html_files()
     if TEST_TARGET:
@@ -110,9 +140,16 @@ def main():
             _record_failure(pid_str, "", msg)
             continue
 
-        # Try to get the problem title from CF API — fallback
-        name = ai_data.get("title", "")
-        payload = uploader.build_payload({"contestId": cid, "index": idx, "name": name, "tags": [], "rating": None}, ai_data)
+        # Use CF API metadata (tags, rating, name) — fall back to AI title
+        cf = cf_meta.get(pid_str, {})
+        cf_data = {
+            "contestId": cid,
+            "index": idx,
+            "name": cf.get("name") or ai_data.get("title", ""),
+            "tags": cf.get("tags", []),
+            "rating": cf.get("rating"),
+        }
+        payload = uploader.build_payload(cf_data, ai_data)
 
         pid = uploader.upload(payload)
         if pid:
@@ -120,11 +157,11 @@ def main():
             if not uploader.verify_upload(payload):
                 msg = "Upload verification failed — server data mismatch"
                 log.warn(f"{pid_str} {msg}")
-                _record_failure(pid_str, name, msg)
+                _record_failure(pid_str, cf_data["name"], msg)
         else:
             msg = "Upload to server failed"
             log.warn(f"{pid_str} {msg}")
-            _record_failure(pid_str, name, msg)
+            _record_failure(pid_str, cf_data["name"], msg)
 
         time.sleep(AI_DELAY)
 
