@@ -6,7 +6,8 @@ BASE = Path(__file__).resolve().parent
 BROWSER_DATA_DIR = BASE / "browser_profile"
 
 # API
-API_BASE = "http://debian.local:7031"
+# Use IP directly — debian.local DNS lookup takes ~10s per request
+API_BASE = "http://192.168.18.52:7031"
 CF_API = "https://codeforces.com/api/problemset.problems"
 
 # AI
