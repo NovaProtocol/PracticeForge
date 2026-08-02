@@ -71,6 +71,10 @@
               <label style="font-size:0.7rem;font-weight:600;text-transform:uppercase;color:var(--text-secondary);margin-bottom:3px;">Expected Output</label>
               <textarea id="modal-tc-expected" class="tc-textarea" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.82rem;padding:0.5rem;resize:vertical;outline:none;min-height:40px;overflow:hidden;" placeholder='Expected stdout...' spellcheck="false"></textarea>
             </div>
+            <div class="tc-input-group" id="modal-tc-hidden-group" style="display:none;flex-direction:column;">
+              <label style="font-size:0.7rem;font-weight:600;text-transform:uppercase;color:var(--text-secondary);margin-bottom:3px;">Hidden (judge secret)</label>
+              <textarea id="modal-tc-hidden" class="tc-textarea" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.82rem;padding:0.5rem;resize:vertical;outline:none;min-height:40px;overflow:hidden;" placeholder='Judge secret, e.g. 30' spellcheck="false"></textarea>
+            </div>
           </div>
         </div>
         <div class="modal-pane" id="modal-pane-results" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
@@ -145,7 +149,8 @@ window.__problem = {
   contestId: {{ problem.contest_id }},
   index: '{{ problem.problem_index }}',
   problemId: {{ problem.id }},
-  baseCode: {{ base_code|tojson }}
+  baseCode: {{ base_code|tojson }},
+  isInteractive: {{ 1 if problem.executor_code else 0 }}
 };
 window.__sampleCases = {{ problem.examples|tojson }};
 </script>
