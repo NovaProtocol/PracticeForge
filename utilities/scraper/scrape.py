@@ -22,7 +22,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from utilities.scraper.config import CF_API, SCRAPE_DELAY, BASE
+from utilities.scraper.config import CF_API, SCRAPE_DELAY, BASE, TEST_TARGET
 from utilities.scraper.browser import Browser
 from utilities.scraper import log
 
@@ -87,6 +87,13 @@ def main():
     HTML_DIR.mkdir(parents=True, exist_ok=True)
     IMG_DIR.mkdir(parents=True, exist_ok=True)
     to_process = problems  # scrape everything, LIMIT not applied here
+    if TEST_TARGET:
+        parts = TEST_TARGET.split("/")
+        if len(parts) == 2:
+            to_process = [p for p in problems if str(p["contestId"]) == parts[0] and p["index"] == parts[1]]
+            log.info(f"TEST_TARGET set — only scraping {TEST_TARGET}")
+        else:
+            log.error(f"Invalid TEST_TARGET: {TEST_TARGET}")
     total = len(to_process)
     log.info(f"Processing {total} problems")
 

@@ -8,6 +8,14 @@ from bs4 import BeautifulSoup
 def extract_text(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 
+    # Replace image tags with a text marker preserving position:
+    # [image: <filename>] — filename only, no path/URL.
+    for el in soup.select("img"):
+        src = el.get("src", "")
+        name = src.rsplit("/", 1)[-1] if "/" in src else src
+        name = name.split("?")[0]
+        el.replace_with(soup.new_string(f" [image: {name}] "))
+
     # Convert math script tags to LaTeX text
     for sel, fmt in [
         ("script[type='math/tex']", "$ {} $"),
