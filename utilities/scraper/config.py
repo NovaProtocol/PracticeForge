@@ -23,5 +23,9 @@ CF_POLL = 3       # seconds between checks for Cloudflare captcha
 # Order: oldest problems first (1/A, 1/B, ...).
 LIMIT = 5
 
+# Test target — set to e.g. "3/A" to only process that one problem.
+# None = process normally (respecting LIMIT).
+TEST_TARGET = "3/A"
+
 # AI
 RETRY_LIMIT = 5  # max retries for solution/generator validation

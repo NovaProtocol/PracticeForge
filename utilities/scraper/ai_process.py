@@ -18,7 +18,7 @@ sys.path.insert(0, str(_project_root))
 import json
 import time
 
-from utilities.scraper.config import AI_DELAY, LIMIT, API_BASE, BASE
+from utilities.scraper.config import AI_DELAY, LIMIT, API_BASE, BASE, TEST_TARGET
 from utilities.scraper.ai import AIEnricher
 from utilities.scraper.extract import extract_text
 from utilities.scraper.uploader import Uploader
@@ -76,6 +76,13 @@ def main():
     failed_ids = _load_failed_ids()
 
     all_files = _collect_html_files()
+    if TEST_TARGET:
+        parts = TEST_TARGET.split("/")
+        if len(parts) == 2:
+            target_file = HTML_DIR / f"{parts[0]}-{parts[1]}.html"
+            all_files = [f for f in all_files if f[2] == target_file]
+        else:
+            log.error(f"Invalid TEST_TARGET: {TEST_TARGET}")
     to_process = all_files[:LIMIT] if LIMIT else all_files
     total = len(to_process)
     log.info(f"Found {total} HTML files to process")
