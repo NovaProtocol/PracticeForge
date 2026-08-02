@@ -4,34 +4,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-<style>
-.solution-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
-.solution-body { padding: 1.25rem 1.5rem; }
-.solution-stats {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem; margin-bottom: 1.5rem;
-}
-.stat-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 8px; padding: 0.75rem; text-align: center;
-}
-.stat-card .stat-value { font-size: 1.2rem; font-weight: 700; }
-.stat-card .stat-label { font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.2rem; }
-.code-block {
-  background: #1e1e1e; border: 1px solid var(--border);
-  border-radius: 8px; padding: 1rem; font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem; line-height: 1.5; overflow-x: auto; margin-bottom: 1.5rem;
-  color: #d4d4d4;
-}
-.code-block pre { margin: 0; white-space: pre-wrap; tab-size: 4; color: #d4d4d4; }
-.results-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.results-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--text-secondary); font-size: 0.75rem; font-weight: 600; border-bottom: 1px solid var(--border); }
-.results-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
-.results-table tr:hover { background: var(--bg-secondary); }
-.pass { color: #4ade80; }
-.fail { color: #f87171; }
-.stdout-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; margin-top: 1rem; white-space: pre-wrap; }
-</style>
+<link rel="stylesheet" href="/static/css/solution.css">
 {% endblock %}
 {% block content %}
 <div class="container" style="max-width: 960px;">
@@ -144,17 +117,6 @@
     </div>
   </div>
 </div>
-
-<script>
-document.getElementById('rerun-btn').addEventListener('click', async function() {
-  var btn = this; var status = document.getElementById('rerun-status');
-  btn.disabled = true; status.textContent = 'Queuing...';
-  try {
-    var r = await fetch('/api/re-run/{{ solution.id }}', { method: 'POST' });
-    var d = await r.json();
-    status.textContent = 'Queued (#' + d.queue_id + '). Reload to see results.';
-    setTimeout(function() { btn.disabled = false; }, 3000);
-  } catch(e) { status.textContent = 'Error: ' + e.message; btn.disabled = false; }
-});
-</script>
+<script>window.__solution = { solutionId: {{ solution.id }} };</script>
+<script src="/static/js/solution.js"></script>
 {% endblock %}

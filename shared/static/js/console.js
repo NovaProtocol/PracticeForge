@@ -1,0 +1,335 @@
+(function() {
+  var P = window.__problem || {};
+  var contestId = P.contestId;
+  var index = P.index;
+
+  var modalTestCases = [];
+
+  document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('tc-textarea')) _autosize(e.target);
+  });
+
+  function initTC(idx) {
+    if (!modalTestCases.find(function(t) { return t.idx === idx; }))
+      modalTestCases.push({ idx: idx, input: {}, output: null });
+  }
+
+  function _parseJSON(val) {
+    if (!val || !val.trim()) return null;
+    try { return JSON.parse(val); } catch(e) { return val; }
+  }
+
+  function saveCurrentTC() {
+    var tab = document.querySelector('#modal-tc-tabs .tc-tab.active');
+    if (!tab) return;
+    var idx = parseInt(tab.dataset.idx, 10);
+    initTC(idx);
+    var tc = modalTestCases.find(function(t) { return t.idx === idx; });
+    tc.input = _parseJSON(document.getElementById('modal-tc-input').value) || {};
+    tc.output = _parseJSON(document.getElementById('modal-tc-expected').value);
+  }
+
+  function _autosize(el) { el.style.height = ''; el.style.height = Math.max(el.value.split('\n').length * 20 + 16, 40) + 'px'; }
+
+  function loadTC(idx) {
+    initTC(idx);
+    var tc = modalTestCases.find(function(t) { return t.idx === idx; });
+    var inp = document.getElementById('modal-tc-input');
+    inp.value = tc.input && typeof tc.input === 'object' ? JSON.stringify(tc.input, null, 2) : String(tc.input || '');
+    _autosize(inp);
+    var exp = document.getElementById('modal-tc-expected');
+    exp.value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : (typeof tc.output === 'number' ? JSON.stringify(tc.output) : String(tc.output))) : '';
+    _autosize(exp);
+  }
+
+  function switchTC(idx) {
+    saveCurrentTC();
+    document.querySelectorAll('#modal-tc-tabs .tc-tab').forEach(function(t) {
+      t.classList.remove('active');
+      t.style.color = 'var(--text-secondary)';
+      t.style.borderBottomColor = 'transparent';
+    });
+    var target = document.querySelector('#modal-tc-tabs .tc-tab[data-idx="' + idx + '"]');
+    if (target) {
+      target.classList.add('active');
+      target.style.color = 'var(--accent)';
+      target.style.borderBottomColor = 'var(--accent)';
+    }
+    loadTC(idx);
+  }
+
+  function addTC() {
+    saveCurrentTC();
+    var tabs = document.querySelectorAll('#modal-tc-tabs .tc-tab');
+    var maxIdx = 0;
+    tabs.forEach(function(t) {
+      t.classList.remove('active');
+      t.style.color = 'var(--text-secondary)';
+      t.style.borderBottomColor = 'transparent';
+      var n = parseInt(t.dataset.idx, 10);
+      if (n > maxIdx) maxIdx = n;
+    });
+    var newIdx = maxIdx + 1;
+    var tab = document.createElement('div');
+    tab.className = 'tc-tab active';
+    tab.dataset.idx = newIdx;
+    tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);white-space:nowrap;user-select:none;';
+    tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;font-size:0.65rem;border-radius:2px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:0;line-height:1;margin-left:2px;">&times;</button>';
+    document.getElementById('modal-tc-tabs').appendChild(tab);
+    loadTC(newIdx);
+  }
+
+  function removeTC(idx, tabEl) {
+    var tabs = document.querySelectorAll('#modal-tc-tabs .tc-tab');
+    if (tabs.length <= 1) return;
+    var tc = modalTestCases.find(function(t) { return t.idx === idx; });
+    if (tc && (JSON.stringify(tc.input) !== '{}' || tc.output !== null)) { if (!confirm('Delete this test case?')) return; }
+    modalTestCases = modalTestCases.filter(function(t) { return t.idx !== idx; });
+    tabEl.remove();
+    var remaining = document.querySelectorAll('#modal-tc-tabs .tc-tab');
+    if (remaining.length > 0) {
+      remaining.forEach(function(t) { t.classList.remove('active'); t.style.color = 'var(--text-secondary)'; t.style.borderBottomColor = 'transparent'; });
+      var first = remaining[0];
+      first.classList.add('active');
+      first.style.color = 'var(--accent)';
+      first.style.borderBottomColor = 'var(--accent)';
+      loadTC(parseInt(first.dataset.idx, 10));
+    }
+  }
+
+  function getModalTCs() {
+    saveCurrentTC();
+    var result = [];
+    document.querySelectorAll('#modal-tc-tabs .tc-tab').forEach(function(t) {
+      var idx = parseInt(t.dataset.idx, 10);
+      var tc = modalTestCases.find(function(tc) { return tc.idx === idx; });
+      result.push({ input: tc ? tc.input || {} : {}, output: tc ? tc.output : null });
+    });
+    return result;
+  }
+
+  function addTCFromResult(input_val, output_val) {
+    saveCurrentTC();
+    var tabs = document.querySelectorAll('#modal-tc-tabs .tc-tab');
+    var maxIdx = 0;
+    tabs.forEach(function(t) {
+      t.classList.remove('active');
+      t.style.color = 'var(--text-secondary)';
+      t.style.borderBottomColor = 'transparent';
+      var n = parseInt(t.dataset.idx, 10);
+      if (n > maxIdx) maxIdx = n;
+    });
+    var newIdx = maxIdx + 1;
+    var tab = document.createElement('div');
+    tab.className = 'tc-tab active';
+    tab.dataset.idx = newIdx;
+    tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);white-space:nowrap;user-select:none;';
+    tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;font-size:0.65rem;border-radius:2px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:0;line-height:1;margin-left:2px;">&times;</button>';
+    document.getElementById('modal-tc-tabs').appendChild(tab);
+    modalTestCases.push({ idx: newIdx, input: typeof input_val === 'object' ? input_val : {}, output: output_val !== undefined ? output_val : null });
+    loadTC(newIdx);
+  }
+
+  function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _cc(val) { var s = String(val || ''); return s.split('\n').length > 5 || s.length > 200 ? 'cell-clamp' : ''; }
+  function statusToClass(s) { switch(s){case'accepted':case'Accepted':return'accepted';case'wrong_answer':case'Wrong Answer':return'wrong-answer';case'time_limit_exceeded':case'Time Limit Exceeded':return'time-limit-exceeded';case'runtime_error':case'Runtime Error':return'runtime-error';default:return'pending';} }
+  function statusLabel(s) { switch(s){case'accepted':case'Accepted':return'Accepted';case'wrong_answer':case'Wrong Answer':return'Wrong Answer';case'time_limit_exceeded':case'Time Limit Exceeded':return'Time Limit Exceeded';case'runtime_error':case'Runtime Error':return'Runtime Error';default:return s||'Pending';} }
+
+  function showModalSpinner(text) {
+    document.getElementById('modal-result-badge').className = 'result-badge pending';
+    document.getElementById('modal-result-badge').textContent = 'Pending';
+    document.getElementById('modal-result-runtime').style.display = 'none';
+    document.getElementById('modal-result-memory').style.display = 'none';
+    document.getElementById('modal-result-comparison').style.display = 'none';
+    document.getElementById('modal-result-error').style.display = 'none';
+    document.getElementById('modal-result-spinner').style.display = 'flex';
+    document.getElementById('modal-result-spinner-text').textContent = text || 'Running...';
+  }
+
+  function showModalResult(data) {
+    document.getElementById('modal-result-spinner').style.display = 'none';
+    var verdict = data.verdict || data.status || 'Pending';
+    var badge = document.getElementById('modal-result-badge');
+    badge.className = 'result-badge ' + statusToClass(verdict);
+    badge.textContent = statusLabel(verdict);
+    var rt = data.timing_ms || data.runtime;
+    document.getElementById('modal-result-runtime').style.display = rt != null ? 'inline-flex' : 'none';
+    if (rt != null) document.getElementById('modal-result-runtime-val').textContent = rt + ' ms';
+    var mem = data.memory_kb || data.memory;
+    document.getElementById('modal-result-memory').style.display = mem != null ? 'inline-flex' : 'none';
+    if (mem != null) document.getElementById('modal-result-memory-val').textContent = mem > 1024 ? (mem/1024).toFixed(1) + ' MB' : mem + ' KB';
+
+    var tbody = document.getElementById('modal-result-body');
+    tbody.innerHTML = '';
+    var comparison = document.getElementById('modal-result-comparison');
+    tbody.onclick = function(e) {
+      var btn = e.target.closest('.output-btn');
+      if (btn) {
+        var tr = btn.closest('tr');
+        var or = tr && tr.nextElementSibling;
+        if (or && or.classList.contains('output-row')) {
+          var show = or.style.display === 'none';
+          or.style.display = show ? 'table-row' : 'none';
+          btn.textContent = show ? 'Close' : 'Output';
+        }
+        return;
+      }
+      var addBtn = e.target.closest('.add-tc-btn');
+      if (addBtn) { addTCFromResult(JSON.parse(addBtn.dataset.input), JSON.parse(addBtn.dataset.output)); return; }
+      var cell = e.target.closest('.cell-clamp');
+      if (cell) { cell.classList.toggle('expanded'); }
+    };
+
+    if (data.results && data.results.length > 0) {
+      comparison.style.display = 'block';
+      data.results.forEach(function(r, i) {
+        var status = r.status || (r.passed ? 'passed' : 'failed');
+        var statusLabel, statusClass;
+        switch (status) {
+          case 'passed': statusLabel = 'PASS'; statusClass = 'pass'; break;
+          case 'failed': statusLabel = 'FAIL'; statusClass = 'fail'; break;
+          case 'skipped': statusLabel = 'SKIP'; statusClass = 'info'; break;
+          case 'checked': statusLabel = 'CHECK'; statusClass = 'pass'; break;
+          default: statusLabel = status.toUpperCase(); statusClass = 'info';
+        }
+        var tr = document.createElement('tr');
+        tr.dataset.tcIdx = i;
+        var timeCell = '';
+        if (r.timing_ms != null) {
+          var t = r.timing_ms;
+          var sol = r.sol_timing;
+          if (sol != null) {
+            var diff = t - sol;
+            var cls = diff > 0.01 ? 'fail' : (diff < -0.01 ? 'pass' : '');
+            timeCell = '<td class="' + cls + '">' + sol.toFixed(3) + 'ms';
+            if (diff > 0) timeCell += ' <span class="fail">(+' + diff.toFixed(3) + 'ms)</span>';
+            else if (diff < 0) timeCell += ' <span class="pass">(' + diff.toFixed(3) + 'ms)</span>';
+            timeCell += '</td>';
+          } else { timeCell = '<td>' + t.toFixed(3) + 'ms</td>'; }
+        } else { timeCell = '<td></td>'; }
+        var addBtn = r.input ? '<button class="btn-outline-accent btn-sm add-tc-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:2px;" data-input="' + escHtml(JSON.stringify(r.input)) + '" data-output="' + escHtml(JSON.stringify(r.expected !== undefined ? r.expected : null)) + '">+TC</button>' : '';
+        var displayGot = r.got || r.error || '';
+        try { displayGot = JSON.parse(r.got); } catch(e) { displayGot = r.got || r.error || ''; }
+        var hasOutput = r.stdout && r.stdout.trim();
+        var outBtn = hasOutput ? '<button class="btn-outline-accent btn-sm output-btn" style="padding:0.1rem 0.4rem;font-size:0.7rem;">Output</button>' : '';
+        tr.innerHTML =
+          '<td>' + (i + 1) + '</td>' +
+          '<td class="' + statusClass + '" style="font-weight:600;">' + statusLabel + '</td>' +
+          '<td><div class="' + _cc(r.input) + '">' + escHtml(typeof r.input === 'object' ? JSON.stringify(r.input) : (r.input || '')) + '</div></td>' +
+          '<td><div class="' + _cc(r.expected) + '">' + escHtml(typeof r.expected === 'object' ? JSON.stringify(r.expected) : (r.expected != null ? String(r.expected) : '')) + '</div></td>' +
+          '<td><div class="' + _cc(r.got || r.error) + ' ' + (status === 'failed' ? 'fail' : '') + '">' + escHtml(String(displayGot)) + '</div></td>' +
+          timeCell +
+          '<td>' + outBtn + addBtn + '</td>';
+        tbody.appendChild(tr);
+        if (hasOutput || r.error) {
+          var or = document.createElement('tr');
+          or.className = 'output-row';
+          or.style.display = 'none';
+          var timing = r.timing_ms != null ? r.timing_ms + 'ms' : '';
+          var mem = r.memory_kb ? (r.memory_kb > 1024 ? (r.memory_kb/1024).toFixed(1) + 'MB' : r.memory_kb + 'KB') : '';
+          var footer = '<span style="color:#888;">\u2500 Process exited \u2014 Return Code: ' + (r.passed ? '0' : '1') + '</span>';
+          if (timing) footer += ' <span style="color:#888;">\u00b7 Finished at ' + timing + '</span>';
+          if (mem) footer += ' <span style="color:#888;">\u00b7 Peak memory: ' + mem + '</span>';
+          or.innerHTML = '<td colspan="7"><div style="background:#0d0d14;border:1px solid #2a2a3e;border-radius:6px;overflow:hidden;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;line-height:1.6;">' +
+            '<div style="padding:0.35rem 0.75rem;background:#0a0a0f;border-bottom:1px solid #2a2a3e;color:#64ffda;font-size:0.72rem;">' +
+            '<span style="color:#f92672;">bwrap</span><span style="color:#888;">@</span><span style="color:#a6e22e;">ProjectNova</span><span style="color:#888;">:</span> python3 /tmp/temp.py</div>' +
+            '<pre style="padding:0.75rem;margin:0;color:#e8e8f0;white-space:pre-wrap;word-break:break-all;">' + escHtml(r.stdout || '') + (r.stdout && r.error ? '\n' : '') + escHtml(r.error || '') + '</pre>' +
+            '<div style="padding:0.35rem 0.75rem;border-top:1px solid #2a2a3e;font-size:0.72rem;">' + footer + '</div></div></td>';
+          tbody.appendChild(or);
+        }
+      });
+    } else { comparison.style.display = 'none'; }
+    var err = data.error || '';
+    if (data.results) { data.results.forEach(function(r) { if (r.error) err += r.error + '\n'; }); }
+    var errorEl = document.getElementById('modal-result-error');
+    if (err) { document.getElementById('modal-result-error-content').textContent = err; errorEl.style.display = 'block'; }
+    else { errorEl.style.display = 'none'; }
+    document.getElementById('modal-tab-results').click();
+  }
+
+  function pollQueue(queueId, callback) {
+    var attempts = 0;
+    var poll = setInterval(async function() {
+      attempts++;
+      try {
+        var r = await fetch('/api/queue-status/' + queueId);
+        if (!r.ok) { clearInterval(poll); if (callback) callback({ status: 'failed', error: 'Queue not found' }); return; }
+        var d = await r.json();
+        if (d.status === 'completed' || d.status === 'failed') { clearInterval(poll); if (callback) callback(d); }
+        else if (attempts > 120) { clearInterval(poll); if (callback) callback({ status: 'failed', error: 'Timed out' }); }
+      } catch(e) { clearInterval(poll); if (callback) callback({ status: 'failed', error: e.message }); }
+    }, 1000);
+  }
+
+  var runCode = async function(action) {
+    var code = window.editor ? window.editor.getValue() : '';
+    var label = action === 'benchmark' ? 'Benchmarking...' : action === 'submit' ? 'Submitting...' : 'Running...';
+    document.getElementById('modal-tab-results').click();
+    showModalSpinner(label);
+    try {
+      var tcs = getModalTCs();
+      var body = action === 'run'
+        ? new URLSearchParams({ code: code, testcases: JSON.stringify(tcs) })
+        : new URLSearchParams({ code: code });
+      var endpoint = action === 'benchmark' ? '/api/brute-force/' : action === 'submit' ? '/api/submit/' : '/api/run/';
+      var r = await fetch(endpoint + contestId + '/' + index, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
+      });
+      var data = await r.json();
+      pollQueue(data.queue_id, function(qd) {
+        var parsed = { verdict: 'Runtime Error', timing_ms: qd.timing_ms, memory_kb: qd.memory_kb, results: [], stdout: '', error: qd.error, solution_id: qd.solution_id };
+        try { var jd = JSON.parse(qd.result); parsed.results = jd.results || []; parsed.stdout = jd.stdout || ''; } catch(e) {}
+        if (qd.error) { parsed.verdict = 'Runtime Error'; }
+        else { var fail = parsed.results.some(function(r) { return !r.passed; }); parsed.verdict = fail ? 'Wrong Answer' : 'Accepted'; }
+        showModalResult(parsed);
+        if (action === 'submit' && qd.solution_id && window.descriptionApi && window.descriptionApi.reloadSubmissions) {
+          window.descriptionApi.reloadSubmissions();
+        }
+      });
+    } catch (e) {
+      showModalResult({ verdict: 'Runtime Error', error: e.message });
+    }
+  };
+
+  document.querySelectorAll('.modal-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.modal-tab').forEach(function(t) { t.style.color = 'var(--text-secondary)'; t.style.borderBottomColor = 'transparent'; });
+      tab.style.color = 'var(--accent)'; tab.style.borderBottomColor = 'var(--accent)';
+      document.querySelectorAll('.modal-pane').forEach(function(p) { p.style.display = 'none'; });
+      document.getElementById('modal-pane-' + tab.dataset.modaltab).style.display = 'flex';
+    });
+  });
+
+  document.getElementById('modal-tc-tabs').addEventListener('click', function(e) {
+    var tab = e.target.closest('.tc-tab');
+    if (!tab) return;
+    if (e.target.closest('.tc-tab-close')) { removeTC(parseInt(tab.dataset.idx, 10), tab); return; }
+    switchTC(parseInt(tab.dataset.idx, 10));
+  });
+
+  document.getElementById('modal-tc-add').addEventListener('click', addTC);
+  document.getElementById('modal-test-btn').addEventListener('click', function() { runCode('run'); });
+  document.getElementById('modal-benchmark-btn').addEventListener('click', function() { runCode('benchmark'); });
+  document.getElementById('modal-submit-btn').addEventListener('click', function() { runCode('submit'); });
+
+  var sampleCases = (window.__sampleCases || []).map(function(tc) {
+    return { input: typeof tc.input === 'object' ? tc.input : {}, output: tc.output !== undefined ? tc.output : null };
+  });
+  if (sampleCases.length > 0) {
+    modalTestCases = [];
+    document.querySelectorAll('#modal-tc-tabs .tc-tab').forEach(function(t) { t.remove(); });
+    sampleCases.forEach(function(tc, i) {
+      var tab = document.createElement('div');
+      tab.className = 'tc-tab ' + (i === 0 ? 'active' : '');
+      tab.dataset.idx = i;
+      tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;user-select:none;' + (i === 0 ? 'color:var(--accent);border-bottom-color:var(--accent);' : 'color:var(--text-secondary);');
+      tab.innerHTML = 'Sample ' + (i + 1);
+      document.getElementById('modal-tc-tabs').appendChild(tab);
+      modalTestCases.push({ idx: i, input: tc.input || {}, output: tc.output });
+    });
+    loadTC(0);
+  }
+  initTC(0);
+})();

@@ -1,50 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Problems &mdash; SolveSpace{% endblock %}
 {% block head_extra %}
-<style>
-.sidebar-filters {
-  position: fixed;
-  top: 56px;
-  right: 0;
-  bottom: 0;
-  width: 240px;
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border);
-  padding: 1.25rem;
-  overflow-y: auto;
-  z-index: 100;
-}
-.sidebar-filters .filter-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-  margin-top: 1.25rem;
-}
-.sidebar-filters .filter-label:first-child { margin-top: 0; }
-.main-area {
-  margin-right: 240px;
-  min-height: calc(100vh - 56px);
-}
-.view-toggle {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 0.35rem 0.6rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  line-height: 1;
-}
-.view-toggle.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.view-toggle:hover { color: var(--text-primary); }
-</style>
+<link rel="stylesheet" href="/static/css/public.css">
 {% endblock %}
 {% block content %}
 <aside class="sidebar-filters">
@@ -118,51 +75,5 @@
     </div>
   </div>
 </div>
-
-<script>
-function applyFilters() {
-  const comps = Array.from(document.querySelectorAll('.filter-completion:checked')).map(c => c.value);
-  const topics = Array.from(document.querySelectorAll('.filter-topic:checked')).map(c => c.value);
-  const dMin = parseInt(document.getElementById('diff-min')?.value) || 0;
-  const dMax = parseInt(document.getElementById('diff-max')?.value) || 9999;
-  document.querySelectorAll('.problem-card').forEach(card => {
-    const completion = card.dataset.completion;
-    let cardTags = [];
-    try { cardTags = JSON.parse(card.dataset.tags); } catch(e) {}
-    const diff = parseInt(card.dataset.difficulty) || 0;
-    card.style.display = (comps.length===0||comps.includes(completion)) && (topics.length===0||cardTags.some(t=>topics.includes(t))) && diff>=dMin && diff<=dMax ? '' : 'none';
-  });
-}
-document.querySelectorAll('.filter-completion, .filter-topic')?.forEach(el => el.addEventListener('change', applyFilters));
-['diff-min','diff-max'].forEach(id => document.getElementById(id)?.addEventListener('input', applyFilters));
-document.getElementById('clear-filters')?.addEventListener('click', () => {
-  document.querySelectorAll('.filter-completion').forEach(c => c.checked = false);
-  document.querySelectorAll('.filter-topic').forEach(c => c.checked = true);
-  document.getElementById('diff-min').value = '';
-  document.getElementById('diff-max').value = '';
-  applyFilters();
-});
-
-function setView(mode) {
-  const list = document.getElementById('problem-list');
-  const cards = document.getElementById('view-cards');
-  const listBtn = document.getElementById('view-list');
-  if (!list) return;
-  if (mode === 'list') {
-    list.classList.remove('row');
-    list.querySelectorAll('.problem-card').forEach(c => { c.classList.remove('col-md-6','col-xl-4','mb-4'); });
-    cards?.classList.remove('active');
-    listBtn?.classList.add('active');
-  } else {
-    list.classList.add('row');
-    list.querySelectorAll('.problem-card').forEach(c => { c.classList.add('col-md-6','col-xl-4','mb-4'); });
-    cards?.classList.add('active');
-    listBtn?.classList.remove('active');
-  }
-  try { localStorage.setItem('problemView', mode); } catch(e) {}
-}
-document.getElementById('view-cards')?.addEventListener('click', () => setView('cards'));
-document.getElementById('view-list')?.addEventListener('click', () => setView('list'));
-try { setView(localStorage.getItem('problemView') || 'cards'); } catch(e) {}
-</script>
+<script src="/static/js/problems.js"></script>
 {% endblock %}
