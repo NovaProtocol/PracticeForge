@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+import base64
 import json
 
-from flask import jsonify, request
+from flask import Response, jsonify, request
 
 from apps.api import blueprint
 from shared.db import execute, query, query_one
 from shared.models import (
     create_file,
+    create_image,
     delete_file,
+    delete_image,
     get_all_tags,
     get_editorial,
+    get_image,
     get_problem,
     get_problem_submissions,
     get_problems_summary,
@@ -279,6 +283,41 @@ def auto_save_get(problem_id: int):
     filename = request.args.get("filename", "main.py")
     data = load_code(problem_id, filename)
     return jsonify({"code": data["code"] or "", "last_ran": data["last_ran"] or ""})
+
+
+# ── Images ──
+
+@blueprint.route("/images/<path:filename>", methods=["GET"])
+def image_get(filename: str):
+    row = get_image(filename)
+    if not row:
+        return jsonify({"error": "not found"}), 404
+    return Response(row["data"], mimetype=row["content_type"] or "image/png")
+
+
+@blueprint.route("/images", methods=["POST"])
+def image_upload():
+    data = request.get_json()
+    if not data or not data.get("filename") or not data.get("data"):
+        return jsonify({"error": "missing filename or data"}), 400
+    try:
+        raw = base64.b64decode(data["data"])
+    except Exception as e:
+        return jsonify({"error": f"invalid base64: {e}"}), 400
+    create_image(data["filename"], raw, data.get("content_type", "image/png"))
+    return jsonify({"status": "ok", "filename": data["filename"]})
+
+
+@blueprint.route("/images/<path:filename>", methods=["DELETE"])
+def image_delete(filename: str):
+    delete_image(filename)
+    return jsonify({"status": "deleted"})
+
+
+@blueprint.route("/images/exists/<path:filename>")
+def image_exists_api(filename: str):
+    from shared.models import image_exists
+    return jsonify({"exists": image_exists(filename)})
 
 
 # ── Test cases ──

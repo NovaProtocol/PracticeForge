@@ -309,6 +309,32 @@ def update_tokens(token_count: int) -> bool:
     return new_total <= (row["token_limit"] or 1000000)
 
 
+# ── Images ──
+
+def create_image(filename: str, data: bytes, content_type: str = "image/png"):
+    return execute(
+        """INSERT INTO problem_images (filename, data, content_type) VALUES (%s, %s, %s)
+           ON DUPLICATE KEY UPDATE data = VALUES(data), content_type = VALUES(content_type)""",
+        (filename, data, content_type),
+    )
+
+
+def get_image(filename: str):
+    return query_one(
+        "SELECT filename, data, content_type FROM problem_images WHERE filename = %s",
+        (filename,),
+    )
+
+
+def image_exists(filename: str) -> bool:
+    row = query_one("SELECT id FROM problem_images WHERE filename = %s", (filename,))
+    return row is not None
+
+
+def delete_image(filename: str):
+    execute("DELETE FROM problem_images WHERE filename = %s", (filename,))
+
+
 
 
 

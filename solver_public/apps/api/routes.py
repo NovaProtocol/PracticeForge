@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 
-from flask import jsonify
+from flask import Response, jsonify
 
 from apps.api import blueprint
 from shared.db import execute, query_one
-from shared.models import get_solved, get_stats, get_solution
+from shared.models import get_solved, get_stats, get_solution, get_image
 
 
 @blueprint.route("/stats")
@@ -17,6 +17,14 @@ def stats():
 @blueprint.route("/solved")
 def solved():
     return jsonify(get_solved())
+
+
+@blueprint.route("/images/<path:filename>", methods=["GET"])
+def image_get(filename: str):
+    row = get_image(filename)
+    if not row:
+        return jsonify({"error": "not found"}), 404
+    return Response(row["data"], mimetype=row["content_type"] or "image/png")
 
 
 @blueprint.route("/re-run/<int:solution_id>", methods=["POST"])
