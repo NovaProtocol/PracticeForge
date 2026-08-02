@@ -24,7 +24,7 @@ from utilities.scraper.config import SCRAPE_DELAY, BASE
 from utilities.scraper import log
 
 HTML_DIR = BASE / "html"
-IMG_DIR = _project_root / "static" / "images"
+IMG_DIR = BASE / "images"
 
 
 def extract_image_urls(html: str) -> set:
