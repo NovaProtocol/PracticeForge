@@ -1,4 +1,5 @@
 import os
+import socket
 from pathlib import Path
 
 # Paths (relative to this file)
@@ -6,8 +7,36 @@ BASE = Path(__file__).resolve().parent
 BROWSER_DATA_DIR = BASE / "browser_profile"
 
 # API
-# Use IP directly — debian.local DNS lookup takes ~10s per request
-API_BASE = "http://192.168.18.52:7031"
+# Use mDNS hostname, but cache the resolved IP so we don't pay the
+# ~10s .local DNS lookup on every request. Cache file: server_ip.txt
+API_HOST = "debian.local"
+API_PORT = 7031
+IP_CACHE_PATH = BASE / "server_ip.txt"
+
+
+def _resolve_api_base() -> str:
+    # 1) Use cached IP if present
+    if IP_CACHE_PATH.exists():
+        try:
+            cached = IP_CACHE_PATH.read_text().strip()
+            if cached:
+                return f"http://{cached}:{API_PORT}"
+        except OSError:
+            pass
+    # 2) Resolve once via mDNS, cache for later runs
+    try:
+        ip = socket.gethostbyname(API_HOST)
+        try:
+            IP_CACHE_PATH.write_text(ip)
+        except OSError:
+            pass
+        return f"http://{ip}:{API_PORT}"
+    except OSError:
+        # Fall back to hostname (slow DNS each time, but works)
+        return f"http://{API_HOST}:{API_PORT}"
+
+
+API_BASE = _resolve_api_base()
 CF_API = "https://codeforces.com/api/problemset.problems"
 
 # AI
