@@ -35,6 +35,8 @@ def _sanitize_html(html: str) -> str:
         r'<img src="/api/images/\1" style="max-width:100%;border-radius:6px;">',
         result,
     )
+    # Convert newlines to <br> so plain-text descriptions keep line breaks
+    result = re.sub(r'\n', '<br>\n', result)
     return result
 
 
