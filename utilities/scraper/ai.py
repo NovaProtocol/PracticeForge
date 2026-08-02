@@ -109,6 +109,8 @@ class AIEnricher:
                 if retry_data:
                     data["solution_code"] = retry_data.get("solution_code", data["solution_code"])
                     data["base_code"] = retry_data.get("base_code", data["base_code"])
+                    if retry_data.get("executor_code") is not None:
+                        data["executor_code"] = retry_data["executor_code"]
                 solution_ok, solution_err = self._validate_solution(data)
                 if solution_ok:
                     break
@@ -127,6 +129,8 @@ class AIEnricher:
                 if retry_data:
                     data["generator_code"] = retry_data.get("generator_code", data["generator_code"])
                     data["solution_code"] = retry_data.get("solution_code", data["solution_code"])
+                    if retry_data.get("executor_code") is not None:
+                        data["executor_code"] = retry_data["executor_code"]
                 gen_ok, gen_err = self._validate_generator(data)
                 if gen_ok:
                     break
@@ -150,8 +154,9 @@ class AIEnricher:
             f"Example test cases:\n{ex_str}\n\n"
             f"Your current solution_code:\n{data.get('solution_code', '')}\n\n"
             f"Current base_code:\n{data.get('base_code', '')}\n\n"
-            f"Fix the solution_code so it produces the correct output for ALL example cases. "
-            f"Return the COMPLETE JSON with updated solution_code. Keep all other fields unchanged."
+            f"Current executor_code:\n{data.get('executor_code', '')}\n\n"
+            f"Fix the solution_code AND executor_code if needed so it produces the correct output for ALL example cases. "
+            f"Return the COMPLETE JSON with updated solution_code and executor_code. Keep all other fields unchanged."
         )
 
     def _build_generator_retry_context(self, data: dict, error: str) -> str:
@@ -167,7 +172,8 @@ class AIEnricher:
             f"Current solution_code:\n{data.get('solution_code', '')}\n\n"
             f"Current generator_code:\n{data.get('generator_code', '')}\n\n"
             f"Current base_code:\n{data.get('base_code', '')}\n\n"
-            f"Fix either the solution_code or the generator_code so that:\n"
+            f"Current executor_code:\n{data.get('executor_code', '')}\n\n"
+            f"Fix the solution_code, generator_code, and executor_code if needed so that:\n"
             f"1. The solution_code produces correct output for ALL example cases.\n"
             f"2. The generator_code produces 100 test cases that ALL pass when validated against the solution_code.\n"
             f"Return the COMPLETE JSON with the corrected fields. Keep all other fields unchanged."
@@ -283,7 +289,13 @@ except Exception as e:
             [sys.executable, tmp.name, json.dumps(kwargs)],
             capture_output=True, text=True, timeout=15,
         )
-        output = json.loads(r.stdout.strip() or "{}")
+        stdout = r.stdout.strip()
+        if not stdout:
+            # Wrapper crashed before printing (e.g. syntax error or module-level
+            # exception in executor_code) — surface the real error from stderr.
+            err = r.stderr.strip() or f"exit code {r.returncode}, no output"
+            return {"output": None, "error": err}
+        output = json.loads(stdout)
         if "error" in output:
             return {"output": None, "error": output["error"]}
         return {"output": output.get("output"), "error": None}
