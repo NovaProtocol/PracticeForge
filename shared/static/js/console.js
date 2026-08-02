@@ -2,6 +2,7 @@
   var P = window.__problem || {};
   var contestId = P.contestId;
   var index = P.index;
+  var isInteractive = !!P.isInteractive;
 
   var modalTestCases = [];
 
@@ -11,7 +12,7 @@
 
   function initTC(idx) {
     if (!modalTestCases.find(function(t) { return t.idx === idx; }))
-      modalTestCases.push({ idx: idx, input: {}, output: null });
+      modalTestCases.push({ idx: idx, input: {}, output: null, hidden: null });
   }
 
   function _parseJSON(val) {
@@ -27,6 +28,8 @@
     var tc = modalTestCases.find(function(t) { return t.idx === idx; });
     tc.input = _parseJSON(document.getElementById('modal-tc-input').value) || {};
     tc.output = _parseJSON(document.getElementById('modal-tc-expected').value);
+    var h = _parseJSON(document.getElementById('modal-tc-hidden').value);
+    tc.hidden = h !== null ? h : null;
   }
 
   function _autosize(el) { el.style.height = ''; el.style.height = Math.max(el.value.split('\n').length * 20 + 16, 40) + 'px'; }
@@ -40,6 +43,11 @@
     var exp = document.getElementById('modal-tc-expected');
     exp.value = tc.output !== null && tc.output !== undefined ? (typeof tc.output === 'object' ? JSON.stringify(tc.output, null, 2) : (typeof tc.output === 'number' ? JSON.stringify(tc.output) : String(tc.output))) : '';
     _autosize(exp);
+    var hid = document.getElementById('modal-tc-hidden');
+    if (hid) {
+      hid.value = tc.hidden !== null && tc.hidden !== undefined ? String(tc.hidden) : '';
+      _autosize(hid);
+    }
   }
 
   function switchTC(idx) {
@@ -103,7 +111,11 @@
     document.querySelectorAll('#modal-tc-tabs .tc-tab').forEach(function(t) {
       var idx = parseInt(t.dataset.idx, 10);
       var tc = modalTestCases.find(function(tc) { return tc.idx === idx; });
-      result.push({ input: tc ? tc.input || {} : {}, output: tc ? tc.output : null });
+      var item = { input: tc ? tc.input || {} : {}, output: tc ? tc.output : null };
+      if (isInteractive && tc && tc.hidden !== null && tc.hidden !== undefined) {
+        item.hidden = tc.hidden;
+      }
+      result.push(item);
     });
     return result;
   }
@@ -126,7 +138,7 @@
     tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);white-space:nowrap;user-select:none;';
     tab.innerHTML = 'Case ' + (newIdx + 1) + '<button class="tc-tab-close" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;font-size:0.65rem;border-radius:2px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:0;line-height:1;margin-left:2px;">&times;</button>';
     document.getElementById('modal-tc-tabs').appendChild(tab);
-    modalTestCases.push({ idx: newIdx, input: typeof input_val === 'object' ? input_val : {}, output: output_val !== undefined ? output_val : null });
+    modalTestCases.push({ idx: newIdx, input: typeof input_val === 'object' ? input_val : {}, output: output_val !== undefined ? output_val : null, hidden: null });
     loadTC(newIdx);
   }
 
@@ -315,7 +327,11 @@
   document.getElementById('modal-submit-btn').addEventListener('click', function() { runCode('submit'); });
 
   var sampleCases = (window.__sampleCases || []).map(function(tc) {
-    return { input: typeof tc.input === 'object' ? tc.input : {}, output: tc.output !== undefined ? tc.output : null };
+    return {
+      input: typeof tc.input === 'object' ? tc.input : {},
+      output: tc.output !== undefined ? tc.output : null,
+      hidden: tc.hidden !== undefined ? tc.hidden : null,
+    };
   });
   if (sampleCases.length > 0) {
     modalTestCases = [];
@@ -327,9 +343,13 @@
       tab.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;font-size:0.78rem;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;user-select:none;' + (i === 0 ? 'color:var(--accent);border-bottom-color:var(--accent);' : 'color:var(--text-secondary);');
       tab.innerHTML = 'Sample ' + (i + 1);
       document.getElementById('modal-tc-tabs').appendChild(tab);
-      modalTestCases.push({ idx: i, input: tc.input || {}, output: tc.output });
+      modalTestCases.push({ idx: i, input: tc.input || {}, output: tc.output, hidden: tc.hidden });
     });
     loadTC(0);
   }
   initTC(0);
+
+  // Show the hidden field only for interactive problems
+  var hiddenGroup = document.getElementById('modal-tc-hidden-group');
+  if (hiddenGroup) hiddenGroup.style.display = isInteractive ? 'flex' : 'none';
 })();
