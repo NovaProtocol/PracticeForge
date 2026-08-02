@@ -20,10 +20,10 @@ import time
 
 import requests
 
-from utilities.scraper.config import API_BASE
+from utilities.scraper.config import API_BASE, BASE
 from utilities.scraper import log
 
-IMG_DIR = _project_root / "static" / "images"
+IMG_DIR = BASE / "images"
 RETRIES = 3
 BACKOFF = 2
 
