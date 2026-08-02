@@ -121,7 +121,8 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         "signal.signal(signal.SIGALRM, _timeout_handler)",
     ]
     for tc in test_cases:
-        input_data = tc.get("input") or {}
+        input_data = dict(tc.get("input") or {})
+        input_data.pop("_hint", None)  # marker only, never passed to run()
         expected = tc.get("output")
         hidden = tc.get("hidden")
         inp_display = input_data if input_data else ({"hidden": hidden} if hidden is not None else {})
