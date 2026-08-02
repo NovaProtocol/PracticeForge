@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ libc6-d
 
 COPY shared/ /app/shared/
 COPY shared/templates/ /app/templates/
+COPY shared/static/ /app/static/
 
 COPY solver_public/ /app/
 

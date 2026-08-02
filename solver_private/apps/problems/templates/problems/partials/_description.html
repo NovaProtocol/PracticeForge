@@ -1,51 +1,4 @@
-<style>
-.desc-panel { height: 100%; display: flex; flex-direction: column; }
-.desc-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.desc-tab {
-  padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 500;
-  color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s; user-select: none;
-}
-.desc-tab:hover { color: var(--text-primary); }
-.desc-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.desc-header { padding: 0.75rem 1.25rem 0.25rem; flex-shrink: 0; }
-.desc-header .id-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.25rem; }
-.desc-header h4 { font-weight: 700; font-size: 1.1rem; margin: 0; }
-.desc-header .tags-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0.3rem; }
-.desc-body { flex: 1; overflow-y: auto; }
-.section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0.5rem 1.25rem; cursor: pointer; font-size: 0.85rem; font-weight: 600;
-  border-bottom: 1px solid var(--border); user-select: none;
-}
-.section-header:hover { background: var(--bg-secondary); }
-.section-header .chevron { font-size: 0.7rem; transition: transform 0.2s; color: var(--text-secondary); }
-.section-header.open .chevron { transform: rotate(180deg); }
-.section-content { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); }
-.section-content.collapsed { display: none; }
-.sample-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; position: relative;
-}
-.sample-card pre {
-  background: #1a1a2e; color: #e8e8f0; padding: 0.5rem; border-radius: 4px;
-  font-size: 0.82rem; margin: 0.25rem 0;
-}
-.sample-card strong { color: var(--text-secondary); font-size: 0.78rem; }
-.sample-card .copy-btn {
-  position: absolute; right: 0.5rem; top: 0.5rem;
-  background: var(--bg-primary); border: 1px solid var(--border);
-  color: var(--text-secondary); font-size: 0.72rem; padding: 0.15rem 0.5rem;
-  border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;
-}
-.sample-card:hover .copy-btn { opacity: 1; }
-.sample-card .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
-.section-content pre { background: var(--bg-primary); padding: 0.5rem; border-radius: 4px; font-size: 0.82rem; margin: 0.25rem 0; }
-.submission-item { padding: 0.5rem 1.25rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
-.submission-item:last-child { border-bottom: none; }
-.submission-item .code-toggle { cursor: pointer; color: var(--accent); font-size: 0.8rem; }
-.submission-item .code-toggle:hover { text-decoration: underline; }
-</style>
+{# Description panel — styles: /static/css/description.css, scripts: /static/js/description.js #}
 <div class="desc-panel">
   <div class="desc-tabs">
     <div class="desc-tab active" data-tab="description">Description</div>
@@ -93,10 +46,10 @@
     <div id="desc-examples" class="section-content">
       {% for sample in problem.examples or [] %}
       <div class="sample-card">
-        <button class="copy-btn" data-text='{{ sample.input|tojson }}' onclick="copyText(this)">Copy</button>
+        <button class="copy-btn" data-text='{{ sample.input|tojson }}'>Copy</button>
         <strong style="font-size: 0.78rem; color: var(--text-secondary);">Input:</strong>
         <pre id="sample-input-{{ loop.index0 }}" class="sample-kwargs">{{ sample.input|tojson }}</pre>
-        <button class="copy-btn" data-text='{{ sample.output|tojson }}' onclick="copyText(this)" style="top: auto; bottom: 3.5rem;">Copy</button>
+        <button class="copy-btn" data-text='{{ sample.output|tojson }}' style="top: auto; bottom: 3.5rem;">Copy</button>
         <strong style="font-size: 0.78rem; color: var(--text-secondary);">Output:</strong>
         <pre class="sample-output">{{ sample.output|tojson }}</pre>
       </div>
@@ -128,7 +81,7 @@
       {% if problem.solution_code %}
       <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
         <button id="get-solution-btn" class="btn-outline-accent btn-sm" style="padding:0.3rem 1rem;font-size:0.78rem;">Get solution</button>
-        <pre id="solution-code" style="display:none;margin-top:0.75rem;background:#1a1a2e;padding:0.75rem;border-radius:6px;border:1px solid var(--border);font-size:0.82rem;white-space:pre-wrap;overflow-x:auto;color:#e8e8f0;tab-size:4;">{{ problem.solution_code }}</pre>
+        <pre id="solution-code" class="solution-code-pre" style="display:none;">{{ problem.solution_code }}</pre>
       </div>
       {% endif %}
     </div>
@@ -149,124 +102,3 @@
     {% endfor %}
   </div>
 </div>
-
-<script>
-function copyText(btn) {
-  var text = btn.dataset.text;
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function() {
-        btn.textContent = 'Copied!'; btn.classList.add('copied');
-        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1000);
-      }).catch(function() { fallbackCopy(text, btn); });
-    } else { fallbackCopy(text, btn); }
-  } catch(e) { fallbackCopy(text, btn); }
-}
-function fallbackCopy(text, btn) {
-  var ta = document.createElement('textarea');
-  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); btn.textContent = 'Copied!'; } catch(e) {}
-  document.body.removeChild(ta);
-  setTimeout(function() { if (btn) btn.textContent = 'Copy'; }, 1000);
-}
-
-document.querySelectorAll('.section-header').forEach(function(hdr) {
-  hdr.addEventListener('click', function() {
-    var id = hdr.dataset.section;
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.classList.toggle('collapsed');
-    hdr.classList.toggle('open');
-  });
-});
-
-window.descriptionApi = window.descriptionApi || {};
-window.descriptionApi.reloadSubmissions = function() {
-  var el = document.getElementById('desc-submissions');
-  if (!el || el.style.display === 'none') return;
-  fetch('/api/submissions/{{ problem.id }}').then(function(r) { return r.json(); }).then(function(subs) {
-    el.innerHTML = subs.map(function(s) {
-      var vc = s.verdict === 'Accepted' ? 'verdict-accepted' : 'verdict-wrong';
-      return '<div class="submission-item"><span class="' + vc + '">' + s.verdict + '</span>' +
-        '<span class="text-secondary"> \u2014 ' + s.passed_count + '/' + s.total_count + '</span>' +
-        (s.timing_ms ? '<span class="text-secondary"> \u00b7 ' + s.timing_ms + 'ms</span>' : '') +
-        (s.memory_kb ? '<span class="text-secondary"> \u00b7 ' + (s.memory_kb > 1024 ? (s.memory_kb/1024).toFixed(1) + 'MB' : s.memory_kb.toLocaleString() + 'KB') + '</span>' : '') +
-        '<span class="text-secondary" style="float:right;font-size:0.78rem;">' + (s.created_at || '') + '</span>' +
-        '<a href="/problem/{{ problem.contest_id }}/{{ problem.problem_index }}/solution/' + s.id + '" class="btn-outline-accent btn-sm" style="padding:0.15rem 0.6rem;font-size:0.72rem;text-decoration:none;">View solution</a></div>';
-    }).join('') || '<p class="text-secondary" style="font-size:0.85rem;padding:1rem 1.25rem;">No submissions yet.</p>';
-  }).catch(function() {});
-};
-document.querySelectorAll('.desc-tab').forEach(function(tab) {
-  tab.addEventListener('click', function() {
-    document.querySelectorAll('.desc-tab').forEach(function(t) { t.classList.remove('active'); });
-    tab.classList.add('active');
-    document.getElementById('desc-content').style.display = tab.dataset.tab === 'description' ? 'block' : 'none';
-    document.getElementById('desc-submissions').style.display = tab.dataset.tab === 'submissions' ? 'block' : 'none';
-    if (tab.dataset.tab === 'submissions') window.descriptionApi.reloadSubmissions();
-  });
-});
-
-var solBtn = document.getElementById('get-solution-btn');
-if (solBtn) solBtn.addEventListener('click', function() {
-  document.getElementById('confirm-modal-title').textContent = 'View Solution';
-  document.getElementById('confirm-modal-text').textContent = 'Are you sure? This is an intentional action to reveal the solution.';
-  document.getElementById('confirm-modal-yes').addEventListener('click', function h() {
-    document.getElementById('confirm-modal-yes').removeEventListener('click', h);
-    jQuery('#confirm-modal').modal('hide');
-    var pre = document.getElementById('solution-code');
-    if (pre) {
-      pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
-      document.getElementById('get-solution-btn').textContent = pre.style.display === 'none' ? 'Get solution' : 'Hide solution';
-    }
-  });
-  jQuery('#confirm-modal').modal('show');
-});
-
-function _inlineLen(val) {
-  var s = JSON.stringify(val);
-  if (s.length > 80) return null;
-  return s;
-}
-
-function _toYaml(val, indent) {
-  indent = indent || 0;
-  var pad = '  '.repeat(indent);
-  if (val === null || val === undefined) return 'null';
-  if (typeof val === 'string') {
-    if (val.includes('\n') || val.includes(': ') || val === '') return JSON.stringify(val);
-    return val;
-  }
-  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
-  if (Array.isArray(val)) {
-    if (val.length === 0) return '[]';
-    var inline = _inlineLen(val);
-    if (inline) return inline;
-    return val.map(function(v) {
-      if (typeof v === 'object' && v !== null) {
-        var lines = _toYaml(v, indent + 1).split('\n');
-        return pad + '  - ' + lines[0] + '\n' + lines.slice(1).map(function(l) { return pad + '    ' + l; }).join('\n');
-      }
-      return pad + '  - ' + _toYaml(v);
-    }).join('\n');
-  }
-  if (typeof val === 'object') {
-    var keys = Object.keys(val);
-    if (keys.length === 0) return '{}';
-    return keys.map(function(k) {
-      var v = val[k];
-      if (typeof v === 'object' && v !== null) {
-        var inline = _inlineLen(v);
-        if (inline) return pad + k + ': ' + inline;
-        return pad + k + ':\n' + _toYaml(v, indent + 1);
-      }
-      return pad + k + ': ' + _toYaml(v);
-    }).join('\n');
-  }
-  return String(val);
-}
-
-document.querySelectorAll('.sample-kwargs, .sample-output').forEach(function(pre) {
-  try { var val = JSON.parse(pre.textContent); pre.textContent = _toYaml(val); } catch(e) {}
-});
-</script>

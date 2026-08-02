@@ -56,18 +56,5 @@
     </div>
   </div>
 </div>
-
-<script>
-document.querySelectorAll('.re-run-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const id = btn.dataset.id;
-    btn.disabled = true; btn.textContent = 'Queuing...';
-    try {
-      const r = await fetch(`/api/re-run/${id}`, { method: 'POST' });
-      const d = await r.json();
-      btn.textContent = 'Re-run queued';
-    } catch(e) { btn.textContent = 'Error'; btn.disabled = false; }
-  });
-});
-</script>
+<script src="/static/js/public-detail.js"></script>
 {% endblock %}

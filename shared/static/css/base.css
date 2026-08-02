@@ -1,0 +1,233 @@
+/* SolveSpace base theme — dark default, light override via [data-theme="light"] */
+:root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-card: #1a1a28;
+    --border: #2a2a3e;
+    --text-primary: #e8e8f0;
+    --text-secondary: #8888a0;
+    --accent: #64ffda;
+    --accent-dim: rgba(100, 255, 218, 0.1);
+    --difficulty-easy: #4ade80;
+    --difficulty-medium: #fbbf24;
+    --difficulty-hard: #f87171;
+}
+
+[data-theme="light"] {
+    --bg-primary: #f5f6fa;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --border: #d8dce6;
+    --text-primary: #1a1a2e;
+    --text-secondary: #5a5f73;
+    --accent: #0d9488;
+    --accent-dim: rgba(13, 148, 136, 0.08);
+    --difficulty-easy: #16a34a;
+    --difficulty-medium: #d97706;
+    --difficulty-hard: #dc2626;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    transition: background 0.2s, color 0.2s;
+}
+
+/* Problem images: pre-inverted for dark mode, normal in light mode.
+   mix-blend-mode: screen makes the inverted image's black pixels
+   (originally white background) show the page background through,
+   so the image melts into the bg instead of pure black. */
+img[src*="/api/images/"] {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    border-radius: 6px;
+    filter: invert(1);
+    mix-blend-mode: screen;
+}
+[data-theme="light"] img[src*="/api/images/"] {
+    filter: none;
+    mix-blend-mode: normal;
+}
+
+.navbar {
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 0;
+}
+[data-theme="light"] .navbar {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.navbar-brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary) !important;
+}
+.navbar-brand span { color: var(--accent); }
+
+.navbar-nav .nav-link {
+    color: var(--text-secondary) !important;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem !important;
+    transition: color 0.2s;
+}
+.navbar-nav .nav-link:hover { color: var(--text-primary) !important; }
+
+.btn-accent {
+    background: var(--accent);
+    color: var(--bg-primary);
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 0.55rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    text-decoration: none !important;
+}
+.btn-accent:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+    color: var(--bg-primary);
+}
+
+.btn-outline-accent {
+    background: transparent;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 0.55rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    transition: all 0.2s;
+    cursor: pointer;
+    text-decoration: none !important;
+}
+.btn-outline-accent:hover {
+    background: var(--accent-dim);
+    color: var(--accent);
+}
+
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.section-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+}
+
+.footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.tag {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.2rem 0.65rem;
+    border-radius: 4px;
+    margin-right: 0.4rem;
+    margin-bottom: 0.4rem;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: default;
+    transition: all 0.15s;
+}
+.tag:hover {
+    background: rgba(100, 255, 218, 0.2);
+    transform: translateY(-1px);
+}
+
+code, pre {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+.card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.difficulty-easy { color: var(--difficulty-easy); }
+.difficulty-medium { color: var(--difficulty-medium); }
+.difficulty-hard { color: var(--difficulty-hard); }
+
+.badge-difficulty {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+}
+.badge-easy { background: rgba(74, 222, 128, 0.15); color: var(--difficulty-easy); }
+.badge-medium { background: rgba(251, 191, 36, 0.15); color: var(--difficulty-medium); }
+.badge-hard { background: rgba(248, 113, 113, 0.15); color: var(--difficulty-hard); }
+
+.form-control {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+}
+.form-control:focus {
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 0.2rem var(--accent-dim);
+}
+
+textarea.form-control {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+}
+
+.verdict-accepted { color: var(--difficulty-easy); }
+.verdict-wrong { color: var(--difficulty-hard); }
+.verdict-pending { color: var(--text-secondary); }
+.verdict-timeout { color: var(--difficulty-medium); }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+/* Theme toggle button */
+.theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-left: 0.5rem;
+}
+.theme-toggle:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}

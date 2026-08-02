@@ -1,37 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Problems &mdash; SolveSpace{% endblock %}
 {% block head_extra %}
-<style>
-.sidebar-filters {
-  position: fixed;
-  top: 56px;
-  right: 0;
-  bottom: 0;
-  width: 240px;
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border);
-  padding: 1.25rem;
-  overflow-y: auto;
-  z-index: 100;
-}
-.sidebar-filters .filter-label {
-  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.5px; color: var(--text-secondary);
-  margin-bottom: 0.5rem; margin-top: 1.25rem;
-}
-.sidebar-filters .filter-label:first-child { margin-top: 0; }
-.main-area { margin-right: 240px; min-height: calc(100vh - 56px); }
-.view-toggle {
-  background: transparent; border: 1px solid var(--border);
-  color: var(--text-secondary); padding: 0.35rem 0.6rem;
-  border-radius: 4px; cursor: pointer; font-size: 0.85rem; line-height: 1;
-}
-.view-toggle.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
-.view-toggle:hover { color: var(--text-primary); }
-.loading { text-align: center; padding: 3rem; color: var(--text-secondary); }
-.card-link { text-decoration: none; color: inherit; }
-.card-link:hover .card { border-color: var(--accent); transform: translateY(-2px); }
-</style>
+<link rel="stylesheet" href="/static/css/public.css">
 {% endblock %}
 {% block content %}
 <aside class="sidebar-filters">
@@ -69,88 +39,5 @@
     </div>
   </div>
 </div>
-
-<script>
-async function loadProblems() {
-  const [problems, tags] = await Promise.all([
-    fetch('/api/problems').then(r => r.json()),
-    fetch('/api/tags').then(r => r.json()),
-  ]);
-
-  // Render topic filters
-  const tf = document.getElementById('topic-filters');
-  tf.innerHTML = tags.map(t => '<label class="d-block" style="font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="filter-topic" value="' + t + '" checked> ' + t + '</label>').join('');
-
-  // Render cards
-  const pl = document.getElementById('problem-list');
-  pl.innerHTML = problems.map(function(p) {
-    var diffCls = p.difficulty_rating < 1200 ? 'easy' : p.difficulty_rating < 1600 ? 'medium' : 'hard';
-    var diffBadge = p.difficulty_rating ? '<span class="badge-difficulty badge-' + diffCls + '" style="line-height:1.4;">' + p.difficulty_rating + '</span>' : '';
-    var compBadge = '';
-    if (p.completion === 'completed') compBadge = '<span class="badge-difficulty badge-easy" style="font-size:0.7rem;">Completed</span>';
-    else if (p.completion === 'in_progress') compBadge = '<span class="badge-difficulty badge-medium" style="font-size:0.7rem;">In Progress</span>';
-    else compBadge = '<span class="badge-difficulty" style="background:rgba(136,136,160,0.15);color:var(--text-secondary);font-size:0.7rem;">Incomplete</span>';
-    var slug = p.contest_id + '/' + p.problem_index;
-    return '<div class="col-md-6 col-xl-4 mb-4 problem-card" data-completion="' + p.completion + '" data-tags=\'' + JSON.stringify(p.tags) + '\' data-difficulty="' + (p.difficulty_rating||0) + '">' +
-      '<a href="/problem/' + slug + '/" class="card-link">' +
-      '<div class="card p-3 h-100"><div class="d-flex justify-content-between align-items-center mb-2">' +
-      '<span class="tag" style="margin-bottom:0;">' + slug + '</span>' + diffBadge + '</div>' +
-      '<h5 style="font-weight:600;font-size:1rem;">' + p.title + '</h5>' +
-      '<div class="d-flex align-items-center" style="gap:6px;">' + compBadge + '</div></div></a></div>';
-  }).join('');
-
-  applyFilters();
-  try { setView(localStorage.getItem('problemView') || 'cards'); } catch(e) {}
-}
-
-function applyFilters() {
-  const comps = Array.from(document.querySelectorAll('.filter-completion:checked')).map(c => c.value);
-  const topics = Array.from(document.querySelectorAll('.filter-topic:checked')).map(c => c.value);
-  const dMin = parseInt(document.getElementById('diff-min')?.value) || 0;
-  const dMax = parseInt(document.getElementById('diff-max')?.value) || 9999;
-  document.querySelectorAll('.problem-card').forEach(card => {
-    const completion = card.dataset.completion;
-    let cardTags = [];
-    try { cardTags = JSON.parse(card.dataset.tags); } catch(e) {}
-    const diff = parseInt(card.dataset.difficulty) || 0;
-    card.style.display = (comps.length===0||comps.includes(completion)) && (topics.length===0||cardTags.some(t=>topics.includes(t))) && diff>=dMin && diff<=dMax ? '' : 'none';
-  });
-}
-
-document.querySelectorAll('.filter-completion').forEach(el => el.addEventListener('change', applyFilters));
-['diff-min','diff-max'].forEach(id => document.getElementById(id)?.addEventListener('input', applyFilters));
-document.getElementById('clear-filters')?.addEventListener('click', () => {
-  document.querySelectorAll('.filter-completion').forEach(c => c.checked = false);
-  document.querySelectorAll('.filter-topic').forEach(c => c.checked = true);
-  document.getElementById('diff-min').value = '';
-  document.getElementById('diff-max').value = '';
-  applyFilters();
-});
-
-function setView(mode) {
-  const list = document.getElementById('problem-list');
-  const cards = document.getElementById('view-cards');
-  const listBtn = document.getElementById('view-list');
-  if (!list) return;
-  if (mode === 'list') {
-    list.classList.remove('row');
-    list.querySelectorAll('.problem-card').forEach(c => { c.classList.remove('col-md-6','col-xl-4','mb-4'); });
-    cards?.classList.remove('active');
-    listBtn?.classList.add('active');
-  } else {
-    list.classList.add('row');
-    list.querySelectorAll('.problem-card').forEach(c => { c.classList.add('col-md-6','col-xl-4','mb-4'); });
-    cards?.classList.add('active');
-    listBtn?.classList.remove('active');
-  }
-  try { localStorage.setItem('problemView', mode); } catch(e) {}
-}
-document.getElementById('view-cards')?.addEventListener('click', () => setView('cards'));
-document.getElementById('view-list')?.addEventListener('click', () => setView('list'));
-
-loadProblems().catch(function(e) {
-  console.error('loadProblems failed:', e);
-  document.getElementById('problem-list').innerHTML = '<div class="loading" style="width:100%;color:#f87171;">Error: ' + e.message + '</div>';
-});
-</script>
+<script src="/static/js/problems.js"></script>
 {% endblock %}

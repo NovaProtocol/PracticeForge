@@ -1,0 +1,31 @@
+/* Solution detail page */
+.solution-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+.solution-body { padding: 1.25rem 1.5rem; }
+.solution-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.75rem; text-align: center;
+}
+.stat-card .stat-value { font-size: 1.2rem; font-weight: 700; }
+.stat-card .stat-label { font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.2rem; }
+.code-block {
+  background: #1e1e1e; border: 1px solid var(--border);
+  border-radius: 8px; padding: 1rem; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; line-height: 1.5; overflow-x: auto; margin-bottom: 1.5rem;
+  color: #d4d4d4;
+}
+[data-theme="light"] .code-block {
+  background: #f0f2f7; color: #1a1a2e;
+}
+.code-block pre { margin: 0; white-space: pre-wrap; tab-size: 4; color: #d4d4d4; }
+[data-theme="light"] .code-block pre { color: #1a1a2e; }
+.results-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.results-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--text-secondary); font-size: 0.75rem; font-weight: 600; border-bottom: 1px solid var(--border); }
+.results-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+.results-table tr:hover { background: var(--bg-secondary); }
+.pass { color: #4ade80; }
+.fail { color: #f87171; }
+.stdout-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; margin-top: 1rem; white-space: pre-wrap; }

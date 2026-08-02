@@ -1,0 +1,46 @@
+/* Public problem list — sidebar filters, view toggles */
+.sidebar-filters {
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  width: 240px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  padding: 1.25rem;
+  overflow-y: auto;
+  z-index: 100;
+}
+.sidebar-filters .filter-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  margin-top: 1.25rem;
+}
+.sidebar-filters .filter-label:first-child { margin-top: 0; }
+.main-area {
+  margin-right: 240px;
+  min-height: calc(100vh - 56px);
+}
+.view-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.view-toggle.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.view-toggle:hover { color: var(--text-primary); }
+.loading { text-align: center; padding: 3rem; color: var(--text-secondary); }
+.card-link { text-decoration: none; color: inherit; }
+.card-link:hover .card { border-color: var(--accent); transform: translateY(-2px); }
