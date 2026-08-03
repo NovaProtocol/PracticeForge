@@ -10,6 +10,7 @@ Skips images already on the server (checks /api/images/exists/<filename>).
 """
 
 import base64
+import os
 import sys
 from pathlib import Path
 
@@ -26,6 +27,12 @@ from utilities.scraper import log
 IMG_DIR = BASE / "images"
 RETRIES = 3
 BACKOFF = 2
+
+_API_TOKEN = os.environ.get("API_TOKEN", "")
+
+
+def _headers():
+    return {"X-API-Token": _API_TOKEN} if _API_TOKEN else {}
 
 CONTENT_TYPES = {
     ".png": "image/png",
@@ -56,6 +63,7 @@ def _upload(filename: str, data_b64: str, content_type: str) -> bool:
             r = requests.post(
                 f"{API_BASE}/api/images",
                 json={"filename": filename, "data": data_b64, "content_type": content_type},
+                headers=_headers(),
                 timeout=60,
             )
             if r.status_code == 200:

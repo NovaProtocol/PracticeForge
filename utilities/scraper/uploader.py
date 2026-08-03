@@ -1,4 +1,5 @@
 import json
+import os
 import time
 
 import requests
@@ -8,6 +9,12 @@ from . import log
 
 RETRIES = 3
 BACKOFF = 2
+
+_API_TOKEN = os.environ.get("API_TOKEN", "")
+
+
+def _headers():
+    return {"X-API-Token": _API_TOKEN} if _API_TOKEN else {}
 
 
 def _retry(fn, *args, **kwargs):
@@ -61,7 +68,7 @@ class Uploader:
         }
 
     def _do_upload(self, data: dict) -> int | None:
-        r = requests.post(f"{API_BASE}/api/problems/upload", json=data, timeout=30)
+        r = requests.post(f"{API_BASE}/api/problems/upload", json=data, headers=_headers(), timeout=30)
         if r.status_code == 200:
             pid = r.json().get("id")
             log.info(f"Uploaded ✅ (id={pid})")
