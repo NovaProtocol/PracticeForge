@@ -265,28 +265,27 @@ def _val_equal(a, b):
 
 
 def _run_code(user_code: str, kwargs: dict, executor_code: str = "", hidden=None) -> dict:
+    """Run one test case through the SHARED wrapper (same code the executor uses)."""
+    from shared.wrapper import build_wrapper, parse_output
+
     kwargs = dict(kwargs)
     kwargs.pop("_hint", None)  # marker only, never passed to run()
-    wrapper = f"""
-import json, sys
-{user_code}
-HIDDEN = None
-_queries = 0
-{executor_code}
-try:
-    solution = Solution()
-    {('HIDDEN = ' + json.dumps(hidden) + '\n    _queries = 0') if hidden is not None else ''}
-    result = solution.run(**json.loads(sys.argv[1]))
-    print(json.dumps({{"output": result}}))
-except Exception as e:
-    print(json.dumps({{"error": str(e)}}))
-"""
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
+
+    user_tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
+    wrap_tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
     try:
-        tmp.write(wrapper)
-        tmp.close()
+        user_tmp.write(user_code)
+        user_tmp.close()
+        wrapper_src = build_wrapper(
+            user_tmp.name,
+            "run",
+            [{"input": kwargs, "hidden": hidden, "output": None}],
+            executor_code=executor_code,
+        )
+        wrap_tmp.write(wrapper_src)
+        wrap_tmp.close()
         r = subprocess.run(
-            [sys.executable, tmp.name, json.dumps(kwargs)],
+            [sys.executable, wrap_tmp.name],
             capture_output=True, text=True, timeout=15,
         )
         stdout = r.stdout.strip()
@@ -295,17 +294,27 @@ except Exception as e:
             # exception in executor_code) — surface the real error from stderr.
             err = r.stderr.strip() or f"exit code {r.returncode}, no output"
             return {"output": None, "error": err}
-        output = json.loads(stdout)
-        if "error" in output:
-            return {"output": None, "error": output["error"]}
-        return {"output": output.get("output"), "error": None}
+        parsed = parse_output(stdout)
+        results = json.loads(parsed["results_json"] or "[]")
+        if not results:
+            return {"output": None, "error": "no test results emitted"}
+        first = results[0]
+        if first.get("status") == "failed":
+            return {"output": None, "error": first.get("error") or first.get("got") or "failed"}
+        got = first.get("got", "")
+        try:
+            output = json.loads(got)
+        except (json.JSONDecodeError, TypeError):
+            output = got
+        return {"output": output, "error": None}
     except Exception as e:
         return {"output": None, "error": str(e)}
     finally:
-        try:
-            os.unlink(tmp.name)
-        except OSError:
-            pass
+        for p in (user_tmp.name, wrap_tmp.name):
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
 
 
 def _run_generator(generator_code: str, count: int = 100) -> list | None:
