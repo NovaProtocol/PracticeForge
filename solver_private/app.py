@@ -6,6 +6,7 @@ from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from shared.config import ProductionConfig
+from shared.gatekeeper import gatekeeper_check
 from shared.startup import run as run_startup
 
 
@@ -23,5 +24,7 @@ def create_app() -> Flask:
     app.register_blueprint(problems_blueprint)
     app.register_blueprint(solutions_blueprint)
     app.register_blueprint(api_blueprint)
+
+    app.before_request(gatekeeper_check)
 
     return app

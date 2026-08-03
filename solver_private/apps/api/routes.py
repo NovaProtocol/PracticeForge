@@ -203,6 +203,43 @@ def format_code():
         return jsonify({"error": str(e)}), 500
 
 
+@blueprint.route("/re-run/<int:solution_id>", methods=["POST"])
+def re_run(solution_id: int):
+    solution = get_solution(solution_id)
+    if not solution or solution["verdict"] != "Accepted":
+        return jsonify({"error": "not found or not accepted"}), 404
+    problem = query_one(
+        "SELECT method_name, examples_json FROM problems WHERE id = %s",
+        (solution["problem_id"],),
+    )
+    method_name = "run"
+    test_cases_json = "[]"
+    if problem:
+        if problem.get("method_name"):
+            method_name = problem["method_name"]
+        raw = problem.get("examples_json")
+        examples = []
+        if isinstance(raw, str):
+            try:
+                examples = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        elif isinstance(raw, list):
+            examples = raw
+        test_cases_json = json.dumps([
+            {"input": dict(ex.get("input") or {}), "output": ex.get("output"),
+             **({"hidden": ex["hidden"]} if "hidden" in ex else {})}
+            for ex in examples
+            if isinstance(ex, dict)
+        ])
+    qid = execute(
+        """INSERT INTO execution_queue (problem_id, code, method_name, test_cases_json, exec_type, status)
+           VALUES (%s, %s, %s, %s, 'run', 'queued')""",
+        (solution["problem_id"], solution["code"], method_name, test_cases_json),
+    )
+    return jsonify({"queue_id": qid, "status": "queued"})
+
+
 @blueprint.route("/queue-status/<int:queue_id>")
 def queue_status(queue_id: int):
     q = query_one(

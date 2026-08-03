@@ -1,28 +1,4 @@
 services:
-  solver_public:
-    build:
-      context: .
-      dockerfile: solver_public/Dockerfile
-    container_name: solver_public
-    restart: unless-stopped
-    ports:
-      - "7030:7030"
-    environment:
-      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
-      MYSQL_HOST: mysql
-      MYSQL_PORT: "3306"
-      MYSQL_USER: ${MYSQL_USER:-root}
-      MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
-      GATEKEEPER_INTERNAL: ${GATEKEEPER_INTERNAL:?GATEKEEPER_INTERNAL is required}
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - default
-      - gatekeeper
-      - cloudflared-tunnel
-
   solver_private:
     build:
       context: .
@@ -30,6 +6,7 @@ services:
     container_name: solver_private
     restart: unless-stopped
     ports:
+      - "7030:7030"
       - "7031:7030"
     environment:
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
@@ -38,11 +15,15 @@ services:
       MYSQL_USER: ${MYSQL_USER:-root}
       MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
+      GATEKEEPER_INTERNAL: ${GATEKEEPER_INTERNAL:?GATEKEEPER_INTERNAL is required}
+      API_TOKEN: ${API_TOKEN:-}
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - default
+      - gatekeeper
+      - cloudflared-tunnel
 
   mysql:
     image: mysql:8.4
