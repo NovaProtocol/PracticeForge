@@ -267,7 +267,11 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         except OSError:
             continue
 
-        sol_wrapper = build_wrapper(sol_path, method_name, [{"input": tc_data, "output": None, "hidden": tc_data.get("hidden") if isinstance(tc_data, dict) else None}], executor_code=executor_code)
+        sol_wrapper = build_wrapper(sol_path, method_name, [{
+            "input": {k: v for k, v in tc_data.items() if k not in ("hidden", "output")},
+            "hidden": tc_data.get("hidden"),
+            "output": None,
+        }], executor_code=executor_code)
         sol_wrap_path = f"/tmp/solwrap-{get_problem_label(conn, problem_id)}-{qid}-{len(valid)}.py"
         sol_result = run_code(sol_wrapper, sol_wrap_path, sol_path, timeout=15)
 
@@ -309,7 +313,11 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
             expected_raw = json.loads(got)
         except (json.JSONDecodeError, ValueError):
             expected_raw = got
-        valid.append({"input": tc_data, "output": expected_raw})
+        valid.append({
+            "input": {k: v for k, v in tc_data.items() if k not in ("hidden", "output")},
+            "hidden": tc_data.get("hidden"),
+            "output": expected_raw,
+        })
 
     if not valid:
         return None, f"All {len(all_cases)} generated cases failed validation"
