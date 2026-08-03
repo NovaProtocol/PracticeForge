@@ -82,8 +82,8 @@ services:
 
   executor:
     build:
-      context: ./executor
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: executor/Dockerfile
     container_name: solver_executor
     restart: unless-stopped
     cap_add:

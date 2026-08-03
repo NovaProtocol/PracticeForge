@@ -4,10 +4,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY executor/requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-COPY bwrap_executor.py .
+COPY executor/bwrap_executor.py .
+COPY shared/wrapper.py /app/wrapper.py
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHON_GIL=0
