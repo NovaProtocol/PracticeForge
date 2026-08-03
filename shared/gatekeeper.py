@@ -9,6 +9,11 @@ from itsdangerous import URLSafeTimedSerializer
 
 GATEKEEPER_INTERNAL = os.environ["GATEKEEPER_INTERNAL"]
 
+# Read-only API endpoints that must work for anonymous visitors on the
+# public app. Everything else (including /api/re-run and /api/queue-status)
+# requires a valid gatekeeper ticket.
+PUBLIC_API_PATHS = ("/api/stats", "/api/solved", "/api/images/")
+
 ticket_cache = TTLCache(maxsize=128, ttl=300)
 ticket_serializer = URLSafeTimedSerializer(os.environ["SECRET_KEY"], salt="ticket")
 
@@ -29,7 +34,7 @@ def _gatekeeper_url():
 def gatekeeper_check():
     if request.path.startswith("/static/"):
         return
-    if request.path.startswith("/api/"):
+    if any(request.path.startswith(p) for p in PUBLIC_API_PATHS):
         return
 
     token = request.cookies.get("gatekeeper_token")

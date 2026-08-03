@@ -67,7 +67,7 @@ services:
     container_name: solver_phpmyadmin
     restart: unless-stopped
     ports:
-      - "7032:80"
+      - "127.0.0.1:7032:80"
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
@@ -91,6 +91,9 @@ services:
     security_opt:
       - seccomp:unconfined
       - apparmor:unconfined
+    mem_limit: 1g
+    pids_limit: 128
+    cpus: "2"
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
