@@ -2,8 +2,7 @@ import json
 import os
 import time
 
-import requests
-
+from .api import get_session
 from .config import API_BASE
 from . import log
 
@@ -35,7 +34,7 @@ class Uploader:
 
     def exists_on_server(self, cid: int, idx: str) -> bool:
         try:
-            r = requests.get(f"{API_BASE}/api/problems/exists/{cid}/{idx}", timeout=10)
+            r = get_session().get(f"{API_BASE}/api/problems/exists/{cid}/{idx}", timeout=10)
             exists = r.json().get("exists", False)
             if exists:
                 log.info(f"{cid}/{idx} already on server")
@@ -68,7 +67,7 @@ class Uploader:
         }
 
     def _do_upload(self, data: dict) -> int | None:
-        r = requests.post(f"{API_BASE}/api/problems/upload", json=data, headers=_headers(), timeout=30)
+        r = get_session().post(f"{API_BASE}/api/problems/upload", json=data, headers=_headers(), timeout=30)
         if r.status_code == 200:
             pid = r.json().get("id")
             log.info(f"Uploaded ✅ (id={pid})")
@@ -83,7 +82,7 @@ class Uploader:
     def _do_verify(self, data: dict) -> bool:
         cid = data["contest_id"]
         idx = data["problem_index"]
-        r = requests.get(f"{API_BASE}/api/problems/{cid}/{idx}", timeout=15)
+        r = get_session().get(f"{API_BASE}/api/problems/{cid}/{idx}", timeout=15)
         if r.status_code != 200:
             raise Exception(f"Verify HTTP {r.status_code}")
         stored = r.json()

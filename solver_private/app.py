@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from shared.config import ProductionConfig
-from shared.gatekeeper import gatekeeper_check
 from shared.startup import run as run_startup
 
 
@@ -25,6 +24,12 @@ def create_app() -> Flask:
     app.register_blueprint(solutions_blueprint)
     app.register_blueprint(api_blueprint)
 
-    app.before_request(gatekeeper_check)
+    @app.route("/404")
+    def not_found_page():
+        return render_template("404.html"), 404
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template("404.html"), 404
 
     return app

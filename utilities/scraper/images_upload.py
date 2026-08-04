@@ -19,8 +19,7 @@ sys.path.insert(0, str(_project_root))
 
 import time
 
-import requests
-
+from utilities.scraper.api import get_session
 from utilities.scraper.config import API_BASE, BASE
 from utilities.scraper import log
 
@@ -50,7 +49,7 @@ def _content_type(path: Path) -> str:
 
 def _exists_on_server(filename: str) -> bool:
     try:
-        r = requests.get(f"{API_BASE}/api/images/exists/{filename}", timeout=10)
+        r = get_session().get(f"{API_BASE}/api/images/exists/{filename}", timeout=10)
         return r.status_code == 200 and r.json().get("exists", False)
     except Exception as e:
         log.warn(f"exists check failed for {filename}: {e}")
@@ -60,7 +59,7 @@ def _exists_on_server(filename: str) -> bool:
 def _upload(filename: str, data_b64: str, content_type: str) -> bool:
     for attempt in range(RETRIES):
         try:
-            r = requests.post(
+            r = get_session().post(
                 f"{API_BASE}/api/images",
                 json={"filename": filename, "data": data_b64, "content_type": content_type},
                 headers=_headers(),

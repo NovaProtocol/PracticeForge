@@ -1,0 +1,12 @@
+:7031 {
+    handle /404 {
+        reverse_proxy solver_private:7030
+    }
+
+    handle {
+        forward_auth gatekeeper:7000 {
+            uri /api/authz/forward-auth
+        }
+        reverse_proxy solver_private:7030
+    }
+}
