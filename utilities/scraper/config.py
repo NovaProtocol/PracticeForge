@@ -1,28 +1,16 @@
 import os
-import socket
 from pathlib import Path
 
 # Paths (relative to this file)
 BASE = Path(__file__).resolve().parent
 BROWSER_DATA_DIR = BASE / "browser_profile"
 
-# API
-# Resolve mDNS hostname once at startup (~10s), reuse in-memory
-# for the whole session so requests don't pay 10s DNS each.
-API_HOST = "debian.local"
-API_PORT = 7031
+# API — tunnel only; the app is not reachable on the LAN.
+API_BASE = "https://solver.projectnova.download"
 
+# Access code for the GateKeeper forward-auth gate (magic-link handshake).
+ACCESS_CODE = os.environ.get("ACCESS_CODE", "")
 
-def _resolve_api_base() -> str:
-    try:
-        ip = socket.gethostbyname(API_HOST)
-        return f"http://{ip}:{API_PORT}"
-    except OSError:
-        # Fall back to hostname (slow DNS each time, but works)
-        return f"http://{API_HOST}:{API_PORT}"
-
-
-API_BASE = _resolve_api_base()
 CF_API = "https://codeforces.com/api/problemset.problems"
 
 # AI

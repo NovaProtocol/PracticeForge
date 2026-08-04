@@ -5,21 +5,25 @@ services:
       dockerfile: solver_private/Dockerfile
     container_name: solver_private
     restart: unless-stopped
-    ports:
-      - "7030:7030"
-      - "7031:7030"
     environment:
-      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_USER: ${MYSQL_USER:-root}
       MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
-      GATEKEEPER_INTERNAL: ${GATEKEEPER_INTERNAL:?GATEKEEPER_INTERNAL is required}
       API_TOKEN: ${API_TOKEN:-}
     depends_on:
       mysql:
         condition: service_healthy
+    networks:
+      - default
+
+  caddy:
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    container_name: solver_caddy
+    restart: unless-stopped
     networks:
       - default
       - gatekeeper
