@@ -477,7 +477,41 @@ def process_entry(conn, entry):
         _LOG_INDENT -= 1
 
 
+def _become_subreaper() -> None:
+    """Make this process the child subreaper so orphaned sandbox processes are
+    reparented here instead of the container init, then get reaped by
+    reap_orphans(). Without this, every bwrap run leaks a zombie until the
+    container's pids cgroup saturates and forks fail with EAGAIN."""
+    try:
+        import ctypes
+        libc = ctypes.CDLL("libc.so.6", use_errno=True)
+        PR_SET_CHILD_SUBREAPER = 36
+        if libc.prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), "prctl(PR_SET_CHILD_SUBREAPER)")
+        _log("subreaper enabled — orphaned sandbox processes will be reaped")
+    except Exception as e:
+        _log(f"FATAL: cannot become subreaper, zombies will accumulate: {e}")
+
+
+def reap_orphans() -> None:
+    """Non-blocking waitpid sweep for reaped-orphan zombies.
+
+    Only safe while no subprocess.run is in flight — the executor is
+    single-threaded, so call between sandbox runs (process_entry finally and
+    the idle poll loop)."""
+    try:
+        while True:
+            pid, _ = os.waitpid(-1, os.WNOHANG)
+            if pid == 0:
+                break
+    except ChildProcessError:
+        pass
+    except Exception as e:
+        _log(f"reap_orphans error: {e}")
+
+
 def main():
+    _become_subreaper()
     print("[bwrap-executor] Starting...", flush=True)
     while True:
         try:
@@ -497,7 +531,10 @@ def main():
                                 mark_failed(conn, entry["id"], f"Executor error: {e}")
                             except Exception as e2:
                                 _log(f"mark_failed also crashed: {e2}", indent=1)
+                        finally:
+                            reap_orphans()
                     else:
+                        reap_orphans()
                         time.sleep(POLL_INTERVAL)
                 except Exception as e:
                     print(f"[bwrap-executor] Poll error: {e}", flush=True)
