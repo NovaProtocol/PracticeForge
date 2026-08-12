@@ -18,18 +18,35 @@ from shared.models import (
 from shared.db import query as raw_query
 
 
+_ALLOWED_TAGS = {
+    "b", "i", "u", "em", "strong", "p", "br", "ul", "ol", "li",
+    "code", "pre", "h1", "h2", "h3", "h4", "h5", "h6",
+    "img", "a", "blockquote", "hr",
+}
+_ALLOWED_ATTRS = {"img": {"src", "alt", "style"}, "a": {"href", "title", "rel"}}
+_SAFE_IMG_PREFIXES = ("/api/images/",)
+
+
 def _sanitize_html(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
-    for tag in soup.find_all("script"):
-        tag.decompose()
-    for tag in soup.find_all("style"):
-        tag.decompose()
-    result = str(soup)
-    result = re.sub(r'<script\b[^>]*>', '', result, flags=re.IGNORECASE)
-    result = re.sub(r'</script>', '', result, flags=re.IGNORECASE)
-    result = re.sub(r'<style\b[^>]*>', '', result, flags=re.IGNORECASE)
-    result = re.sub(r'</style>', '', result, flags=re.IGNORECASE)
+    for tag in soup.find_all(True):
+        if tag.name not in _ALLOWED_TAGS:
+            tag.decompose()
+            continue
+        allowed = _ALLOWED_ATTRS.get(tag.name, set())
+        for attr in list(tag.attrs):
+            if attr not in allowed:
+                del tag[attr]
+        if tag.name == "img":
+            src = tag.get("src", "")
+            if not isinstance(src, str) or not src.startswith(_SAFE_IMG_PREFIXES):
+                tag.decompose()
+    for tag in soup.find_all("a"):
+        href = tag.get("href", "")
+        if not isinstance(href, str) or href.lower().startswith("javascript:"):
+            tag.decompose()
     # Convert [image: <filename>] markers (from AI description) to img tags
+    result = str(soup)
     result = re.sub(
         r'\[image:\s*([a-zA-Z0-9_.-]+)\]',
         r'<img src="/api/images/\1" style="display:block;margin:0 auto;max-width:100%;border-radius:6px;">',
