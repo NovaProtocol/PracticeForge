@@ -15,3 +15,11 @@ utilities/scraper/fail.json
 utilities/scraper/scraper.log
 utilities/scraper/html/
 utilities/scraper/images/
+
+# AI scratch — never commit
+.agents/
+.superpowers/
+.opencode/
+.claude/
+.continue/
+AGENTS.md
