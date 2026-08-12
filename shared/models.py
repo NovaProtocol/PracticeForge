@@ -13,34 +13,6 @@ def _parse_problem(row: dict) -> dict:
     return row
 
 
-def get_problems():
-    rows = query("SELECT * FROM problems ORDER BY contest_id, problem_index")
-    return [_parse_problem(r) for r in rows]
-
-
-def get_problems_with_status():
-    rows = query(
-        """SELECT p.*,
-                  MAX(s.verdict) AS best_verdict,
-                  COUNT(s.id) AS submission_count
-           FROM problems p
-           LEFT JOIN solutions s ON s.problem_id = p.id
-           GROUP BY p.id
-           ORDER BY p.contest_id, p.problem_index"""
-    )
-    result = []
-    for r in rows:
-        p = _parse_problem(r)
-        if r["best_verdict"] == "Accepted":
-            p["completion"] = "completed"
-        elif r["submission_count"] > 0:
-            p["completion"] = "in_progress"
-        else:
-            p["completion"] = "incomplete"
-        result.append(p)
-    return result
-
-
 def get_problems_summary():
     """Lightweight list — no description_html or large text fields."""
     rows = query(
@@ -118,15 +90,6 @@ def get_solution_results(solution_id: int) -> str:
     return {"result": row["result"] if row else "{}", "stdout": row["stdout"] if row else ""}
 
 
-def get_solutions_for_problem(problem_id: int):
-    return query(
-        """SELECT s.* FROM solutions s
-           WHERE s.problem_id = %s
-           ORDER BY s.created_at DESC""",
-        (problem_id,),
-    )
-
-
 def get_solutions():
     return query(
         """SELECT s.*, p.title, p.slug, p.contest_id, p.problem_index
@@ -197,39 +160,6 @@ def load_code(problem_id: int, filename: str = "main.py") -> dict:
 
 # ── Public API ──
 
-def get_stats():
-    total = query_one("SELECT COUNT(*) AS count FROM problems")
-    solved = query_one(
-        "SELECT COUNT(DISTINCT problem_id) AS count FROM solutions WHERE verdict = 'Accepted'"
-    )
-    by_difficulty = query(
-        """SELECT
-             CASE
-               WHEN p.difficulty_rating < 1200 THEN 'easy'
-               WHEN p.difficulty_rating < 1600 THEN 'medium'
-               ELSE 'hard'
-             END AS difficulty,
-             COUNT(DISTINCT s.problem_id) AS count
-           FROM solutions s
-           JOIN problems p ON p.id = s.problem_id
-           WHERE s.verdict = 'Accepted'
-           GROUP BY difficulty"""
-    )
-    recent = query(
-        """SELECT p.title, p.slug, p.difficulty_rating AS difficulty, s.verdict, DATE(s.created_at) AS date
-           FROM solutions s
-           JOIN problems p ON p.id = s.problem_id
-           WHERE s.verdict = 'Accepted'
-           ORDER BY s.created_at DESC LIMIT 10"""
-    )
-    return {
-        "solved": solved["count"] if solved else 0,
-        "total": total["count"] if total else 0,
-        "by_difficulty": {r["difficulty"]: r["count"] for r in by_difficulty},
-        "recent_solutions": recent,
-    }
-
-
 def upsert_problem(data: dict) -> int:
     """Insert or update a problem from uploaded data. Returns problem id."""
     slug = f"{data['contest_id']}/{data['problem_index']}-{data['title'].lower().replace(' ', '-')}"
@@ -264,19 +194,6 @@ def upsert_problem(data: dict) -> int:
     return row["id"] if row else None
 
 
-def get_solved():
-    return query(
-        """SELECT DISTINCT p.contest_id, p.problem_index, p.title, p.slug, p.difficulty_rating
-           FROM solutions s
-           JOIN problems p ON p.id = s.problem_id
-           WHERE s.verdict = 'Accepted'
-           ORDER BY p.contest_id, p.problem_index"""
-    )
-
-
-
-
-
 def get_problem_submissions(problem_id: int) -> list:
     return query(
         """SELECT id, verdict, passed_count, total_count, code, timing_ms, memory_kb, created_at
@@ -288,26 +205,6 @@ def get_problem_submissions(problem_id: int) -> list:
 
 def get_editorial(problem_id: int) -> dict | None:
     return None
-
-
-def update_tokens(token_count: int) -> bool:
-    row = query_one("SELECT * FROM api_usage WHERE id = %s", (1,))
-    if not row:
-        execute(
-            "INSERT INTO api_usage (id, tokens_used, window_start) VALUES (1, %s, NOW())",
-            (token_count,),
-        )
-        return True
-    window_end = row["window_start"] + timedelta(seconds=row["window_seconds"])
-    if datetime.now() > window_end:
-        execute(
-            "UPDATE api_usage SET tokens_used = %s, window_start = NOW() WHERE id = 1",
-            (token_count,),
-        )
-        return True
-    new_total = (row["tokens_used"] or 0) + token_count
-    execute("UPDATE api_usage SET tokens_used = %s WHERE id = 1", (new_total,))
-    return new_total <= (row["token_limit"] or 1000000)
 
 
 # ── Images ──
@@ -334,9 +231,4 @@ def image_exists(filename: str) -> bool:
 
 def delete_image(filename: str):
     execute("DELETE FROM problem_images WHERE filename = %s", (filename,))
-
-
-
-
-
 
