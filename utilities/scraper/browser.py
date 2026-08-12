@@ -11,7 +11,7 @@ from . import log
 class Browser:
     """Manages a persistent Chrome WebDriver with a real GUI window.
 
-    The browser profile is saved to `edge_profile/` so cookies and
+    The browser profile is saved to `browser_profile/` so cookies and
     Cloudflare clearance persist across restarts. If Cloudflare shows
     a captcha, the scraper loops with 1s delay until you solve it.
     """
