@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from flask import Flask, render_template
+from jinja2 import ChoiceLoader, FileSystemLoader
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from shared.config import ProductionConfig
@@ -12,8 +13,16 @@ from shared.startup import run as run_startup
 def create_app() -> Flask:
     run_startup()
 
-    templates = Path(__file__).resolve().parent / "templates"
-    app = Flask(__name__, template_folder=str(templates))
+    root = Path(__file__).resolve().parent.parent
+    app_templates = Path(__file__).resolve().parent / "templates"
+    shared_templates = root / "shared" / "templates"
+    app = Flask(__name__, template_folder=str(app_templates))
+    # shared/templates (base.html) is merged into /app/templates only in the
+    # Docker image; add it as a second loader so host runs resolve it too.
+    app.jinja_loader = ChoiceLoader([
+        FileSystemLoader(str(app_templates)),
+        FileSystemLoader(str(shared_templates)),
+    ])
     app.config.from_object(ProductionConfig)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
