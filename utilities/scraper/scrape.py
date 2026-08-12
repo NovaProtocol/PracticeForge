@@ -17,8 +17,10 @@ Cloudflare captcha: solve it in the browser window — the script waits.
 import sys
 from pathlib import Path
 
-_project_root = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(_project_root))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from shared._bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path()
 
 import json
 import time
