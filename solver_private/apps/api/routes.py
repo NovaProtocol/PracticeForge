@@ -332,12 +332,16 @@ def auto_save_get(problem_id: int):
 
 # ── Images ──
 
+_ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"}
+
+
 @blueprint.route("/images/<path:filename>", methods=["GET"])
 def image_get(filename: str):
     row = get_image(filename)
     if not row:
         return jsonify({"error": "not found"}), 404
-    return Response(row["data"], mimetype=row["content_type"] or "image/png")
+    return Response(row["data"], mimetype=row["content_type"] or "image/png",
+                    headers={"X-Content-Type-Options": "nosniff"})
 
 
 @blueprint.route("/images", methods=["POST"])
@@ -345,6 +349,9 @@ def image_upload():
     data = request.get_json()
     if not data or not data.get("filename") or not data.get("data"):
         return jsonify({"error": "missing filename or data"}), 400
+    content_type = data.get("content_type", "image/png")
+    if content_type not in _ALLOWED_IMAGE_TYPES:
+        return jsonify({"error": "unsupported content type"}), 400
     try:
         raw = base64.b64decode(data["data"])
     except Exception as e:
