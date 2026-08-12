@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+from urllib.parse import parse_qs
 
 from flask import Response, jsonify, request
 
@@ -311,6 +312,13 @@ def save_code_api(contest_id: int, index: str):
         return jsonify({"error": "not found"}), 404
     code = request.form.get("code", "")
     filename = request.form.get("filename", "main.py")
+    # sendBeacon's Content-Type is browser-dependent; some browsers send
+    # text/plain, which leaves request.form empty. Parse the body manually
+    # so autosave can't silently wipe the code to "".
+    if not request.form and request.mimetype == "text/plain":
+        parsed = parse_qs(request.get_data(as_text=True))
+        code = parsed.get("code", [""])[0]
+        filename = parsed.get("filename", ["main.py"])[0]
     save_code(problem["id"], code, filename)
     return jsonify({"status": "ok"})
 
