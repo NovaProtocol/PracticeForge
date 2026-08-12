@@ -87,7 +87,8 @@
         isDirty = false;
         var code = window.editor.getValue();
         var fd = new URLSearchParams({ code: code, filename: activeFile });
-        navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, fd);
+        var body = new Blob([fd.toString()], { type: 'application/x-www-form-urlencoded' });
+        navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, body);
       }
     }, 1000);
   }
@@ -96,7 +97,8 @@
     if (!activeFile || !window.editor) return;
     var code = window.editor.getValue();
     var fd = new URLSearchParams({ code: code, filename: activeFile });
-    navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, fd);
+    var body = new Blob([fd.toString()], { type: 'application/x-www-form-urlencoded' });
+    navigator.sendBeacon('/api/save/' + C.contestId + '/' + C.index, body);
     isDirty = false;
   }
 
