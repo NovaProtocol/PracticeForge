@@ -13,4 +13,11 @@ COPY shared/wrapper.py /app/wrapper.py
 ENV PYTHONUNBUFFERED=1
 ENV PYTHON_GIL=0
 
+# NOTE (2026-08-12): this container intentionally runs as root with
+# SYS_ADMIN + seccomp/apparmor unconfined — bwrap's user-namespace sandbox
+# needs it (see compose.yaml). Residual risk: a bwrap kernel bug would mean
+# root-in-container with DB creds in the env. The bwrap invocation itself
+# uses --unshare-all, an empty env, and rlimits, so sandboxed code never sees
+# secrets. Do NOT drop caps/uid without testing on a bwrap-capable host.
+
 CMD ["python3", "bwrap_executor.py"]

@@ -77,6 +77,9 @@ services:
       dockerfile: executor/Dockerfile
     container_name: solver_executor
     restart: unless-stopped
+    # Root + SYS_ADMIN + unconfined seccomp/apparmor are REQUIRED by the
+    # bwrap user-namespace sandbox (see executor/Dockerfile NOTE). Sandboxed
+    # code still runs with an empty env + rlimits — it never sees MYSQL_*.
     cap_add:
       - SYS_ADMIN
     security_opt:
