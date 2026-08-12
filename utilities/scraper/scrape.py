@@ -26,7 +26,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from utilities.scraper.config import CF_API, SCRAPE_DELAY, BASE, TEST_TARGET
+from utilities.scraper.config import CF_API, SCRAPE_DELAY, BASE, LIMIT, TEST_TARGET
 from utilities.scraper.browser import Browser
 from utilities.scraper import log
 
@@ -55,7 +55,7 @@ def main():
         return
 
     HTML_DIR.mkdir(parents=True, exist_ok=True)
-    to_process = problems  # scrape everything, LIMIT not applied here
+    to_process = problems
     if TEST_TARGET:
         parts = TEST_TARGET.split("/")
         if len(parts) == 2:
@@ -63,6 +63,8 @@ def main():
             log.info(f"TEST_TARGET set — only scraping {TEST_TARGET}")
         else:
             log.error(f"Invalid TEST_TARGET: {TEST_TARGET}")
+    if LIMIT:
+        to_process = to_process[:LIMIT]
     total = len(to_process)
     log.info(f"Processing {total} problems")
 
