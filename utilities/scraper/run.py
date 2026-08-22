@@ -49,7 +49,7 @@ def main():
 
     for c in stages:
         module_path, script_name = STAGES[c]
-        print(f"\n{'='*60}\nRunning stage {c} ({script_name})\n{'='*60}", flush=True)
+        print(f"\n{'=' * 60}\nRunning stage {c} ({script_name})\n{'=' * 60}", flush=True)
         module = __import__(module_path, fromlist=["main"])
         module.main()
 

@@ -13,7 +13,9 @@ __pycache__/
 .idea/
 *.code-workspace
 .DS_Store
-docs/
+/docs/
+documentation/site/
+site/
 test_zone/
 utilities/scraper/*.db
 utilities/scraper/browser_profile/

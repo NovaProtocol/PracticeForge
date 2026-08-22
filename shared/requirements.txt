@@ -6,3 +6,6 @@ cryptography>=41.0
 SQLAlchemy>=2.0
 beautifulsoup4>=4.12
 black>=25.0
+grpcio>=1.60,<2
+grpcio-tools>=1.60,<2
+protobuf>=4,<7

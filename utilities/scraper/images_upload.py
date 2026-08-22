@@ -21,9 +21,9 @@ ensure_project_root_on_path()
 
 import time
 
+from utilities.scraper import log
 from utilities.scraper.api import get_session
 from utilities.scraper.config import API_BASE, BASE
-from utilities.scraper import log
 
 IMG_DIR = BASE / "images"
 RETRIES = 3
@@ -34,6 +34,7 @@ _API_TOKEN = os.environ.get("API_TOKEN", "")
 
 def _headers():
     return {"X-API-Token": _API_TOKEN} if _API_TOKEN else {}
+
 
 CONTENT_TYPES = {
     ".png": "image/png",

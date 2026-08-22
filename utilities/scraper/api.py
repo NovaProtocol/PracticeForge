@@ -1,7 +1,7 @@
 import requests
 
-from .config import API_BASE, ACCESS_CODE
 from . import log
+from .config import ACCESS_CODE, API_BASE
 
 _session = None
 

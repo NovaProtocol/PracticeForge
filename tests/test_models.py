@@ -59,12 +59,15 @@ def _insert_problem(**kw):
 
 
 def test_get_problems_summary(sqlite_db):
-    alpha = _insert_problem(contest_id=1, problem_index="A", title="Alpha",
-                            slug="1/A-alpha", tags='["math","dp"]')
-    beta = _insert_problem(contest_id=1, problem_index="B", title="Beta",
-                           slug="1/B-beta", tags="[]")
-    gamma = _insert_problem(contest_id=2, problem_index="A", title="Gamma",
-                            slug="2/A-gamma", tags=None)
+    alpha = _insert_problem(
+        contest_id=1, problem_index="A", title="Alpha", slug="1/A-alpha", tags='["math","dp"]'
+    )
+    beta = _insert_problem(
+        contest_id=1, problem_index="B", title="Beta", slug="1/B-beta", tags="[]"
+    )
+    gamma = _insert_problem(
+        contest_id=2, problem_index="A", title="Gamma", slug="2/A-gamma", tags=None
+    )
     create_solution(alpha, "print(1)", verdict="Accepted", passed=1, total=1)
     create_solution(alpha, "print(2)", verdict="Accepted", passed=1, total=1)
 
@@ -80,8 +83,9 @@ def test_get_problems_summary(sqlite_db):
 
 
 def test_get_problem(sqlite_db):
-    pid = _insert_problem(contest_id=1, problem_index="A", title="Alpha",
-                          slug="1/A-alpha", tags='["math"]')
+    pid = _insert_problem(
+        contest_id=1, problem_index="A", title="Alpha", slug="1/A-alpha", tags='["math"]'
+    )
     row = get_problem(1, "A")
     assert row["id"] == pid
     assert row["title"] == "Alpha"

@@ -51,7 +51,7 @@ def extract_text(html: str) -> str:
 
     def strip_sec_name(text: str, name: str) -> str:
         if text.lower().startswith(name.lower()):
-            text = text[len(name):].lstrip(" .:\n")
+            text = text[len(name) :].lstrip(" .:\n")
         return text
 
     def get_clean(el) -> str:
@@ -64,11 +64,19 @@ def extract_text(html: str) -> str:
     header = c.select_one(".header")
     if header:
         t = header.select_one(".title")
-        if t: lines.append("Title: " + t.get_text(strip=True))
+        if t:
+            lines.append("Title: " + t.get_text(strip=True))
         tl = header.select_one(".time-limit")
-        if tl: lines.append("Time: " + tl.get_text(strip=True).replace("time limit per test", "").strip(": \n"))
+        if tl:
+            lines.append(
+                "Time: " + tl.get_text(strip=True).replace("time limit per test", "").strip(": \n")
+            )
         ml = header.select_one(".memory-limit")
-        if ml: lines.append("Memory: " + ml.get_text(strip=True).replace("memory limit per test", "").strip(": \n"))
+        if ml:
+            lines.append(
+                "Memory: "
+                + ml.get_text(strip=True).replace("memory limit per test", "").strip(": \n")
+            )
         lines.append("")
 
     # Description: all content between .header and first section div

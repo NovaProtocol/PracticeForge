@@ -24,9 +24,7 @@ def test_placeholders_become_positional_named_params():
         "SELECT * FROM problems WHERE contest_id = %s AND problem_index = %s",
         (1, "A"),
     )
-    assert sql == (
-        "SELECT * FROM problems WHERE contest_id = :p0 AND problem_index = :p1"
-    )
+    assert sql == ("SELECT * FROM problems WHERE contest_id = :p0 AND problem_index = :p1")
     assert params == {"p0": 1, "p1": "A"}
 
 
@@ -41,13 +39,11 @@ def test_repeated_values_get_distinct_params():
 
 def test_many_placeholders_across_clauses():
     sql, params = _convert(
-        "SELECT id FROM auto_saves WHERE problem_id = %s AND filename = %s "
-        "AND active = %s",
+        "SELECT id FROM auto_saves WHERE problem_id = %s AND filename = %s AND active = %s",
         (7, "main.py", True),
     )
     assert sql == (
-        "SELECT id FROM auto_saves WHERE problem_id = :p0 "
-        "AND filename = :p1 AND active = :p2"
+        "SELECT id FROM auto_saves WHERE problem_id = :p0 AND filename = :p1 AND active = :p2"
     )
     assert params == {"p0": 7, "p1": "main.py", "p2": True}
 

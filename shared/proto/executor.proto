@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package solvespace.v1;
+
+service ExecutorService {
+  rpc EnqueueExecution(EnqueueRequest) returns (EnqueueResponse);
+  rpc GetExecutionStatus(GetStatusRequest) returns (GetStatusResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message EnqueueRequest {
+  int32 problem_id = 1;
+  string code = 2;
+  string method_name = 3;
+  string test_cases_json = 4;
+  string exec_type = 5;
+}
+
+message EnqueueResponse {
+  int64 queue_id = 1;
+  string status = 2;
+}
+
+message GetStatusRequest {
+  int64 queue_id = 1;
+}
+
+message GetStatusResponse {
+  int64 queue_id = 1;
+  string status = 2;
+  string result = 3;
+  string stdout = 4;
+  string error = 5;
+  int32 timing_ms = 6;
+  int32 memory_kb = 7;
+  int64 solution_id = 8;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+}

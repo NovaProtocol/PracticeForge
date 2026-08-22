@@ -20,8 +20,8 @@ AI_MODEL = "deepseek-v4-flash"
 
 # Timing
 SCRAPE_DELAY = 1  # seconds between scraping problems
-AI_DELAY = 1      # seconds between AI calls
-CF_POLL = 3       # seconds between checks for Cloudflare captcha
+AI_DELAY = 1  # seconds between AI calls
+CF_POLL = 3  # seconds between checks for Cloudflare captcha
 
 # Limit — set to int to process that many per run. 0/None = process all pending.
 # Order: oldest problems first (1/A, 1/B, ...).

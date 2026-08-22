@@ -22,15 +22,15 @@ from shared._bootstrap import ensure_project_root_on_path
 
 ensure_project_root_on_path()
 
-import json
+import contextlib
 import time
 
 import requests
 from bs4 import BeautifulSoup
 
-from utilities.scraper.config import CF_API, SCRAPE_DELAY, BASE, LIMIT, TEST_TARGET
-from utilities.scraper.browser import Browser
 from utilities.scraper import log
+from utilities.scraper.browser import Browser
+from utilities.scraper.config import BASE, CF_API, LIMIT, SCRAPE_DELAY, TEST_TARGET
 
 HTML_DIR = BASE / "html"
 
@@ -61,7 +61,9 @@ def main():
     if TEST_TARGET:
         parts = TEST_TARGET.split("/")
         if len(parts) == 2:
-            to_process = [p for p in problems if str(p["contestId"]) == parts[0] and p["index"] == parts[1]]
+            to_process = [
+                p for p in problems if str(p["contestId"]) == parts[0] and p["index"] == parts[1]
+            ]
             log.info(f"TEST_TARGET set — only scraping {TEST_TARGET}")
         else:
             log.error(f"Invalid TEST_TARGET: {TEST_TARGET}")
@@ -78,7 +80,7 @@ def main():
             idx = cf_data["index"]
             pid_str = f"{cid}/{idx}"
             name = cf_data.get("name", "")
-            log.info(f"[{i+1}/{total}] {pid_str} — {name}")
+            log.info(f"[{i + 1}/{total}] {pid_str} — {name}")
 
             out_file = HTML_DIR / f"{cid}-{idx}.html"
 
@@ -90,12 +92,11 @@ def main():
                 html = browser.scrape_problem_page(cid, idx)
             except Exception as e:
                 import traceback
+
                 log.error(f"{pid_str} browser crashed: {e}")
                 log.error(traceback.format_exc())
-                try:
+                with contextlib.suppress(Exception):
                     browser.close()
-                except Exception:
-                    pass
                 browser = Browser()
                 html = None
 
@@ -104,7 +105,9 @@ def main():
                 continue
 
             soup = BeautifulSoup(html, "html.parser")
-            problem_div = soup.select_one("div.problemindexholder") or soup.select_one("div.problem-statement")
+            problem_div = soup.select_one("div.problemindexholder") or soup.select_one(
+                "div.problem-statement"
+            )
             if problem_div:
                 saved_html = str(problem_div)
                 out_file.write_text(saved_html)
@@ -117,6 +120,7 @@ def main():
 
     except Exception as e:
         import traceback
+
         log.error(f"FATAL: {e}")
         log.error(traceback.format_exc())
     finally:

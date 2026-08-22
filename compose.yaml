@@ -19,11 +19,16 @@ services:
       MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
       API_TOKEN: ${API_TOKEN:-}
+      EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-solver_executor:50051}
+      GRPC_PORT: ${GRPC_PORT:-50051}
+    expose:
+      - "7030"
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - default
+      - net-executor
 
   caddy:
     build:
@@ -45,7 +50,6 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
     volumes:
       - mysql_data:/var/lib/mysql
-
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -53,6 +57,7 @@ services:
       retries: 10
     networks:
       - default
+      - net-executor
 
   phpmyadmin:
     image: phpmyadmin:5.2
@@ -89,6 +94,8 @@ services:
     mem_limit: 1g
     pids_limit: 128
     cpus: "2"
+    expose:
+      - "50051"
     environment:
       DEPLOYMENT_TYPE: ${DEPLOYMENT_TYPE:?DEPLOYMENT_TYPE is required}
       MYSQL_HOST: mysql
@@ -96,9 +103,31 @@ services:
       MYSQL_USER: ${MYSQL_USER:-root}
       MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-solvespace}
+      GRPC_PORT: ${GRPC_PORT:-50051}
+      EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-solver_executor:50051}
     depends_on:
       mysql:
         condition: service_healthy
+    networks:
+      - default
+      - net-executor
+
+  documentation:
+    build:
+      context: .
+      dockerfile: documentation/Dockerfile
+    container_name: solver_documentation
+    restart: unless-stopped
+    expose:
+      - "8005"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8005/health', timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      DEPLOYMENT_TYPE: ${DEPLOYMENT_TYPE:?DEPLOYMENT_TYPE is required}
     networks:
       - default
 
@@ -107,6 +136,8 @@ volumes:
 
 networks:
   default:
+  net-executor:
+    internal: true
   gatekeeper:
     external: true
     name: gatekeeper_default

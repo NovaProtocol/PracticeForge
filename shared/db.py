@@ -10,8 +10,6 @@ import re
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from shared.sqlalchemy_models import Base
-
 # Engine and session factory are built lazily on first use so that importing
 # this module doesn't require MYSQL_* env vars to be set.
 _engine = None
@@ -41,9 +39,11 @@ def _convert(sql: str, params: tuple) -> tuple:
         return sql, {}
     # Replace each %s with :p0, :p1, etc.
     names = []
+
     def repl(m):
         names.append(len(names))
         return f":p{names[-1]}"
+
     new_sql = re.sub(r"%s", repl, sql)
     new_params = {f"p{i}": params[i] for i in range(len(params))}
     return new_sql, new_params

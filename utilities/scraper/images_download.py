@@ -22,8 +22,8 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from utilities.scraper.config import SCRAPE_DELAY, BASE
 from utilities.scraper import log
+from utilities.scraper.config import BASE
 
 HTML_DIR = BASE / "html"
 IMG_DIR = BASE / "images"

@@ -19,16 +19,19 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder=str(app_templates))
     # shared/templates (base.html) is merged into /app/templates only in the
     # Docker image; add it as a second loader so host runs resolve it too.
-    app.jinja_loader = ChoiceLoader([
-        FileSystemLoader(str(app_templates)),
-        FileSystemLoader(str(shared_templates)),
-    ])
+    app.jinja_loader = ChoiceLoader(
+        [
+            FileSystemLoader(str(app_templates)),
+            FileSystemLoader(str(shared_templates)),
+        ]
+    )
     app.config.from_object(ProductionConfig)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
+    from apps.api.routes import blueprint as api_blueprint
     from apps.problems.routes import blueprint as problems_blueprint
     from apps.solutions.routes import blueprint as solutions_blueprint
-    from apps.api.routes import blueprint as api_blueprint
+
     app.register_blueprint(problems_blueprint)
     app.register_blueprint(solutions_blueprint)
     app.register_blueprint(api_blueprint)

@@ -25,7 +25,13 @@ def _pyval(v):
     return json.dumps(v)
 
 
-def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict], stop_on_failure: bool = False, executor_code: str = "") -> str:
+def build_wrapper(
+    user_code_path: str,
+    method_name: str,
+    test_cases: list[dict],
+    stop_on_failure: bool = False,
+    executor_code: str = "",
+) -> str:
     lines = [
         "import json, sys, io, time, traceback, signal",
         "from typing import List, Optional, Dict, Tuple, Set",
@@ -55,7 +61,9 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         input_data.pop("_hint", None)  # marker only, never passed to run()
         expected = tc.get("output")
         hidden = tc.get("hidden")
-        inp_display = input_data if input_data else ({"hidden": hidden} if hidden is not None else {})
+        inp_display = (
+            input_data if input_data else ({"hidden": hidden} if hidden is not None else {})
+        )
         exp_display = expected
 
         lines.append("if not _abort:")
@@ -94,7 +102,9 @@ def build_wrapper(user_code_path: str, method_name: str, test_cases: list[dict],
         lines.append("  _tc_stdout = _cap.getvalue()")
         lines.append("  sys.stdout = _old_stdout")
         lines.append("  _timing = round((time.perf_counter() - _t0) * 1000, 3)")
-        lines.append("  results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout, 'status': status, 'timing_ms': _timing})")
+        lines.append(
+            "  results.append({'input': _r_input, 'expected': _r_expected, 'got': got, 'error': err, 'passed': passed, 'stdout': _tc_stdout, 'status': status, 'timing_ms': _timing})"
+        )
         if stop_on_failure:
             lines.append("  if not passed: _abort = True")
     lines.append("print('__SOLVER_RESULT__')")
