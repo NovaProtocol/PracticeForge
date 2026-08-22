@@ -9,8 +9,17 @@ import time
 
 import pymysql
 from pymysql.cursors import DictCursor
-
 from wrapper import build_wrapper, parse_output
+
+# gRPC (internal) — optional, best-effort. If import fails, poll-only mode continues.
+try:
+    import grpc  # noqa: F401
+    from grpc_server import serve_grpc as _grpc_serve  # type: ignore
+
+    _HAS_GRPC = True
+except Exception:  # pragma: no cover
+    _HAS_GRPC = False
+    _grpc_serve = None  # type: ignore
 
 POLL_INTERVAL = 1
 TIMEOUT = 30
@@ -53,9 +62,7 @@ def get_connection():
 
 def fetch_queued(conn):
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT * FROM execution_queue WHERE status = 'queued' ORDER BY id LIMIT 1"
-        )
+        cur.execute("SELECT * FROM execution_queue WHERE status = 'queued' ORDER BY id LIMIT 1")
         return cur.fetchone()
 
 
@@ -116,13 +123,25 @@ def _bwrap_cmd(script_path: str, extra_binds: tuple = ()) -> list:
         BWRAP,
         "--unshare-all",  # user, net, ipc, pid, uts, cgroup, time
         "--die-with-parent",
-        "--ro-bind", "/usr", "/usr",
-        "--ro-bind", "/usr/local", "/usr/local",
-        "--ro-bind", "/lib", "/lib",
-        "--ro-bind", "/lib64", "/lib64",
-        "--tmpfs", "/tmp",
-        "--dev", "/dev",
-        "--ro-bind", script_path, script_path,
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--ro-bind",
+        "/usr/local",
+        "/usr/local",
+        "--ro-bind",
+        "/lib",
+        "/lib",
+        "--ro-bind",
+        "/lib64",
+        "/lib64",
+        "--tmpfs",
+        "/tmp",
+        "--dev",
+        "/dev",
+        "--ro-bind",
+        script_path,
+        script_path,
     ]
     for src in extra_binds:
         args += ["--ro-bind", src, src]
@@ -161,7 +180,14 @@ def _run_sandboxed(cmd: list, timeout: int) -> dict:
     the error is returned loudly and the queue entry is marked failed."""
     try:
         start = time.perf_counter()
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=_bwrap_env(), preexec_fn=_set_rlimits)
+        r = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=_bwrap_env(),
+            preexec_fn=_set_rlimits,
+        )
         elapsed = int((time.perf_counter() - start) * 1000)
         try:
             mem = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
@@ -183,11 +209,19 @@ def _run_sandboxed(cmd: list, timeout: int) -> dict:
         if partial:
             idx = partial.find("case ")
             if idx >= 0:
-                msg += f" (during test {partial[idx:idx+20].strip()})"
-        return {"returncode": -1, "stdout": "", "stderr": msg, "timing_ms": timeout * 1000, "memory_kb": 0}
+                msg += f" (during test {partial[idx : idx + 20].strip()})"
+        return {
+            "returncode": -1,
+            "stdout": "",
+            "stderr": msg,
+            "timing_ms": timeout * 1000,
+            "memory_kb": 0,
+        }
 
 
-def run_bwrap(wrapper_code: str, wrapper_path: str, user_code_path: str | None = None, timeout: int = TIMEOUT) -> dict:
+def run_bwrap(
+    wrapper_code: str, wrapper_path: str, user_code_path: str | None = None, timeout: int = TIMEOUT
+) -> dict:
     """Write the wrapper and run it inside the sandbox. NO unsandboxed fallback."""
     with open(wrapper_path, "w") as f:
         f.write(wrapper_code)
@@ -224,7 +258,10 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
     """Generate test cases using generator_code, validate with solution_code.
     ALL code runs inside the sandbox. Returns (list | None, error_msg)."""
     with conn.cursor() as cur:
-        cur.execute("SELECT generator_code, solution_code, method_name, executor_code FROM problems WHERE id = %s", (problem_id,))
+        cur.execute(
+            "SELECT generator_code, solution_code, method_name, executor_code FROM problems WHERE id = %s",
+            (problem_id,),
+        )
         row = cur.fetchone()
     if not row:
         return None, f"Problem #{problem_id} not found in database"
@@ -238,7 +275,10 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         return None, "Problem has no solution_code"
 
     gen_path = f"/tmp/gen-{get_problem_label(conn, problem_id)}-{qid}.py"
-    gen_wrapper = generator_code + "\n\nimport json\ntry:\n    result = generate()\n    print(json.dumps(result))\nexcept Exception as e:\n    print(json.dumps({'error': str(e)}))\n"
+    gen_wrapper = (
+        generator_code
+        + "\n\nimport json\ntry:\n    result = generate()\n    print(json.dumps(result))\nexcept Exception as e:\n    print(json.dumps({'error': str(e)}))\n"
+    )
     with open(gen_path, "w") as f:
         f.write(gen_wrapper)
     os.chmod(gen_path, 0o644)
@@ -246,7 +286,10 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
     try:
         gen_result = run_script_bwrap(gen_path, timeout=30)
         if gen_result["returncode"] != 0:
-            return None, f"Generator crashed (rc={gen_result['returncode']}):\n{gen_result['stderr']}\n{gen_result['stdout']}"
+            return (
+                None,
+                f"Generator crashed (rc={gen_result['returncode']}):\n{gen_result['stderr']}\n{gen_result['stdout']}",
+            )
         if gen_result["stderr"]:
             for line in gen_result["stderr"].split("\n"):
                 _log(f"generator stderr: {line}", indent=2)
@@ -274,11 +317,20 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
             with open(sol_path, "w") as f:
                 f.write(solution_code)
             os.chmod(sol_path, 0o644)
-            sol_wrapper = build_wrapper(sol_path, method_name, [{
-                "input": {k: v for k, v in tc_data.items() if k not in ("hidden", "output")},
-                "hidden": tc_data.get("hidden"),
-                "output": None,
-            }], executor_code=executor_code)
+            sol_wrapper = build_wrapper(
+                sol_path,
+                method_name,
+                [
+                    {
+                        "input": {
+                            k: v for k, v in tc_data.items() if k not in ("hidden", "output")
+                        },
+                        "hidden": tc_data.get("hidden"),
+                        "output": None,
+                    }
+                ],
+                executor_code=executor_code,
+            )
             sol_result = run_bwrap(sol_wrapper, sol_wrap_path, sol_path, timeout=15)
         except Exception as e:
             _log(f"gen case validation setup failed: {e}", indent=2)
@@ -315,13 +367,15 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         got = tc_results[0].get("got", "")
         try:
             expected_raw = json.loads(got)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             expected_raw = got
-        valid.append({
-            "input": {k: v for k, v in tc_data.items() if k not in ("hidden", "output")},
-            "hidden": tc_data.get("hidden"),
-            "output": expected_raw,
-        })
+        valid.append(
+            {
+                "input": {k: v for k, v in tc_data.items() if k not in ("hidden", "output")},
+                "hidden": tc_data.get("hidden"),
+                "output": expected_raw,
+            }
+        )
 
     if not valid:
         return None, f"All {len(all_cases)} generated cases failed validation"
@@ -387,7 +441,9 @@ def process_entry(conn, entry):
 
         wrapper_path = f"/tmp/wrapper-{label}-{qid}.py"
         stop_on_failure = exec_type in ("brute_force", "submit_brute")
-        wrapper = build_wrapper(user_code_path, method_name, test_cases, stop_on_failure, executor_code)
+        wrapper = build_wrapper(
+            user_code_path, method_name, test_cases, stop_on_failure, executor_code
+        )
         result = run_bwrap(wrapper, wrapper_path, user_code_path)
         for p in (user_code_path, wrapper_path):
             if os.path.exists(p):
@@ -414,11 +470,14 @@ def process_entry(conn, entry):
             timing = tc.get("timing_ms")
             t_str = f"  ({timing:.3f}ms)" if timing is not None else ""
             if status == "passed":
-                _log(f"✓ test ({i+1}/{len(tc_results)})  {inp}  →  {got}{t_str}", indent=1)
+                _log(f"✓ test ({i + 1}/{len(tc_results)})  {inp}  →  {got}{t_str}", indent=1)
             elif status == "failed":
-                _log(f"✗ test ({i+1}/{len(tc_results)})  {inp}  expected {exp}  got {got}{t_str}", indent=1)
+                _log(
+                    f"✗ test ({i + 1}/{len(tc_results)})  {inp}  expected {exp}  got {got}{t_str}",
+                    indent=1,
+                )
             elif status == "skipped":
-                _log(f"− test ({i+1}/{len(tc_results)})  skipped (no input)", indent=1)
+                _log(f"− test ({i + 1}/{len(tc_results)})  skipped (no input)", indent=1)
         _LOG_INDENT -= 1
 
         passed = sum(1 for t in tc_results if t.get("passed"))
@@ -440,7 +499,13 @@ def process_entry(conn, entry):
                 with open(sol_path, "w") as f:
                     f.write(sol_code)
                 os.chmod(sol_path, 0o644)
-                sol_wrapper = build_wrapper(sol_path, method_name, test_cases, stop_on_failure=False, executor_code=executor_code)
+                sol_wrapper = build_wrapper(
+                    sol_path,
+                    method_name,
+                    test_cases,
+                    stop_on_failure=False,
+                    executor_code=executor_code,
+                )
                 sol_result = run_bwrap(sol_wrapper, sol_wrap_path, sol_path, timeout=30)
                 if sol_result["returncode"] == 0:
                     try:
@@ -457,17 +522,23 @@ def process_entry(conn, entry):
                     if os.path.exists(p):
                         os.unlink(p)
 
-        result_data = json.dumps({
-            "results": tc_results,
-            "stdout": all_stdout,
-        })
+        result_data = json.dumps(
+            {
+                "results": tc_results,
+                "stdout": all_stdout,
+            }
+        )
 
         verdict = "Accepted" if passed == total else "Wrong Answer"
-        _log(f"verdict: {verdict} ({passed}/{total} passed, {timing_ms}ms, {memory_kb}KB)", indent=1)
+        _log(
+            f"verdict: {verdict} ({passed}/{total} passed, {timing_ms}ms, {memory_kb}KB)", indent=1
+        )
         mark_completed(conn, qid, result_data, all_stdout, "", timing_ms, memory_kb)
 
         if exec_type == "submit":
-            sid = create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, memory_kb)
+            sid = create_solution(
+                conn, problem_id, code, verdict, passed, total, timing_ms, memory_kb
+            )
             with conn.cursor() as cur:
                 cur.execute("UPDATE execution_queue SET solution_id = %s WHERE id = %s", (sid, qid))
             _log(f"solution #{sid} created", indent=1)
@@ -484,6 +555,7 @@ def _become_subreaper() -> None:
     container's pids cgroup saturates and forks fail with EAGAIN."""
     try:
         import ctypes
+
         libc = ctypes.CDLL("libc.so.6", use_errno=True)
         PR_SET_CHILD_SUBREAPER = 36
         if libc.prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) != 0:
@@ -510,8 +582,30 @@ def reap_orphans() -> None:
         _log(f"reap_orphans error: {e}")
 
 
+def _start_grpc_background() -> None:
+    """Start gRPC ExecutorService in a daemon thread (internal net only)."""
+    if not _HAS_GRPC:
+        _log("gRPC not available — running poll-only")
+        return
+    import threading
+
+    def _run() -> None:
+        import asyncio
+
+        port = int(os.environ.get("GRPC_PORT", "50051"))
+        try:
+            asyncio.run(_grpc_serve(port))  # type: ignore[misc]
+        except Exception as exc:  # pragma: no cover
+            print(f"[bwrap-executor] gRPC server crashed: {exc}", flush=True)
+
+    t = threading.Thread(target=_run, name="grpc-server", daemon=True)
+    t.start()
+    _log(f"gRPC server starting on :{os.environ.get('GRPC_PORT', '50051')} (internal)")
+
+
 def main():
     _become_subreaper()
+    _start_grpc_background()
     print("[bwrap-executor] Starting...", flush=True)
     while True:
         try:
@@ -525,6 +619,7 @@ def main():
                             process_entry(conn, entry)
                         except Exception as e:
                             import traceback
+
                             traceback.print_exc(file=sys.stderr)
                             _log(f"FATAL: queue #{entry['id']} crashed: {e}", indent=1)
                             try:

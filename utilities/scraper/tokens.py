@@ -1,10 +1,9 @@
 import json
 import time
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 
-from .config import BASE
 from . import log
+from .config import BASE
 
 TRACKER_PATH = BASE / "token_usage.json"
 WINDOW_SECONDS = 5 * 3600
@@ -15,7 +14,7 @@ def _load() -> dict:
     if TRACKER_PATH.exists():
         try:
             return json.loads(TRACKER_PATH.read_text())
-        except (json.JSONDecodeError, Exception):
+        except json.JSONDecodeError, Exception:
             pass
     return {"window_start": 0, "tokens_used": 0}
 
@@ -37,7 +36,7 @@ def record(tokens: int):
 
     projected = state["tokens_used"] + tokens
     if projected > TOKEN_LIMIT:
-        reset_at = datetime.fromtimestamp(state["window_start"] + WINDOW_SECONDS, tz=timezone.utc)
+        reset_at = datetime.fromtimestamp(state["window_start"] + WINDOW_SECONDS, tz=UTC)
         log.warn(f"Token limit exceeded ({state['tokens_used']}/{TOKEN_LIMIT}) — overage allowed")
         log.warn(f"Window resets at {reset_at.isoformat()}")
 

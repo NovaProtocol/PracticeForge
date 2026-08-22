@@ -1,15 +1,15 @@
 from __future__ import annotations
 
+import contextlib
 import json
+
 from shared.db import execute, query, query_one
 
 
 def _parse_problem(row: dict) -> dict:
     if row and isinstance(row.get("tags"), str):
-        try:
+        with contextlib.suppress(json.JSONDecodeError, TypeError):
             row["tags"] = json.loads(row["tags"])
-        except (json.JSONDecodeError, TypeError):
-            pass
     return row
 
 
@@ -27,10 +27,18 @@ def get_problems_summary():
     )
     result = []
     for r in rows:
-        p = {"id": r["id"], "contest_id": r["contest_id"], "problem_index": r["problem_index"],
-             "title": r["title"], "slug": r["slug"], "difficulty_rating": r["difficulty_rating"],
-             "time_limit": r["time_limit"], "memory_limit": r["memory_limit"], "url": r["url"],
-             "submission_count": r["submission_count"]}
+        p = {
+            "id": r["id"],
+            "contest_id": r["contest_id"],
+            "problem_index": r["problem_index"],
+            "title": r["title"],
+            "slug": r["slug"],
+            "difficulty_rating": r["difficulty_rating"],
+            "time_limit": r["time_limit"],
+            "memory_limit": r["memory_limit"],
+            "url": r["url"],
+            "submission_count": r["submission_count"],
+        }
         tags = r.get("tags")
         p["tags"] = json.loads(tags) if isinstance(tags, str) else (tags or [])
         if r["best_verdict"] == "Accepted":
@@ -61,15 +69,21 @@ def get_all_tags():
                 if t not in seen:
                     seen.add(t)
                     tags.append(t)
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError, TypeError:
             pass
     return sorted(tags)
 
 
-
-
-
-def create_solution(problem_id: int, code: str, verdict: str = "Pending", passed: int = 0, total: int = 0, timing_ms: int = 0, memory_kb: int = 0, language: str = "python"):
+def create_solution(
+    problem_id: int,
+    code: str,
+    verdict: str = "Pending",
+    passed: int = 0,
+    total: int = 0,
+    timing_ms: int = 0,
+    memory_kb: int = 0,
+    language: str = "python",
+):
     return execute(
         """INSERT INTO solutions (problem_id, code, language, verdict, passed_count, total_count, timing_ms, memory_kb)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
@@ -99,10 +113,8 @@ def get_solutions():
     )
 
 
-
-
-
 # ── Auto-save ──
+
 
 def list_files(problem_id: int) -> list:
     rows = query(
@@ -155,10 +167,8 @@ def load_code(problem_id: int, filename: str = "main.py") -> dict:
     return {"code": row["code"] if row else None, "last_ran": row["last_ran"] if row else None}
 
 
-
-
-
 # ── Public API ──
+
 
 def upsert_problem(data: dict) -> int:
     """Insert or update a problem from uploaded data. Returns problem id."""
@@ -179,18 +189,33 @@ def upsert_problem(data: dict) -> int:
             solution_code=VALUES(solution_code), generator_code=VALUES(generator_code),
             executor_code=VALUES(executor_code),
             hints=VALUES(hints), url=VALUES(url)""",
-        (data["contest_id"], data["problem_index"], data["title"], slug,
-         data.get("difficulty_rating"), data.get("tags"),
-         data.get("base_code"), data.get("method_name"),
-         data.get("description_html"), data.get("time_limit"),
-         data.get("memory_limit"), data.get("input_spec"),
-         data.get("output_spec"), data.get("examples_json"),
-         data.get("constraints_json"),
-         data.get("solution_code"), data.get("generator_code"),
-         data.get("executor_code"), data.get("hints"), data.get("url")),
+        (
+            data["contest_id"],
+            data["problem_index"],
+            data["title"],
+            slug,
+            data.get("difficulty_rating"),
+            data.get("tags"),
+            data.get("base_code"),
+            data.get("method_name"),
+            data.get("description_html"),
+            data.get("time_limit"),
+            data.get("memory_limit"),
+            data.get("input_spec"),
+            data.get("output_spec"),
+            data.get("examples_json"),
+            data.get("constraints_json"),
+            data.get("solution_code"),
+            data.get("generator_code"),
+            data.get("executor_code"),
+            data.get("hints"),
+            data.get("url"),
+        ),
     )
-    row = query_one("SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
-                     (data["contest_id"], data["problem_index"]))
+    row = query_one(
+        "SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
+        (data["contest_id"], data["problem_index"]),
+    )
     return row["id"] if row else None
 
 
@@ -208,6 +233,7 @@ def get_editorial(problem_id: int) -> dict | None:
 
 
 # ── Images ──
+
 
 def create_image(filename: str, data: bytes, content_type: str = "image/png"):
     return execute(
@@ -231,4 +257,3 @@ def image_exists(filename: str) -> bool:
 
 def delete_image(filename: str):
     execute("DELETE FROM problem_images WHERE filename = %s", (filename,))
-

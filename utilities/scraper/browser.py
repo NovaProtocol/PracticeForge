@@ -1,11 +1,12 @@
+import contextlib
 import time
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from .config import CF_POLL, BROWSER_DATA_DIR
 from . import log
+from .config import BROWSER_DATA_DIR, CF_POLL
 
 
 class Browser:
@@ -53,10 +54,12 @@ class Browser:
 
         try:
             WebDriverWait(self.driver, 30).until(
-                EC.presence_of_element_located((
-                    By.CSS_SELECTOR,
-                    "div.problem-statement, #challenge-error-title, title",
-                ))
+                EC.presence_of_element_located(
+                    (
+                        By.CSS_SELECTOR,
+                        "div.problem-statement, #challenge-error-title, title",
+                    )
+                )
             )
         except Exception:
             log.error("Page load timeout (30s)")
@@ -81,8 +84,6 @@ class Browser:
 
     def close(self):
         if self._driver:
-            try:
+            with contextlib.suppress(Exception):
                 self._driver.quit()
-            except Exception:
-                pass
             self._driver = None

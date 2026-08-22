@@ -17,16 +17,17 @@ from shared._bootstrap import ensure_project_root_on_path
 
 ensure_project_root_on_path()
 
+import contextlib
 import json
 import time
 
 import requests
 
-from utilities.scraper.config import AI_DELAY, LIMIT, API_BASE, BASE, TEST_TARGET, CF_API
+from utilities.scraper import log
 from utilities.scraper.ai import AIEnricher
+from utilities.scraper.config import AI_DELAY, API_BASE, BASE, CF_API, LIMIT, TEST_TARGET
 from utilities.scraper.extract import extract_text
 from utilities.scraper.uploader import Uploader
-from utilities.scraper import log
 
 HTML_DIR = BASE / "html"
 FAIL_PATH = BASE / "fail.json"
@@ -42,7 +43,7 @@ def _load_failed_ids():
         try:
             for entry in json.loads(FAIL_PATH.read_text()):
                 FAILED_IDS_CACHE.add(entry.get("id"))
-        except (json.JSONDecodeError, Exception):
+        except json.JSONDecodeError, Exception:
             pass
     return FAILED_IDS_CACHE
 
@@ -50,10 +51,8 @@ def _load_failed_ids():
 def _record_failure(problem_id: str, problem_name: str, reason: str):
     failures = []
     if FAIL_PATH.exists():
-        try:
+        with contextlib.suppress(json.JSONDecodeError, Exception):
             failures = json.loads(FAIL_PATH.read_text())
-        except (json.JSONDecodeError, Exception):
-            pass
     failures.append({"id": problem_id, "name": problem_name, "reason": reason, "ts": time.time()})
     FAIL_PATH.write_text(json.dumps(failures, indent=2))
     global FAILED_IDS_CACHE
@@ -123,7 +122,7 @@ def main():
     for i, (cid_str, idx, html_file) in enumerate(to_process):
         cid = int(cid_str)
         pid_str = f"{cid}/{idx}"
-        log.info(f"[{i+1}/{total}] {pid_str} — {html_file}")
+        log.info(f"[{i + 1}/{total}] {pid_str} — {html_file}")
 
         if uploader.exists_on_server(cid, idx):
             continue

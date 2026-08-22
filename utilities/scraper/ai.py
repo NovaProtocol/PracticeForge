@@ -1,11 +1,12 @@
+import contextlib
 import json
 import os
 import subprocess
 import sys
 import tempfile
 
-from .config import AI_KEY, AI_MODEL, AI_URL, RETRY_LIMIT
 from . import log
+from .config import AI_KEY, AI_MODEL, AI_URL, RETRY_LIMIT
 from .tokens import record
 
 SYSTEM_PROMPT = r"""You are an expert Python educational coding platform engine for high school students. Extract problem data from the HTML into this exact JSON structure:
@@ -72,7 +73,6 @@ Guidelines (Strictly Python-Centric):
 
 
 class AIEnricher:
-
     def __init__(self):
         self._client = None
         self.last_error = ""
@@ -83,6 +83,7 @@ class AIEnricher:
             if not AI_KEY:
                 raise ValueError("ZEN_API_KEY not set")
             from openai import OpenAI
+
             self._client = OpenAI(api_key=AI_KEY, base_url=AI_URL)
         return self._client
 
@@ -103,7 +104,7 @@ class AIEnricher:
         solution_ok, solution_err = self._validate_solution(data)
         if not solution_ok:
             for attempt in range(RETRY_LIMIT):
-                log.warn(f"Solution failed (attempt {attempt+1}/{RETRY_LIMIT}): {solution_err}")
+                log.warn(f"Solution failed (attempt {attempt + 1}/{RETRY_LIMIT}): {solution_err}")
                 ctx = self._build_solution_retry_context(data, solution_err)
                 retry_data = self._call_ai(None, ctx)
                 if retry_data:
@@ -123,11 +124,13 @@ class AIEnricher:
         gen_ok, gen_err = self._validate_generator(data)
         if not gen_ok:
             for attempt in range(RETRY_LIMIT):
-                log.warn(f"Generator failed (attempt {attempt+1}/{RETRY_LIMIT}): {gen_err}")
+                log.warn(f"Generator failed (attempt {attempt + 1}/{RETRY_LIMIT}): {gen_err}")
                 ctx = self._build_generator_retry_context(data, gen_err)
                 retry_data = self._call_ai(None, ctx)
                 if retry_data:
-                    data["generator_code"] = retry_data.get("generator_code", data["generator_code"])
+                    data["generator_code"] = retry_data.get(
+                        "generator_code", data["generator_code"]
+                    )
                     data["solution_code"] = retry_data.get("solution_code", data["solution_code"])
                     if retry_data.get("executor_code") is not None:
                         data["executor_code"] = retry_data["executor_code"]
@@ -187,7 +190,9 @@ class AIEnricher:
             messages.append({"role": "user", "content": problem_text})
 
         full_text = "\n".join(m["content"] for m in messages)
-        log.info(f"Sending to AI (problem={len(problem_text or '')} chars, context={len(error_context or '')} chars)")
+        log.info(
+            f"Sending to AI (problem={len(problem_text or '')} chars, context={len(error_context or '')} chars)"
+        )
         log.info(f"--- Full prompt ({len(full_text)} chars) ---")
         for line in full_text.split("\n"):
             log.info(line)
@@ -225,11 +230,11 @@ class AIEnricher:
             hidden = ex.get("hidden")
             result = _run_code(solution_code, kwargs, executor_code, hidden)
             if result["error"]:
-                return False, f"Example {i+1}: raised {result['error']}"
+                return False, f"Example {i + 1}: raised {result['error']}"
             # Same comparison as executor's _matches: exact JSON equality
             # OR numeric equivalence for int/float (1 == 1.0)
             if not _val_equal(result["output"], expected):
-                return False, f"Example {i+1}: expected {expected!r}, got {result['output']!r}"
+                return False, f"Example {i + 1}: expected {expected!r}, got {result['output']!r}"
         return True, ""
 
     def _validate_generator(self, data: dict) -> tuple[bool, str]:
@@ -248,9 +253,13 @@ class AIEnricher:
             hidden = kwargs.get("hidden") if isinstance(kwargs, dict) else None
             result = _run_code(solution_code, kwargs, executor_code, hidden)
             if result["error"]:
-                failed.append(f"Case {i+1}: solution crashed with {result['error']}")
+                failed.append(f"Case {i + 1}: solution crashed with {result['error']}")
         if failed:
-            return False, f"{len(failed)}/100 generated cases failed. First failures:\n" + "\n".join(failed[:5])
+            return (
+                False,
+                f"{len(failed)}/100 generated cases failed. First failures:\n"
+                + "\n".join(failed[:5]),
+            )
         return True, ""
 
 
@@ -259,7 +268,12 @@ def _val_equal(a, b):
     numeric equivalence for int/float (1 == 1.0)."""
     if json.dumps(a) == json.dumps(b):
         return True
-    if isinstance(a, (int, float)) and not isinstance(a, bool) and isinstance(b, (int, float)) and not isinstance(b, bool):
+    if (
+        isinstance(a, (int, float))
+        and not isinstance(a, bool)
+        and isinstance(b, (int, float))
+        and not isinstance(b, bool)
+    ):
         return abs(a - b) < 1e-9
     return False
 
@@ -286,7 +300,9 @@ def _run_code(user_code: str, kwargs: dict, executor_code: str = "", hidden=None
         wrap_tmp.close()
         r = subprocess.run(
             [sys.executable, wrap_tmp.name],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         stdout = r.stdout.strip()
         if not stdout:
@@ -304,17 +320,15 @@ def _run_code(user_code: str, kwargs: dict, executor_code: str = "", hidden=None
         got = first.get("got", "")
         try:
             output = json.loads(got)
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError, TypeError:
             output = got
         return {"output": output, "error": None}
     except Exception as e:
         return {"output": None, "error": str(e)}
     finally:
         for p in (user_tmp.name, wrap_tmp.name):
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(p)
-            except OSError:
-                pass
 
 
 def _run_generator(generator_code: str, count: int = 100) -> list | None:
@@ -330,7 +344,9 @@ print(json.dumps(result))
         tmp.close()
         r = subprocess.run(
             [sys.executable, tmp.name],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if r.returncode != 0:
             log.warn(f"Generator stderr: {r.stderr[:200]}")
@@ -340,7 +356,5 @@ print(json.dumps(result))
         log.warn(f"Generator error: {e}")
         return None
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp.name)
-        except OSError:
-            pass

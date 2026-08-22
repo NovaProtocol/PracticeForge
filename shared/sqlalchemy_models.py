@@ -1,5 +1,17 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, JSON, Enum, ForeignKey, UniqueConstraint, LargeBinary
-from sqlalchemy.dialects.mysql import LONGTEXT, LONGBLOB
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.mysql import LONGBLOB, LONGTEXT
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
@@ -51,7 +63,9 @@ class Solution(Base):
     timing_ms = Column(Integer)
     memory_kb = Column(Integer)
     created_at = Column(DateTime, server_default=func.current_timestamp())
-    updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+    updated_at = Column(
+        DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp()
+    )
 
     problem = relationship("Problem", back_populates="solutions")
 
@@ -85,7 +99,9 @@ class AutoSave(Base):
     code = Column(Text, nullable=False)
     last_ran = Column(Text)
     active = Column(Boolean, default=True)
-    updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+    updated_at = Column(
+        DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp()
+    )
 
 
 class ProblemImage(Base):

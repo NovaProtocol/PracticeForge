@@ -5,7 +5,6 @@ dummy script to disk and runs it inside the bwrap sandbox via
 run_script_bwrap. Skipped when bwrap is not installed on the host.
 """
 
-import os
 import shutil
 
 import pytest
@@ -49,9 +48,7 @@ def test_sandbox_env_is_empty_and_has_no_secrets(tmp_path, bwrap_executor, monke
     script = _write_script(
         tmp_path,
         "env.py",
-        "import os\n"
-        "print(os.environ.get('SOLVESPACE_TEST_SECRET'))\n"
-        "print(len(os.environ))\n",
+        "import os\nprint(os.environ.get('SOLVESPACE_TEST_SECRET'))\nprint(len(os.environ))\n",
     )
     result = bwrap_executor.run_script_bwrap(script, timeout=10)
     assert result["returncode"] == 0

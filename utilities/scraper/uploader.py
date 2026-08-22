@@ -2,9 +2,9 @@ import json
 import os
 import time
 
+from . import log
 from .api import get_session
 from .config import API_BASE
-from . import log
 
 RETRIES = 3
 BACKOFF = 2
@@ -24,14 +24,13 @@ def _retry(fn, *args, **kwargs):
         except Exception as e:
             last_err = e
             if attempt < RETRIES - 1:
-                log.warn(f"Retry {attempt+1}/{RETRIES} after: {e}")
+                log.warn(f"Retry {attempt + 1}/{RETRIES} after: {e}")
                 time.sleep(BACKOFF * (attempt + 1))
     log.error(f"All {RETRIES} retries failed: {last_err}")
     return None if kwargs.get("default") is None else kwargs["default"]
 
 
 class Uploader:
-
     def exists_on_server(self, cid: int, idx: str) -> bool:
         try:
             r = get_session().get(f"{API_BASE}/api/problems/exists/{cid}/{idx}", timeout=10)
@@ -67,7 +66,9 @@ class Uploader:
         }
 
     def _do_upload(self, data: dict) -> int | None:
-        r = get_session().post(f"{API_BASE}/api/problems/upload", json=data, headers=_headers(), timeout=30)
+        r = get_session().post(
+            f"{API_BASE}/api/problems/upload", json=data, headers=_headers(), timeout=30
+        )
         if r.status_code == 200:
             pid = r.json().get("id")
             log.info(f"Uploaded ✅ (id={pid})")

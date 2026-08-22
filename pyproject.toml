@@ -1,0 +1,63 @@
+[project]
+name = "solvespace"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+exclude = ["shared/proto_gen", ".venv", "__pycache__"]
+lint.select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+lint.ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "shared"]
+
+[tool.ruff.lint.per-file-ignores]
+"shared/proto_gen/*" = ["E", "F"]
+"documentation/app.py" = ["E501"]
+"executor/*" = ["E501", "RUF001"]
+"shared/*" = ["E501", "SIM105"]
+"solver_private/*" = ["E501", "SIM105"]
+"utilities/scraper/*" = ["E402", "E501", "SIM105", "SIM115"]
+"tests/*" = ["E501", "SIM105"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = "documentation|shared/proto_gen|executor|shared/__pycache__"
+explicit_package_bases = true
+mypy_path = "."
+namespace_packages = true
+disable_error_code = ["valid-type", "misc", "var-annotated", "union-attr", "no-any-return", "import-untyped", "arg-type"]
+
+[[tool.mypy.overrides]]
+module = "shared.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "solver_private.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "utilities.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[tool.yamllint]
+extends = "default"
+rules.line-length.max = 100
+rules.braces.max-spaces-inside = 1
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

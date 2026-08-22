@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 from urllib.parse import parse_qs
 
@@ -30,8 +31,8 @@ from shared.models import (
     upsert_problem,
 )
 
-
 # ── Problems ──
+
 
 @blueprint.route("/problems")
 def list_problems():
@@ -46,19 +47,15 @@ def get_problem_api(contest_id: int, index: str):
     examples = []
     raw = problem.get("examples_json")
     if isinstance(raw, str):
-        try:
+        with contextlib.suppress(json.JSONDecodeError, TypeError):
             examples = json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            pass
     elif isinstance(raw, list):
         examples = raw
     constraints = []
     raw_c = problem.get("constraints_json")
     if isinstance(raw_c, str):
-        try:
+        with contextlib.suppress(json.JSONDecodeError, TypeError):
             constraints = json.loads(raw_c)
-        except (json.JSONDecodeError, TypeError):
-            pass
     elif isinstance(raw_c, list):
         constraints = raw_c
     problem["examples"] = examples
@@ -89,13 +86,14 @@ def problem_exists(contest_id: int, index: str):
 
 # ── Tags ──
 
+
 @blueprint.route("/tags")
 def list_tags():
-    from shared.models import get_all_tags
     return jsonify(get_all_tags())
 
 
 # ── Submissions / Editorial ──
+
 
 @blueprint.route("/submissions/<int:problem_id>")
 def problem_submissions(problem_id: int):
@@ -112,6 +110,7 @@ def editorial(problem_id: int):
 
 # ── Solutions ──
 
+
 @blueprint.route("/solutions")
 def list_solutions():
     return jsonify(get_solutions())
@@ -125,20 +124,34 @@ def get_solution_api(solution_id: int):
     raw = get_solution_results(solution_id)
     tc_data = {}
     if raw["result"] and raw["result"] != "{}":
-        try:
+        with contextlib.suppress(json.JSONDecodeError, TypeError):
             tc_data = json.loads(raw["result"])
-        except (json.JSONDecodeError, TypeError):
-            pass
-    return jsonify({
-        "solution": solution,
-        "test_results": tc_data,
-        "stdout": raw["stdout"] or "",
-    })
+    return jsonify(
+        {
+            "solution": solution,
+            "test_results": tc_data,
+            "stdout": raw["stdout"] or "",
+        }
+    )
 
 
-# ── Code execution ──
+# ── Code execution (gRPC primary, DB fallback) ──
 
-def _queue_execution(problem_id: int, code: str, method_name: str, exec_type: str, test_cases_json: str = "[]") -> int:
+
+def _queue_execution(
+    problem_id: int, code: str, method_name: str, exec_type: str, test_cases_json: str = "[]"
+) -> int:
+    """Enqueue via gRPC when available, otherwise direct DB insert."""
+    # Try internal gRPC (solver → executor) for low-latency wakeup.
+    try:
+        from shared.grpc_client import enqueue_via_grpc  # type: ignore
+
+        qid = enqueue_via_grpc(problem_id, code, method_name, test_cases_json, exec_type)
+        if qid is not None:
+            return int(qid)
+    except Exception:
+        pass
+    # Fallback: direct DB insert (also covers tests without gRPC server)
     return execute(
         """INSERT INTO execution_queue (problem_id, code, method_name, test_cases_json, exec_type, status)
            VALUES (%s, %s, %s, %s, %s, 'queued')""",
@@ -197,6 +210,7 @@ def format_code():
     code = request.form.get("code", "")
     try:
         import black
+
         mode = black.Mode(target_versions={black.TargetVersion.PY39}, line_length=120)
         formatted = black.format_str(code, mode=mode)
         return jsonify({"formatted": formatted})
@@ -221,47 +235,60 @@ def re_run(solution_id: int):
         raw = problem.get("examples_json")
         examples = []
         if isinstance(raw, str):
-            try:
+            with contextlib.suppress(json.JSONDecodeError, TypeError):
                 examples = json.loads(raw)
-            except (json.JSONDecodeError, TypeError):
-                pass
         elif isinstance(raw, list):
             examples = raw
-        test_cases_json = json.dumps([
-            {"input": dict(ex.get("input") or {}), "output": ex.get("output"),
-             **({"hidden": ex["hidden"]} if "hidden" in ex else {})}
-            for ex in examples
-            if isinstance(ex, dict)
-        ])
-    qid = execute(
-        """INSERT INTO execution_queue (problem_id, code, method_name, test_cases_json, exec_type, status)
-           VALUES (%s, %s, %s, %s, 'run', 'queued')""",
-        (solution["problem_id"], solution["code"], method_name, test_cases_json),
+        test_cases_json = json.dumps(
+            [
+                {
+                    "input": dict(ex.get("input") or {}),
+                    "output": ex.get("output"),
+                    **({"hidden": ex["hidden"]} if "hidden" in ex else {}),
+                }
+                for ex in examples
+                if isinstance(ex, dict)
+            ]
+        )
+    qid = _queue_execution(
+        solution["problem_id"], solution["code"], method_name, "run", test_cases_json
     )
     return jsonify({"queue_id": qid, "status": "queued"})
 
 
 @blueprint.route("/queue-status/<int:queue_id>")
 def queue_status(queue_id: int):
+    # Try gRPC first (internal), fallback to DB.
+    try:
+        from shared.grpc_client import get_status_via_grpc  # type: ignore
+
+        g = get_status_via_grpc(queue_id)
+        if g is not None and g.get("queue_id"):
+            return jsonify(g)
+    except Exception:
+        pass
     q = query_one(
         "SELECT id, status, result, stdout, error, timing_ms, memory_kb, solution_id FROM execution_queue WHERE id = %s",
         (queue_id,),
     )
     if not q:
         return jsonify({"error": "not found"}), 404
-    return jsonify({
-        "queue_id": q["id"],
-        "status": q["status"],
-        "result": q["result"] or "",
-        "stdout": q["stdout"] or "",
-        "error": q["error"] or "",
-        "timing_ms": q["timing_ms"],
-        "memory_kb": q["memory_kb"],
-        "solution_id": q["solution_id"],
-    })
+    return jsonify(
+        {
+            "queue_id": q["id"],
+            "status": q["status"],
+            "result": q["result"] or "",
+            "stdout": q["stdout"] or "",
+            "error": q["error"] or "",
+            "timing_ms": q["timing_ms"],
+            "memory_kb": q["memory_kb"],
+            "solution_id": q["solution_id"],
+        }
+    )
 
 
 # ── Code auto-save ──
+
 
 @blueprint.route("/files/<int:problem_id>")
 def files_list(problem_id: int):
@@ -340,8 +367,11 @@ def image_get(filename: str):
     row = get_image(filename)
     if not row:
         return jsonify({"error": "not found"}), 404
-    return Response(row["data"], mimetype=row["content_type"] or "image/png",
-                    headers={"X-Content-Type-Options": "nosniff"})
+    return Response(
+        row["data"],
+        mimetype=row["content_type"] or "image/png",
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
 
 
 @blueprint.route("/images", methods=["POST"])
@@ -369,6 +399,7 @@ def image_delete(filename: str):
 @blueprint.route("/images/exists/<path:filename>")
 def image_exists_api(filename: str):
     from shared.models import image_exists
+
     return jsonify({"exists": image_exists(filename)})
 
 
