@@ -4,7 +4,6 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PYTHON_GIL=0
 ENV PYTHONPATH=/app/shared
 
 RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap && \

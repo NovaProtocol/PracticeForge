@@ -5,7 +5,6 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app/shared
-ENV PYTHON_GIL=0
 
 COPY shared/requirements.txt /app/shared/
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ libc6-dev && \
