@@ -33,6 +33,11 @@ def create_app() -> Flask:
     app.register_blueprint(solutions_blueprint)
     app.register_blueprint(api_blueprint)
 
+    @app.route("/health")
+    def health():
+        """Health probe."""
+        return {"status": "ok"}
+
     @app.route("/404")
     def not_found_page():
         return render_template("404.html"), 404

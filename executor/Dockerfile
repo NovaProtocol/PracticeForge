@@ -1,17 +1,21 @@
-FROM python3146t:latest
+FROM python:3.14-slim
+
 WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHON_GIL=0
 
 RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap && \
     rm -rf /var/lib/apt/lists/*
 
 COPY executor/requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY executor/bwrap_executor.py .
 COPY shared/wrapper.py /app/wrapper.py
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHON_GIL=0
+RUN python3 -m compileall -q /app 2>/dev/null || true
 
 # NOTE (2026-08-12): this container intentionally runs as root with
 # SYS_ADMIN + seccomp/apparmor unconfined — bwrap's user-namespace sandbox
