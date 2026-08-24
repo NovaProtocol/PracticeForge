@@ -2,5 +2,5 @@ PyMySQL>=1.1
 cryptography>=41.0
 grpcio>=1.60,<2
 grpcio-tools>=1.60,<2
-protobuf>=4,<7
+protobuf>=7.35.1,<8
 SQLAlchemy>=2.0
