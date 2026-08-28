@@ -3,10 +3,6 @@
         reverse_proxy solver_private:7030
     }
 
-    handle /404 {
-        reverse_proxy solver_private:7030
-    }
-
     handle_path /documentation/* {
         forward_auth gatekeeper:7000 {
             uri /api/authz/forward-auth
