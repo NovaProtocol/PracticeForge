@@ -1,6 +1,6 @@
 :7031 {
     handle /health {
-        reverse_proxy solver_private:7030
+        reverse_proxy solver_private:8000
     }
 
     handle_path /documentation/* {
@@ -8,6 +8,6 @@
     }
 
     handle {
-        reverse_proxy solver_private:7030
+        reverse_proxy solver_private:8000
     }
 }

@@ -6,7 +6,7 @@ services:
     container_name: solver_private
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7030/health', timeout=5)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -22,7 +22,7 @@ services:
       EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-solver_executor:50051}
       GRPC_PORT: ${GRPC_PORT:-50051}
     expose:
-      - "7030"
+      - "8000"
     depends_on:
       mysql:
         condition: service_healthy
