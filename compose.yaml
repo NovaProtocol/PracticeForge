@@ -38,9 +38,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - gatekeeper
-      - cloudflared-tunnel
-
+      - gatekeeper_dynamic
   mysql:
     image: mysql:8.4
     container_name: solver_mysql
@@ -144,3 +142,6 @@ networks:
   cloudflared-tunnel:
     external: true
     name: cloudflared-tunnel_default
+  gatekeeper_dynamic:
+    external: true
+    name: gatekeeper_dynamic
