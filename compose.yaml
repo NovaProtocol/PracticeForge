@@ -39,6 +39,7 @@ services:
     networks:
       - default
       - gatekeeper_dynamic
+      - cloudflared-tunnel
   mysql:
     image: mysql:8.4
     container_name: solver_mysql
