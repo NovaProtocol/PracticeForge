@@ -22,8 +22,8 @@ RUN python3 -m compileall -q /app /app/shared 2>/dev/null || true
 RUN useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
 
-EXPOSE 7030
+EXPOSE 8000
 
 USER appuser
 
-CMD ["gunicorn", "--bind", "0.0.0.0:7030", "--worker-class", "gthread", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--worker-class", "gthread", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app:create_app()"]
