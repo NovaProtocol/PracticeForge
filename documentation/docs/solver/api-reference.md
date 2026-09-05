@@ -1,6 +1,6 @@
 # Solver API Reference
 
-Base path `/api` (via Caddy `handle /*` → `solver_private:7030`).
+Base path `/api` (via Caddy `handle /*` → `solver_private:8000`).
 
 ## Problems
 
