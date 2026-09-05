@@ -47,7 +47,7 @@ Check health:
 
 ```bash
 docker compose ps
-curl -s http://127.0.0.1:7031/health || curl -s http://solver_private:7030/health
+curl -s http://127.0.0.1:7031/health || curl -s http://solver_private:8000/health
 docker compose logs -f solver_private solver_executor solver_documentation
 ```
 

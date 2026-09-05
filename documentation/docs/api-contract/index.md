@@ -1,6 +1,6 @@
 # API Contract
 
-## HTTP (public ingress via Caddy `:7031 → solver_private:7030`)
+## HTTP (public ingress via Caddy `:7031 → solver_private:8000`)
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -80,7 +80,7 @@ HTTP is the public edge; gRPC is the internal notify. Both share the same servic
 
 | Port | Service | Publish |
 |---|---|---|
-| 7030 | solver_private (HTTP + optional gRPC) | `expose` only |
+| 8000 | solver_private (HTTP + optional gRPC) | `expose` only |
 | 7031 | Caddy gateway | via `cloudflared-tunnel_default` (no host `ports`) |
 | 50051 | executor gRPC | `expose` only, `net-executor` internal |
 | 8005 | documentation HTTP | `expose` only |

@@ -11,15 +11,15 @@ Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces proble
 | Service | Container | Internal Port | Caddy Route | Network |
 |---|---|---|---|---|
 | **Caddy** | `solver_caddy` | 7031 | — | default, gatekeeper, cloudflared-tunnel |
-| **Solver Private** | `solver_private` | 7030 | `/*` (7031) | default, net-executor |
+| **Solver Private** | `solver_private` | 8000 | `/*` (7031) | default, net-executor |
 | **Executor** | `solver_executor` | 50051 (gRPC, internal) | — | default, net-executor |
 | **Documentation** | `solver_documentation` | 8005 | `/documentation/*` (7031) | default |
 | **MySQL 8.4** | `solver_mysql` | 3306 | — | default |
 | **phpMyAdmin** | `solver_phpmyadmin` | 80 | — (127.0.0.1:7032) | default |
 
-- All Caddy routes except `/health` and `/404` are gated via `forward_auth gatekeeper:7000`.
+- Gate is at the **wildcard** (`gatekeeper_caddy:7000` → `gatekeeper_auth:8001` on `gatekeeper_dynamic`) — live `caddy/Caddyfile` proxies without a per-app `forward_auth` (wildcard per `reference/gatekeeper/caddy-setup.md`). Live ingress is 3 handles: `/health`, `/documentation/*`, catch-all.
 - `solver_private ↔ solver_executor` talk over **gRPC** on `solver_executor:50051` (internal `net-executor`, `expose` only) plus the MySQL `execution_queue` table.
-- Browser ingress is HTTP through Caddy (`:7031 → solver_private:7030`); internal RPC is gRPC.
+- Browser ingress is HTTP through Caddy (`:7031 → solver_private:8000`); internal RPC is gRPC.
 
 ## Architecture Diagram
 
@@ -31,12 +31,12 @@ graph TB
         GK["GateKeeper :7000"]
     end
 
-    subgraph "Caddy :7031"
-        CADDY["Caddy<br/>forward_auth + reverse_proxy"]
+    subgraph "Caddy :7031 (live 3 handles)"
+        CADDY["Caddy<br/>reverse_proxy (wildcard gate)"]
     end
 
     subgraph "App Layer (default + net-executor)"
-        SOLVER["solver_private :7030<br/>Flask + Gunicorn<br/>problems / solutions / api"]
+        SOLVER["solver_private :8000<br/>Flask + Gunicorn<br/>problems / solutions / api"]
         EXEC["solver_executor :50051<br/>bwrap sandbox + gRPC server"]
         DOCS["solver_documentation :8005<br/>FastAPI + Granian<br/>MkDocs site"]
     end

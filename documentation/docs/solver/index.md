@@ -1,6 +1,6 @@
 # Solver Private
 
-Flask app serving problems, solutions, editor, and execution API. Runs on `solver_private:7030` behind the Caddy gate (`:7031`).
+Flask app serving problems, solutions, editor, and execution API. Runs on `solver_private:8000` behind the Caddy gate (`:7031`).
 
 ## Layout
 

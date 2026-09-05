@@ -13,7 +13,7 @@ graph TB
     end
 
     subgraph "net-executor (internal) + default"
-        SOLVER["solver_private<br/>Flask :7030<br/>gunicorn gthread 2x4"]
+        SOLVER["solver_private<br/>Flask :8000<br/>gunicorn gthread 2x4"]
         EXEC["solver_executor<br/>Python :50051 gRPC<br/>bwrap --unshare-all + rlimits"]
     end
 
@@ -52,7 +52,7 @@ graph TB
 | `cloudflared-tunnel` | external `cloudflared-tunnel_default` | solver_caddy | Public ingress via tunnel |
 
 - `50051` is `expose` only — never `ports`-published. Caddy never proxies gRPC.
-- `solver_private:7030` and `solver_documentation:8005` are `expose` only — Caddy is the sole published surface (`:7031` on the tunnel network).
+- `solver_private:8000` and `solver_documentation:8005` are `expose` only — Caddy is the sole published surface (`:7031` on the tunnel network).
 - `phpmyadmin` is loopback-only `127.0.0.1:7032:80`.
 
 ## Data Flow
@@ -93,7 +93,7 @@ Gate: `forward_auth gatekeeper:7000 { uri /api/authz/forward-auth }` on `:7031` 
 
 | Component | Code | Port | Runtime |
 |---|---|---|---|
-| solver_private | `solver_private/` + `shared/` | 7030 | `python:3.14-slim`, gunicorn gthread |
+| solver_private | `solver_private/` + `shared/` | 8000 | `python:3.14-slim`, gunicorn gthread |
 | executor | `executor/` + `shared/wrapper.py` | 50051 (gRPC) | `python:3.14-slim`, root + `SYS_ADMIN` + `bwrap` |
 | documentation | `documentation/` + `shared/` | 8005 | `python:3.14-slim`, granian asgi, `USER appuser 10001` |
 | mysql | `mysql:8.4` | 3306 | named volume `mysql_data` |
