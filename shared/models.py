@@ -69,7 +69,7 @@ def get_all_tags():
                 if t not in seen:
                     seen.add(t)
                     tags.append(t)
-        except json.JSONDecodeError, TypeError:
+        except (json.JSONDecodeError, TypeError):
             pass
     return sorted(tags)
 

@@ -21,6 +21,7 @@ services:
       API_TOKEN: ${API_TOKEN:-}
       EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-solver_executor:50051}
       GRPC_PORT: ${GRPC_PORT:-50051}
+      ZEN_API_KEY: ${ZEN_API_KEY:-}
     expose:
       - "8000"
     depends_on:
@@ -36,6 +37,11 @@ services:
       dockerfile: Dockerfile
     container_name: solver_caddy
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:7031:7031"
+    depends_on:
+      solver_private:
+        condition: service_healthy
     networks:
       - default
       - gatekeeper_dynamic
@@ -82,6 +88,12 @@ services:
       dockerfile: executor/Dockerfile
     container_name: solver_executor
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import grpc; from shared.proto_gen import executor_pb2, executor_pb2_grpc; ch=grpc.insecure_channel('127.0.0.1:50051'); stub=executor_pb2_grpc.ExecutorServiceStub(ch); r=stub.HealthCheck(executor_pb2.HealthCheckRequest(), timeout=2); exit(0 if r.status=='ok' else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     # Root + SYS_ADMIN + unconfined seccomp/apparmor are REQUIRED by the
     # bwrap user-namespace sandbox (see executor/Dockerfile NOTE). Sandboxed
     # code still runs with an empty env + rlimits — it never sees MYSQL_*.

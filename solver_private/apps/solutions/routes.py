@@ -1,20 +1,24 @@
 from __future__ import annotations
 
-from flask import render_template
+from fastapi import APIRouter, Request
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import HTMLResponse
 
-from apps.solutions import blueprint
+from apps.templating import templates
 from shared.models import get_solution, get_solutions
 
-
-@blueprint.route("/solutions/")
-def index():
-    solutions = get_solutions()
-    return render_template("solutions/index.html", solutions=solutions)
+router = APIRouter(tags=["solutions"])
 
 
-@blueprint.route("/solution/<int:solution_id>/")
-def detail(solution_id: int):
-    solution = get_solution(solution_id)
+@router.get("/solutions/", response_class=HTMLResponse)
+async def index(request: Request):
+    solutions = await run_in_threadpool(get_solutions)
+    return templates.TemplateResponse(request, "solutions/index.html", {"solutions": solutions})
+
+
+@router.get("/solution/{solution_id}/", response_class=HTMLResponse)
+async def detail(request: Request, solution_id: int):
+    solution = await run_in_threadpool(get_solution, solution_id)
     if not solution:
-        return render_template("404.html"), 404
-    return render_template("solutions/detail.html", solution=solution)
+        return templates.TemplateResponse(request, "404.html", {}, status_code=404)
+    return templates.TemplateResponse(request, "solutions/detail.html", {"solution": solution})

@@ -367,7 +367,7 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
         got = tc_results[0].get("got", "")
         try:
             expected_raw = json.loads(got)
-        except json.JSONDecodeError, ValueError:
+        except (json.JSONDecodeError, ValueError):
             expected_raw = got
         valid.append(
             {

@@ -4,10 +4,10 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app/shared
+ENV PYTHONPATH=/app/shared:/app
 
-COPY shared/requirements.txt /app/shared/
-RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ libc6-dev && \
+COPY shared/requirements.txt /app/shared/requirements.txt
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ libc6-dev curl && \
     rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir -r /app/shared/requirements.txt
 
@@ -26,4 +26,7 @@ EXPOSE 8000
 
 USER appuser
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--worker-class", "gthread", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app:create_app()"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"
+
+CMD ["granian", "--interface", "asgi", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "wsgi:app"]

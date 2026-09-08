@@ -1,13 +1,13 @@
 # SolveSpace
 
 Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces
-problems, AI-enriches them, and uploads them to a private Flask app where
+problems, AI-enriches them, and uploads them to a private FastAPI app where
 submitted code runs in a bwrap sandbox.
 
 ## Components
 
-- `solver_private/` — the Flask app (problems, solutions, editor, execution
-  API). Serves on port `8000` inside the container, behind the Caddy
+- `solver_private/` — the FastAPI app (problems, solutions, editor, execution
+  API — `create_app()` factory, `APIRouter` x3, `granian` 1 worker, `RequestIDMiddleware`+`structlog` JSON, `{error:{code,message,request_id}}`). Serves on port `8000` inside the container, behind the Caddy
   forward-auth gate (GateKeeper).
 - `executor/` — bwrap sandbox that runs submitted/generated code against test
   cases and writes results to the DB.
@@ -31,7 +31,7 @@ submitted code runs in a bwrap sandbox.
 
 See `.env.example`. Required: `MYSQL_PASS` (compose fails fast without it).
 Optional: `MYSQL_USER`, `MYSQL_DATABASE`, `API_TOKEN` (scraper + write API),
-`ACCESS_CODE` (GateKeeper magic-link handshake), `ZEN_API_KEY` (scraper AI).
+`ACCESS_CODE` (GateKeeper magic-link handshake), `ZEN_API_KEY` (scraper AI — wired as `ZEN_API_KEY: ${ZEN_API_KEY:-}` in `compose.yaml`).
 
 Variables are injected by compose — there is no `.env` file. For local runs,
 `export` the vars in your shell.

@@ -5,9 +5,10 @@ import contextlib
 import json
 from urllib.parse import parse_qs
 
-from flask import Response, jsonify, request
+from fastapi import APIRouter, Depends, Header, Request, Response
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import JSONResponse
 
-from apps.api import blueprint
 from shared.db import execute, query, query_one
 from shared.models import (
     create_file,
@@ -31,19 +32,43 @@ from shared.models import (
     upsert_problem,
 )
 
-# ── Problems ──
+router = APIRouter(prefix="/api", tags=["api"])
+
+_ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"}
+
+async def _require_write_auth(request: Request, x_api_token: str | None = Header(default=None, alias="X-API-Token")):
+    if request.method not in ("POST", "PUT", "DELETE"):
+        return
+    import os
+    api_token = os.environ.get("API_TOKEN", "")
+    if api_token and x_api_token == api_token:
+        return
+    origin = request.headers.get("origin") or request.headers.get("referer") or ""
+    if origin:
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        host = request.headers.get("host", "")
+        if parsed.scheme in ("http", "https") and parsed.netloc == host:
+            return
+    # allow if no token configured (dev) — match Flask fallback that returned 401 only when token set
+    if not api_token:
+        return
+    from fastapi import HTTPException
+    raise HTTPException(status_code=401, detail="unauthorized")
 
 
-@blueprint.route("/problems")
-def list_problems():
-    return jsonify(get_problems_summary())
+# -- Problems --
+
+@router.get("/problems")
+async def list_problems():
+    return await run_in_threadpool(get_problems_summary)
 
 
-@blueprint.route("/problems/<int:contest_id>/<index>")
-def get_problem_api(contest_id: int, index: str):
-    problem = get_problem(contest_id, index)
+@router.get("/problems/{contest_id}/{index}")
+async def get_problem_api(contest_id: int, index: str):
+    problem = await run_in_threadpool(get_problem, contest_id, index)
     if not problem:
-        return jsonify({"error": "not found"}), 404
+        return JSONResponse({"error": "not found"}, status_code=404)
     examples = []
     raw = problem.get("examples_json")
     if isinstance(raw, str):
@@ -60,173 +85,142 @@ def get_problem_api(contest_id: int, index: str):
         constraints = raw_c
     problem["examples"] = examples
     problem["constraints"] = constraints
-    return jsonify(problem)
+    return problem
 
 
-@blueprint.route("/problems/upload", methods=["POST"])
-def upload_problem():
-    data = request.get_json()
+@router.post("/problems/upload", dependencies=[Depends(_require_write_auth)])
+async def upload_problem(request: Request):
+    data = await request.json()
     if not data or "contest_id" not in data or "problem_index" not in data or "title" not in data:
-        return jsonify({"error": "missing required fields: contest_id, problem_index, title"}), 400
+        return JSONResponse({"error": "missing required fields: contest_id, problem_index, title"}, status_code=400)
     try:
-        pid = upsert_problem(data)
-        return jsonify({"status": "ok", "id": pid})
+        pid = await run_in_threadpool(upsert_problem, data)
+        return {"status": "ok", "id": pid}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@blueprint.route("/problems/exists/<int:contest_id>/<index>")
-def problem_exists(contest_id: int, index: str):
-    row = query_one(
-        "SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s",
-        (contest_id, index),
-    )
-    return jsonify({"exists": row is not None, "id": row["id"] if row else None})
+@router.get("/problems/exists/{contest_id}/{index}")
+async def problem_exists(contest_id: int, index: str):
+    row = await run_in_threadpool(query_one, "SELECT id FROM problems WHERE contest_id = %s AND problem_index = %s", (contest_id, index))
+    return {"exists": row is not None, "id": row["id"] if row else None}
 
 
-# ── Tags ──
+@router.get("/tags")
+async def list_tags():
+    return await run_in_threadpool(get_all_tags)
 
 
-@blueprint.route("/tags")
-def list_tags():
-    return jsonify(get_all_tags())
+@router.get("/submissions/{problem_id}")
+async def problem_submissions(problem_id: int):
+    return await run_in_threadpool(get_problem_submissions, problem_id)
 
 
-# ── Submissions / Editorial ──
-
-
-@blueprint.route("/submissions/<int:problem_id>")
-def problem_submissions(problem_id: int):
-    return jsonify(get_problem_submissions(problem_id))
-
-
-@blueprint.route("/editorial/<int:problem_id>")
-def editorial(problem_id: int):
-    content = get_editorial(problem_id)
+@router.get("/editorial/{problem_id}")
+async def editorial(problem_id: int):
+    content = await run_in_threadpool(get_editorial, problem_id)
     if content is None:
-        return jsonify({"error": "not found"}), 404
-    return jsonify(content)
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return content
 
 
-# ── Solutions ──
+@router.get("/solutions")
+async def list_solutions():
+    return await run_in_threadpool(get_solutions)
 
 
-@blueprint.route("/solutions")
-def list_solutions():
-    return jsonify(get_solutions())
-
-
-@blueprint.route("/solutions/<int:solution_id>")
-def get_solution_api(solution_id: int):
-    solution = get_solution(solution_id)
+@router.get("/solutions/{solution_id}")
+async def get_solution_api(solution_id: int):
+    solution = await run_in_threadpool(get_solution, solution_id)
     if not solution:
-        return jsonify({"error": "not found"}), 404
-    raw = get_solution_results(solution_id)
+        return JSONResponse({"error": "not found"}, status_code=404)
+    raw = await run_in_threadpool(get_solution_results, solution_id)
     tc_data = {}
     if raw["result"] and raw["result"] != "{}":
         with contextlib.suppress(json.JSONDecodeError, TypeError):
             tc_data = json.loads(raw["result"])
-    return jsonify(
-        {
-            "solution": solution,
-            "test_results": tc_data,
-            "stdout": raw["stdout"] or "",
-        }
-    )
+    return {"solution": solution, "test_results": tc_data, "stdout": raw["stdout"] or ""}
 
 
-# ── Code execution (gRPC primary, DB fallback) ──
-
-
-def _queue_execution(
-    problem_id: int, code: str, method_name: str, exec_type: str, test_cases_json: str = "[]"
-) -> int:
-    """Enqueue via gRPC when available, otherwise direct DB insert."""
-    # Try internal gRPC (solver → executor) for low-latency wakeup.
+def _queue_execution(problem_id: int, code: str, method_name: str, exec_type: str, test_cases_json: str = "[]") -> int:
     try:
-        from shared.grpc_client import enqueue_via_grpc  # type: ignore
-
+        from shared.grpc_client import enqueue_via_grpc
         qid = enqueue_via_grpc(problem_id, code, method_name, test_cases_json, exec_type)
         if qid is not None:
             return int(qid)
     except Exception:
         pass
-    # Fallback: direct DB insert (also covers tests without gRPC server)
-    return execute(
-        """INSERT INTO execution_queue (problem_id, code, method_name, test_cases_json, exec_type, status)
-           VALUES (%s, %s, %s, %s, %s, 'queued')""",
-        (problem_id, code, method_name, test_cases_json, exec_type),
-    )
+    return execute("INSERT INTO execution_queue (problem_id, code, method_name, test_cases_json, exec_type, status) VALUES (%s, %s, %s, %s, %s, 'queued')", (problem_id, code, method_name, test_cases_json, exec_type))
 
 
-@blueprint.route("/run/<int:contest_id>/<index>", methods=["POST"])
-def run_code(contest_id: int, index: str):
-    problem = get_problem(contest_id, index)
+@router.post("/run/{contest_id}/{index}", dependencies=[Depends(_require_write_auth)])
+async def run_code(contest_id: int, index: str, request: Request):
+    problem = await run_in_threadpool(get_problem, contest_id, index)
     if not problem:
-        return jsonify({"error": "not found"}), 404
-    code = request.form.get("code", "")
-    filename = request.form.get("filename", "main.py")
+        return JSONResponse({"error": "not found"}, status_code=404)
+    form = await request.form()
+    code = str(form.get("code", ""))
+    filename = str(form.get("filename", "main.py"))
     method_name = problem.get("method_name") or "run"
-    raw_tcs = request.form.get("testcases", "[]")
-    save_last_ran(problem["id"], code, filename)
-    qid = _queue_execution(problem["id"], code, method_name, "run", raw_tcs)
-    return jsonify({"queue_id": qid, "status": "queued"})
+    raw_tcs = str(form.get("testcases", "[]"))
+    await run_in_threadpool(save_last_ran, problem["id"], code, filename)
+    qid = await run_in_threadpool(_queue_execution, problem["id"], code, method_name, "run", raw_tcs)
+    return {"queue_id": qid, "status": "queued"}
 
 
-@blueprint.route("/brute-force/<int:contest_id>/<index>", methods=["POST"])
-def brute_force(contest_id: int, index: str):
+@router.post("/brute-force/{contest_id}/{index}", dependencies=[Depends(_require_write_auth)])
+async def brute_force(contest_id: int, index: str, request: Request):
     try:
-        problem = get_problem(contest_id, index)
+        problem = await run_in_threadpool(get_problem, contest_id, index)
         if not problem:
-            return jsonify({"error": "not found"}), 404
-        code = request.form.get("code", "")
-        filename = request.form.get("filename", "main.py")
+            return JSONResponse({"error": "not found"}, status_code=404)
+        form = await request.form()
+        code = str(form.get("code", ""))
+        filename = str(form.get("filename", "main.py"))
         method_name = problem.get("method_name") or "run"
-        save_last_ran(problem["id"], code, filename)
-        qid = _queue_execution(problem["id"], code, method_name, "brute_force")
-        return jsonify({"queue_id": qid, "status": "queued"})
+        await run_in_threadpool(save_last_ran, problem["id"], code, filename)
+        qid = await run_in_threadpool(_queue_execution, problem["id"], code, method_name, "brute_force")
+        return {"queue_id": qid, "status": "queued"}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@blueprint.route("/submit/<int:contest_id>/<index>", methods=["POST"])
-def submit_code(contest_id: int, index: str):
+@router.post("/submit/{contest_id}/{index}", dependencies=[Depends(_require_write_auth)])
+async def submit_code(contest_id: int, index: str, request: Request):
     try:
-        problem = get_problem(contest_id, index)
+        problem = await run_in_threadpool(get_problem, contest_id, index)
         if not problem:
-            return jsonify({"error": "not found"}), 404
-        code = request.form.get("code", "")
-        filename = request.form.get("filename", "main.py")
+            return JSONResponse({"error": "not found"}, status_code=404)
+        form = await request.form()
+        code = str(form.get("code", ""))
+        filename = str(form.get("filename", "main.py"))
         method_name = problem.get("method_name") or "run"
-        save_last_ran(problem["id"], code, filename)
-        qid = _queue_execution(problem["id"], code, method_name, "submit_brute")
-        return jsonify({"queue_id": qid, "status": "queued"})
+        await run_in_threadpool(save_last_ran, problem["id"], code, filename)
+        qid = await run_in_threadpool(_queue_execution, problem["id"], code, method_name, "submit_brute")
+        return {"queue_id": qid, "status": "queued"}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@blueprint.route("/format", methods=["POST"])
-def format_code():
-    code = request.form.get("code", "")
+@router.post("/format", dependencies=[Depends(_require_write_auth)])
+async def format_code(request: Request):
+    form = await request.form()
+    code = str(form.get("code", ""))
     try:
         import black
-
         mode = black.Mode(target_versions={black.TargetVersion.PY39}, line_length=120)
         formatted = black.format_str(code, mode=mode)
-        return jsonify({"formatted": formatted})
+        return {"formatted": formatted}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@blueprint.route("/re-run/<int:solution_id>", methods=["POST"])
-def re_run(solution_id: int):
-    solution = get_solution(solution_id)
+@router.post("/re-run/{solution_id}", dependencies=[Depends(_require_write_auth)])
+async def re_run(solution_id: int):
+    solution = await run_in_threadpool(get_solution, solution_id)
     if not solution or solution["verdict"] != "Accepted":
-        return jsonify({"error": "not found or not accepted"}), 404
-    problem = query_one(
-        "SELECT method_name, examples_json FROM problems WHERE id = %s",
-        (solution["problem_id"],),
-    )
+        return JSONResponse({"error": "not found or not accepted"}, status_code=404)
+    problem = await run_in_threadpool(query_one, "SELECT method_name, examples_json FROM problems WHERE id = %s", (solution["problem_id"],))
     method_name = "run"
     test_cases_json = "[]"
     if problem:
@@ -239,168 +233,133 @@ def re_run(solution_id: int):
                 examples = json.loads(raw)
         elif isinstance(raw, list):
             examples = raw
-        test_cases_json = json.dumps(
-            [
-                {
-                    "input": dict(ex.get("input") or {}),
-                    "output": ex.get("output"),
-                    **({"hidden": ex["hidden"]} if "hidden" in ex else {}),
-                }
-                for ex in examples
-                if isinstance(ex, dict)
-            ]
-        )
-    qid = _queue_execution(
-        solution["problem_id"], solution["code"], method_name, "run", test_cases_json
-    )
-    return jsonify({"queue_id": qid, "status": "queued"})
+        test_cases_json = json.dumps([{"input": dict(ex.get("input") or {}), "output": ex.get("output"), **({"hidden": ex["hidden"]} if "hidden" in ex else {})} for ex in examples if isinstance(ex, dict)])
+    qid = await run_in_threadpool(_queue_execution, solution["problem_id"], solution["code"], method_name, "run", test_cases_json)
+    return {"queue_id": qid, "status": "queued"}
 
 
-@blueprint.route("/queue-status/<int:queue_id>")
-def queue_status(queue_id: int):
-    # Try gRPC first (internal), fallback to DB.
+@router.get("/queue-status/{queue_id}")
+async def queue_status(queue_id: int):
     try:
-        from shared.grpc_client import get_status_via_grpc  # type: ignore
-
-        g = get_status_via_grpc(queue_id)
+        from shared.grpc_client import get_status_via_grpc
+        g = await run_in_threadpool(get_status_via_grpc, queue_id)
         if g is not None and g.get("queue_id"):
-            return jsonify(g)
+            return g
     except Exception:
         pass
-    q = query_one(
-        "SELECT id, status, result, stdout, error, timing_ms, memory_kb, solution_id FROM execution_queue WHERE id = %s",
-        (queue_id,),
-    )
+    q = await run_in_threadpool(query_one, "SELECT id, status, result, stdout, error, timing_ms, memory_kb, solution_id FROM execution_queue WHERE id = %s", (queue_id,))
     if not q:
-        return jsonify({"error": "not found"}), 404
-    return jsonify(
-        {
-            "queue_id": q["id"],
-            "status": q["status"],
-            "result": q["result"] or "",
-            "stdout": q["stdout"] or "",
-            "error": q["error"] or "",
-            "timing_ms": q["timing_ms"],
-            "memory_kb": q["memory_kb"],
-            "solution_id": q["solution_id"],
-        }
-    )
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return {"queue_id": q["id"], "status": q["status"], "result": q["result"] or "", "stdout": q["stdout"] or "", "error": q["error"] or "", "timing_ms": q["timing_ms"], "memory_kb": q["memory_kb"], "solution_id": q["solution_id"]}
 
 
-# ── Code auto-save ──
-
-
-@blueprint.route("/files/<int:problem_id>")
-def files_list(problem_id: int):
-    include_inactive = request.args.get("include_inactive", "").lower() in ("true", "1")
+@router.get("/files/{problem_id}")
+async def files_list(problem_id: int, request: Request):
+    include_inactive = request.query_params.get("include_inactive", "").lower() in ("true", "1")
     if include_inactive:
-        rows = query(
-            "SELECT filename, code, last_ran, active FROM auto_saves WHERE problem_id = %s ORDER BY filename",
-            (problem_id,),
-        )
-        return jsonify(rows if rows else [])
-    return jsonify(list_files(problem_id))
+        rows = await run_in_threadpool(query, "SELECT filename, code, last_ran, active FROM auto_saves WHERE problem_id = %s ORDER BY filename", (problem_id,))
+        return rows if rows else []
+    return await run_in_threadpool(list_files, problem_id)
 
 
-@blueprint.route("/files/<int:problem_id>", methods=["POST"])
-def files_create(problem_id: int):
-    data = request.get_json() or request.form
-    filename = data.get("filename", "main.py")
-    code = data.get("code", "")
-    create_file(problem_id, filename, code)
-    return jsonify({"status": "ok", "filename": filename})
+@router.post("/files/{problem_id}", dependencies=[Depends(_require_write_auth)])
+async def files_create(problem_id: int, request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        form = await request.form()
+        data = dict(form)
+    filename = str(data.get("filename", "main.py"))
+    code = str(data.get("code", ""))
+    await run_in_threadpool(create_file, problem_id, filename, code)
+    return {"status": "ok", "filename": filename}
 
 
-@blueprint.route("/files/<int:problem_id>/<path:filename>", methods=["PUT"])
-def files_save(problem_id: int, filename: str):
-    code = request.form.get("code", "")
-    save_code(problem_id, code, filename)
-    return jsonify({"status": "ok"})
+@router.put("/files/{problem_id}/{filename:path}", dependencies=[Depends(_require_write_auth)])
+async def files_save(problem_id: int, filename: str, request: Request):
+    form = await request.form()
+    code = str(form.get("code", ""))
+    await run_in_threadpool(save_code, problem_id, code, filename)
+    return {"status": "ok"}
 
 
-@blueprint.route("/files/<int:problem_id>/<path:filename>", methods=["DELETE"])
-def files_delete(problem_id: int, filename: str):
-    delete_file(problem_id, filename)
-    return jsonify({"status": "ok"})
+@router.delete("/files/{problem_id}/{filename:path}", dependencies=[Depends(_require_write_auth)])
+async def files_delete(problem_id: int, filename: str):
+    await run_in_threadpool(delete_file, problem_id, filename)
+    return {"status": "ok"}
 
 
-@blueprint.route("/files/<int:problem_id>/<path:old_filename>/rename", methods=["POST"])
-def files_rename(problem_id: int, old_filename: str):
-    data = request.get_json() or request.form
-    new_filename = data.get("filename", "main.py")
-    rename_file(problem_id, old_filename, new_filename)
-    return jsonify({"status": "ok"})
+@router.post("/files/{problem_id}/{old_filename:path}/rename", dependencies=[Depends(_require_write_auth)])
+async def files_rename(problem_id: int, old_filename: str, request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        form = await request.form()
+        data = dict(form)
+    new_filename = str(data.get("filename", "main.py"))
+    await run_in_threadpool(rename_file, problem_id, old_filename, new_filename)
+    return {"status": "ok"}
 
 
-@blueprint.route("/save/<int:contest_id>/<index>", methods=["POST"])
-def save_code_api(contest_id: int, index: str):
-    problem = get_problem(contest_id, index)
+@router.post("/save/{contest_id}/{index}", dependencies=[Depends(_require_write_auth)])
+async def save_code_api(contest_id: int, index: str, request: Request):
+    problem = await run_in_threadpool(get_problem, contest_id, index)
     if not problem:
-        return jsonify({"error": "not found"}), 404
-    code = request.form.get("code", "")
-    filename = request.form.get("filename", "main.py")
-    # sendBeacon's Content-Type is browser-dependent; some browsers send
-    # text/plain, which leaves request.form empty. Parse the body manually
-    # so autosave can't silently wipe the code to "".
-    if not request.form and request.mimetype == "text/plain":
-        parsed = parse_qs(request.get_data(as_text=True))
+        return JSONResponse({"error": "not found"}, status_code=404)
+    # handle both form and text/plain (sendBeacon)
+    content_type = request.headers.get("content-type", "")
+    if "text/plain" in content_type:
+        body = (await request.body()).decode()
+        parsed = parse_qs(body)
         code = parsed.get("code", [""])[0]
         filename = parsed.get("filename", ["main.py"])[0]
-    save_code(problem["id"], code, filename)
-    return jsonify({"status": "ok"})
+    else:
+        form = await request.form()
+        code = str(form.get("code", ""))
+        filename = str(form.get("filename", "main.py"))
+    await run_in_threadpool(save_code, problem["id"], code, filename)
+    return {"status": "ok"}
 
 
-@blueprint.route("/auto-save/<int:problem_id>")
-def auto_save_get(problem_id: int):
-    filename = request.args.get("filename", "main.py")
-    data = load_code(problem_id, filename)
-    return jsonify({"code": data["code"] or "", "last_ran": data["last_ran"] or ""})
+@router.get("/auto-save/{problem_id}")
+async def auto_save_get(problem_id: int, request: Request):
+    filename = request.query_params.get("filename", "main.py")
+    data = await run_in_threadpool(load_code, problem_id, filename)
+    return {"code": data["code"] or "", "last_ran": data["last_ran"] or ""}
 
 
-# ── Images ──
-
-_ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"}
-
-
-@blueprint.route("/images/<path:filename>", methods=["GET"])
-def image_get(filename: str):
-    row = get_image(filename)
+@router.get("/images/{filename:path}")
+async def image_get(filename: str):
+    row = await run_in_threadpool(get_image, filename)
     if not row:
-        return jsonify({"error": "not found"}), 404
-    return Response(
-        row["data"],
-        mimetype=row["content_type"] or "image/png",
-        headers={"X-Content-Type-Options": "nosniff"},
-    )
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return Response(content=row["data"], media_type=row["content_type"] or "image/png", headers={"X-Content-Type-Options": "nosniff"})
 
 
-@blueprint.route("/images", methods=["POST"])
-def image_upload():
-    data = request.get_json()
+@router.post("/images", dependencies=[Depends(_require_write_auth)])
+async def image_upload(request: Request):
+    data = await request.json()
     if not data or not data.get("filename") or not data.get("data"):
-        return jsonify({"error": "missing filename or data"}), 400
+        return JSONResponse({"error": "missing filename or data"}, status_code=400)
     content_type = data.get("content_type", "image/png")
     if content_type not in _ALLOWED_IMAGE_TYPES:
-        return jsonify({"error": "unsupported content type"}), 400
+        return JSONResponse({"error": "unsupported content type"}, status_code=400)
     try:
         raw = base64.b64decode(data["data"])
     except Exception as e:
-        return jsonify({"error": f"invalid base64: {e}"}), 400
-    create_image(data["filename"], raw, data.get("content_type", "image/png"))
-    return jsonify({"status": "ok", "filename": data["filename"]})
+        return JSONResponse({"error": f"invalid base64: {e}"}, status_code=400)
+    await run_in_threadpool(create_image, data["filename"], raw, data.get("content_type", "image/png"))
+    return {"status": "ok", "filename": data["filename"]}
 
 
-@blueprint.route("/images/<path:filename>", methods=["DELETE"])
-def image_delete(filename: str):
-    delete_image(filename)
-    return jsonify({"status": "deleted"})
+@router.delete("/images/{filename:path}", dependencies=[Depends(_require_write_auth)])
+async def image_delete(filename: str):
+    await run_in_threadpool(delete_image, filename)
+    return {"status": "deleted"}
 
 
-@blueprint.route("/images/exists/<path:filename>")
-def image_exists_api(filename: str):
+@router.get("/images/exists/{filename:path}")
+async def image_exists_api(filename: str):
     from shared.models import image_exists
-
-    return jsonify({"exists": image_exists(filename)})
-
-
-# ── Test cases ──
+    exists = await run_in_threadpool(image_exists, filename)
+    return {"exists": exists}
