@@ -1,8 +1,8 @@
 # SolveSpace
 
-Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces problems, AI-enriches them, and uploads them to a private Flask app where submitted code runs in a **bwrap** sandbox. An internal **gRPC** channel links the solver and executor for low-latency queue operations.
+Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces problems, AI-enriches them, and uploads them to a private FastAPI app where submitted code runs in a **bwrap** sandbox. An internal **gRPC** channel links the solver and executor for low-latency queue operations.
 
-**Stack:** Python 3.14 · Flask 3.1 + Gunicorn (solver) · bwrap sandbox (executor) · MySQL 8.4 · Caddy 2 · MkDocs Material
+**Stack:** Python 3.14 · FastAPI + Granian 1 worker (solver `solver_private:8000`, `RequestIDMiddleware`+`structlog` JSON `{error:{code,message,request_id}}`, `shared/static/js/error.js` `apiFetch`) · bwrap sandbox (executor `solver_executor:50051` gRPC) · MySQL 8.4 · Caddy 2 (`127.0.0.1:7031:7031`) · MkDocs Material
 
 **Docs:** This site (`documentation/`)
 
@@ -36,7 +36,7 @@ graph TB
     end
 
     subgraph "App Layer (default + net-executor)"
-        SOLVER["solver_private :8000<br/>Flask + Gunicorn<br/>problems / solutions / api"]
+        SOLVER["solver_private :8000<br/>FastAPI + Granian 1 worker<br/>problems / solutions / api"]
         EXEC["solver_executor :50051<br/>bwrap sandbox + gRPC server"]
         DOCS["solver_documentation :8005<br/>FastAPI + Granian<br/>MkDocs site"]
     end

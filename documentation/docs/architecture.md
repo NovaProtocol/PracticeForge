@@ -1,6 +1,6 @@
 # Architecture
 
-**Stack:** Flask 3.1 + Gunicorn (solver_private), bwrap (executor), MySQL 8.4, Caddy 2, FastAPI + Granian (documentation)
+**Stack:** FastAPI + Granian 1 worker (solver_private `solver_private:8000`, `RequestIDMiddleware`+`structlog` JSON `{error:{code,message,request_id}}`), bwrap (executor `solver_executor:50051` gRPC), MySQL 8.4, Caddy 2 (`127.0.0.1:7031:7031`), FastAPI + Granian (documentation `solver_documentation:8005`)
 
 ## High-Level Container Diagram
 
@@ -13,7 +13,7 @@ graph TB
     end
 
     subgraph "net-executor (internal) + default"
-        SOLVER["solver_private<br/>Flask :8000<br/>gunicorn gthread 2x4"]
+        SOLVER["solver_private<br/>FastAPI :8000<br/>granian asgi 1 worker<br/>RequestIDMiddleware+structlog"]
         EXEC["solver_executor<br/>Python :50051 gRPC<br/>bwrap --unshare-all + rlimits"]
     end
 
@@ -93,7 +93,7 @@ Gate: `forward_auth gatekeeper:7000 { uri /api/authz/forward-auth }` on `:7031` 
 
 | Component | Code | Port | Runtime |
 |---|---|---|---|
-| solver_private | `solver_private/` + `shared/` | 8000 | `python:3.14-slim`, gunicorn gthread |
+| solver_private | `solver_private/` + `shared/` | 8000 | `python:3.14-slim`, `granian asgi 1 worker` (`wsgi:app`) + `RequestIDMiddleware`+`structlog` JSON `{error:{code,message,request_id}}` |
 | executor | `executor/` + `shared/wrapper.py` | 50051 (gRPC) | `python:3.14-slim`, root + `SYS_ADMIN` + `bwrap` |
 | documentation | `documentation/` + `shared/` | 8005 | `python:3.14-slim`, granian asgi, `USER appuser 10001` |
 | mysql | `mysql:8.4` | 3306 | named volume `mysql_data` |

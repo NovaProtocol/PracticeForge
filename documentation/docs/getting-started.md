@@ -83,7 +83,8 @@ Stages: `scrape` → `images_download` → `images_upload` → `ai` (AI enrichme
 export DEPLOYMENT_TYPE=DEBUG
 export MYSQL_HOST=127.0.0.1
 export MYSQL_PASS=SolveSpace
-python -m solver_private.app   # or gunicorn path
+python solver_private/run.py --mode debug   # uvicorn factory=True --reload
+# or: granian --interface asgi --host 0.0.0.0 --port 8000 --workers 1 wsgi:app  (from solver_private/)
 ```
 
 ### Run executor locally

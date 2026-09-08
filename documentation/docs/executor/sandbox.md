@@ -151,7 +151,7 @@ async def enqueue_via_grpc(problem_id, code, method_name, test_cases_json, exec_
         return resp.queue_id
 ```
 
-For Flask (sync) routes, a sync stub using `grpc.insecure_channel` is provided as fallback.
+For sync callers (executor poll, startup), a sync stub using `grpc.insecure_channel` is provided; FastAPI routes use `grpc.aio.insecure_channel` via `run_in_threadpool` bridge (`shared/grpc_client.py`).
 
 ### Compose Wiring
 
