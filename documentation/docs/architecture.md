@@ -6,40 +6,40 @@
 
 ```mermaid
 graph TB
-    U["Browser / Scraper"]
+ U["Browser / Scraper"]
 
-    subgraph "Caddy :7031"
-        CADDY["Caddy 2-alpine<br/>:7031 handle + handle_path<br/>forward_auth gatekeeper:7000"]
-    end
+ subgraph "Caddy :7031"
+ CADDY["Caddy 2-alpine<br/>:7031 handle + handle_path<br/>GateKeeper gate"]
+ end
 
-    subgraph "net-executor (internal) + default"
-        SOLVER["solver_private<br/>FastAPI :8000<br/>granian asgi 1 worker<br/>RequestIDMiddleware+structlog"]
-        EXEC["solver_executor<br/>Python :50051 gRPC<br/>bwrap --unshare-all + rlimits"]
-    end
+ subgraph "net-executor (internal) + default"
+ SOLVER["solver_private<br/>FastAPI :8000<br/>granian asgi 1 worker<br/>RequestIDMiddleware+structlog"]
+ EXEC["solver_executor<br/>Python :50051 gRPC<br/>bwrap --unshare-all + rlimits"]
+ end
 
-    subgraph "default"
-        DOCS["solver_documentation<br/>FastAPI :8005<br/>granian asgi 1 worker"]
-        DB[("solver_mysql :3306<br/>mysql:8.4")]
-        PMA["solver_phpmyadmin :80"]
-    end
+ subgraph "default"
+ DOCS["solver_documentation<br/>FastAPI :8005<br/>granian asgi 1 worker"]
+ DB[("solver_mysql :3306<br/>mysql:8.4")]
+ PMA["solver_phpmyadmin :80"]
+ end
 
-    subgraph "External networks"
-        GK["gatekeeper_default<br/>gatekeeper:7000"]
-        TUN["cloudflared-tunnel_default"]
-    end
+ subgraph "External networks"
+ GK["gatekeeper<br/>gatekeeper:7000"]
+ TUN["cloudflared-tunnel"]
+ end
 
-    U -->|"HTTP via tunnel"| TUN
-    TUN --> CADDY
-    CADDY -->|"forward_auth"| GK
-    CADDY -->|"handle /*"| SOLVER
-    CADDY -->|"handle_path /documentation/*"| DOCS
-    CADDY -->|"handle /404, /health public"| SOLVER
+ U -->|"HTTP via tunnel"| TUN
+ TUN --> CADDY
+ CADDY -->|"GateKeeper gate"| GK
+ CADDY -->|"handle /*"| SOLVER
+ CADDY -->|"handle_path /documentation/*"| DOCS
+ CADDY -->|"handle /404, /health public"| SOLVER
 
-    SOLVER -->|"gRPC insecure_channel<br/>solver_executor:50051"| EXEC
-    SOLVER <-->|"SQLAlchemy / PyMySQL"| DB
-    EXEC <-->|"poll execution_queue"| DB
-    EXEC -->|"bwrap sandbox<br/>empty env, rlimits, pids cgroup"| EXEC
-    PMA --> DB
+ SOLVER -->|"gRPC insecure_channel<br/>solver_executor:50051"| EXEC
+ SOLVER <-->|"SQLAlchemy / PyMySQL"| DB
+ EXEC <-->|"poll execution_queue"| DB
+ EXEC -->|"bwrap sandbox<br/>empty env, rlimits, pids cgroup"| EXEC
+ PMA --> DB
 ```
 
 ## Network Topology
@@ -48,8 +48,8 @@ graph TB
 |---|---|---|---|
 | `default` | bridge | solver_private, solver_executor, solver_documentation, solver_mysql, solver_phpmyadmin, solver_caddy | App + docs + DB |
 | `net-executor` | bridge `internal: true` | solver_private, solver_executor | gRPC `solver_executor:50051` only |
-| `gatekeeper` | external `gatekeeper_default` | solver_caddy | `forward_auth gatekeeper:7000` |
-| `cloudflared-tunnel` | external `cloudflared-tunnel_default` | solver_caddy | Public ingress via tunnel |
+| `gatekeeper` | external `gatekeeper` | solver_caddy | `GateKeeper gate` |
+| `cloudflared-tunnel` | external `cloudflared-tunnel` | solver_caddy | Public ingress via tunnel |
 
 - `50051` is `expose` only — never `ports`-published. Caddy never proxies gRPC.
 - `solver_private:8000` and `solver_documentation:8005` are `expose` only — Caddy is the sole published surface (`:7031` on the tunnel network).
@@ -61,21 +61,21 @@ graph TB
 
 ```
 Codeforces HTML --scrape.py--> html/ --extract.py--> JSON
-  --images_download.py--> images/ --images_upload.py--> DB image blobs
-  --ai.py--> generator_code / solution_code / executor_code / hints
-  --uploader.py POST /api/problems/upload--> solver_private --> MySQL problems
+ --images_download.py--> images/ --images_upload.py--> DB image blobs
+ --ai.py--> generator_code / solution_code / executor_code / hints
+ --uploader.py POST /api/problems/upload--> solver_private --> MySQL problems
 ```
 
 ### 2. Code execution (browser → solver → executor → DB)
 
 ```
 Browser POST /api/run/<cid>/<idx> (code, testcases)
-  → solver_private: queue INSERT INTO execution_queue (queued)
-  → (optional) gRPC EnqueueExecution → solver_executor:50051
-  → executor poll loop fetch_queued() → mark_running
-  → build_wrapper() + bwrap --unshare-all --ro-bind /usr ... python wrapper.py
-  → parse_output() → result JSON → mark_completed + create_solution (if submit)
-  → Browser poll GET /api/queue-status/<id> ← execution_queue row
+ → solver_private: queue INSERT INTO execution_queue (queued)
+ → (optional) gRPC EnqueueExecution → solver_executor:50051
+ → executor poll loop fetch_queued() → mark_running
+ → build_wrapper() + bwrap --unshare-all --ro-bind /usr ... python wrapper.py
+ → parse_output() → result JSON → mark_completed + create_solution (if submit)
+ → Browser poll GET /api/queue-status/<id> ← execution_queue row
 ```
 
 gRPC and the DB queue are dual transports: the HTTP route always writes the queue row; when `EXECUTOR_GRPC_ADDR` is reachable the solver also notifies the executor via `EnqueueExecution` for sub-second wakeup (otherwise the executor's 1s poll picks it up within a second).
@@ -84,10 +84,10 @@ gRPC and the DB queue are dual transports: the HTTP route always writes the queu
 
 ```
 Browser GET /documentation/ → Caddy handle_path strip → solver_documentation:8005
-  → FastAPI app.py serves site/index.html (MkDocs Material build)
+ → FastAPI app.py serves site/index.html (MkDocs Material build)
 ```
 
-Gate: `forward_auth gatekeeper:7000 { uri /api/authz/forward-auth }` on `:7031` — same gate as the solver.
+Gate: `GateKeeper gate` on `:7031` — same gate as the solver.
 
 ## Component Breakdown
 
@@ -116,5 +116,5 @@ Gate: `forward_auth gatekeeper:7000 { uri /api/authz/forward-auth }` on `:7031` 
 ## Security Notes
 
 - Executor container runs as **root** with `SYS_ADMIN`, `seccomp:unconfined`, `apparmor:unconfined` — required for `bwrap --unshare-all` user ns. Mitigations: sandboxed code gets empty env, rlimits (`RLIMIT_AS`, `RLIMIT_CPU`, `RLIMIT_CORE`), pid cgroup (`pids_limit: 128`), and subreaper zombie reaping.
-- GateKeeper is the only auth: Caddy `forward_auth` on every `handle` except `/health` and `/404`.
+- GateKeeper is the only auth: Caddy `GateKeeper gate` on every `handle` except `/health` and `/404`.
 - MySQL creds are injected via compose `${MYSQL_PASS:?}` — no `.env` file, no hardcoding.

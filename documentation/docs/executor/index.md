@@ -6,11 +6,11 @@ Bwrap sandbox that runs submitted code against test cases and writes results to 
 
 ```
 executor/
-  bwrap_executor.py   # poll loop, bwrap invocation, wrapper orchestration
-  grpc_server.py      # gRPC ExecutorService (Enqueue, GetStatus, HealthCheck)
-  Dockerfile          # python:3.14-slim + bubblewrap, root + SYS_ADMIN, mem/pids/cpus limits
-  requirements.txt    # PyMySQL, cryptography, grpcio, protobuf
-  wrapper.py (via shared/wrapper.py)  # build_wrapper / parse_output
+ bwrap_executor.py # poll loop, bwrap invocation, wrapper orchestration
+ grpc_server.py # gRPC ExecutorService (Enqueue, GetStatus, HealthCheck)
+ Dockerfile # python:3.14-slim + bubblewrap, root + SYS_ADMIN, mem/pids/cpus limits
+ requirements.txt # PyMySQL, cryptography, grpcio, protobuf
+ wrapper.py (via shared/wrapper.py) # build_wrapper / parse_output
 ```
 
 ## Poll Loop
@@ -19,8 +19,8 @@ executor/
 
 1. `become_subreaper()` via `prctl(PR_SET_CHILD_SUBREAPER)` so orphaned sandbox pids are reparented here and reaped (prevents zombie + pids cgroup saturation).
 2. Connect MySQL, loop:
-   - `fetch_queued()` → `SELECT * FROM execution_queue WHERE status='queued' ORDER BY id LIMIT 1`
-   - `process_entry()` or `sleep(POLL_INTERVAL=1)` + `reap_orphans()`
+ - `fetch_queued()` → `SELECT * FROM execution_queue WHERE status='queued' ORDER BY id LIMIT 1`
+ - `process_entry()` or `sleep(POLL_INTERVAL=1)` + `reap_orphans()`
 
 `process_entry()`:
 

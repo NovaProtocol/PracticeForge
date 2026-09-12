@@ -8,20 +8,20 @@ Executor runs user code with **bubblewrap** (`bwrap`), no fallback — sandbox f
 
 ```python
 BWRAP = "/usr/bin/bwrap"
-PYTHON_BIN = "/usr/local/bin/python3"  # resolved via _find_python()
+PYTHON_BIN = "/usr/local/bin/python3" # resolved via _find_python()
 
 cmd = [
-  BWRAP,
-  "--unshare-all",        # user, net, ipc, pid, uts, cgroup, time
-  "--die-with-parent",
-  "--ro-bind", "/usr", "/usr",
-  "--ro-bind", "/usr/local", "/usr/local",
-  "--ro-bind", "/lib", "/lib",
-  "--ro-bind", "/lib64", "/lib64",
-  "--tmpfs", "/tmp",
-  "--dev", "/dev",
-  "--ro-bind", script_path, script_path,
-  "--chdir", "/", PYTHON_BIN, script_path,
+ BWRAP,
+ "--unshare-all", # user, net, ipc, pid, uts, cgroup, time
+ "--die-with-parent",
+ "--ro-bind", "/usr", "/usr",
+ "--ro-bind", "/usr/local", "/usr/local",
+ "--ro-bind", "/lib", "/lib",
+ "--ro-bind", "/lib64", "/lib64",
+ "--tmpfs", "/tmp",
+ "--dev", "/dev",
+ "--ro-bind", script_path, script_path,
+ "--chdir", "/", PYTHON_BIN, script_path,
 ]
 subprocess.run(cmd, env={}, preexec_fn=_set_rlimits, timeout=TIMEOUT)
 ```
@@ -69,8 +69,8 @@ Emits `__SOLVER_RESULT__` + JSON.
 ### Subreaper & Zombie Reaping
 
 ```python
-libc.prctl(PR_SET_CHILD_SUBREAPER, 1)  # become subreaper
-os.waitpid(-1, WNOHANG)  # reap_orphans() between runs
+libc.prctl(PR_SET_CHILD_SUBREAPER, 1) # become subreaper
+os.waitpid(-1, WNOHANG) # reap_orphans() between runs
 ```
 
 Orphaned sandbox children are reparented to the executor instead of init and reaped — prevents pid cgroup exhaustion.
@@ -84,25 +84,25 @@ syntax = "proto3";
 package solvespace.v1;
 
 service ExecutorService {
-  rpc EnqueueExecution(EnqueueRequest) returns (EnqueueResponse);
-  rpc GetExecutionStatus(GetStatusRequest) returns (GetStatusResponse);
-  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+ rpc EnqueueExecution(EnqueueRequest) returns (EnqueueResponse);
+ rpc GetExecutionStatus(GetStatusRequest) returns (GetStatusResponse);
+ rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
 }
 
 message EnqueueRequest {
-  int32 problem_id = 1;
-  string code = 2;
-  string method_name = 3;
-  string test_cases_json = 4;
-  string exec_type = 5;
+ int32 problem_id = 1;
+ string code = 2;
+ string method_name = 3;
+ string test_cases_json = 4;
+ string exec_type = 5;
 }
 message EnqueueResponse { int64 queue_id = 1; string status = 2; }
 
 message GetStatusRequest { int64 queue_id = 1; }
 message GetStatusResponse {
-  int64 queue_id = 1; string status = 2; string result = 3;
-  string stdout = 4; string error = 5; int32 timing_ms = 6;
-  int32 memory_kb = 7; int64 solution_id = 8;
+ int64 queue_id = 1; string status = 2; string result = 3;
+ string stdout = 4; string error = 5; int32 timing_ms = 6;
+ int32 memory_kb = 7; int64 solution_id = 8;
 }
 message HealthCheckRequest {}
 message HealthCheckResponse { string status = 1; }
@@ -121,19 +121,19 @@ import grpc
 from shared.proto_gen import executor_pb2, executor_pb2_grpc
 
 class ExecutorServicer(executor_pb2_grpc.ExecutorServiceServicer):
-    async def EnqueueExecution(self, request, context):
-        # INSERT INTO execution_queue ...; return queue_id
-    async def GetExecutionStatus(self, request, context):
-        # SELECT FROM execution_queue WHERE id=...
-    async def HealthCheck(self, request, context):
-        return executor_pb2.HealthCheckResponse(status="ok")
+ async def EnqueueExecution(self, request, context):
+ # INSERT INTO execution_queue ...; return queue_id
+ async def GetExecutionStatus(self, request, context):
+ # SELECT FROM execution_queue WHERE id=...
+ async def HealthCheck(self, request, context):
+ return executor_pb2.HealthCheckResponse(status="ok")
 
 async def serve():
-    server = grpc.aio.server()
-    executor_pb2_grpc.add_ExecutorServiceServicer_to_server(ExecutorServicer(), server)
-    server.add_insecure_port("0.0.0.0:50051")
-    await server.start()
-    await server.wait_for_termination()
+ server = grpc.aio.server()
+ executor_pb2_grpc.add_ExecutorServiceServicer_to_server(ExecutorServicer(), server)
+ server.add_insecure_port("0.0.0.0:50051")
+ await server.start()
+ await server.wait_for_termination()
 ```
 
 Runs alongside the poll loop (async task). Port `50051` is `expose` only on `net-executor` (`internal: true`).
@@ -145,10 +145,10 @@ import grpc
 from shared.proto_gen import executor_pb2, executor_pb2_grpc
 
 async def enqueue_via_grpc(problem_id, code, method_name, test_cases_json, exec_type):
-    async with grpc.aio.insecure_channel("solver_executor:50051") as ch:
-        stub = executor_pb2_grpc.ExecutorServiceStub(ch)
-        resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(...))
-        return resp.queue_id
+ async with grpc.aio.insecure_channel("solver_executor:50051") as ch:
+ stub = executor_pb2_grpc.ExecutorServiceStub(ch)
+ resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(...))
+ return resp.queue_id
 ```
 
 For sync callers (executor poll, startup), a sync stub using `grpc.insecure_channel` is provided; FastAPI routes use `grpc.aio.insecure_channel` via `run_in_threadpool` bridge (`shared/grpc_client.py`).
@@ -157,13 +157,13 @@ For sync callers (executor poll, startup), a sync stub using `grpc.insecure_chan
 
 ```yaml
 executor:
-  expose: ["50051"]
-  networks: [default, net-executor]
+ expose: ["50051"]
+ networks: [default, net-executor]
 solver_private:
-  environment: { EXECUTOR_GRPC_ADDR: "solver_executor:50051" }
-  networks: [default, net-executor]
+ environment: { EXECUTOR_GRPC_ADDR: "solver_executor:50051" }
+ networks: [default, net-executor]
 networks:
-  net-executor: { internal: true }
+ net-executor: { internal: true }
 ```
 
 Caddy never proxies `50051`; browsers never dial it.
