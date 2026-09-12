@@ -22,11 +22,9 @@ _AsyncSession = None
 
 
 def _dsn() -> str:
-    return (
-        f"mysql+pymysql://{os.environ.get('MYSQL_USER', 'root')}:{os.environ['MYSQL_PASS']}"
-        f"@{os.environ['MYSQL_HOST']}:{os.environ.get('MYSQL_PORT', '3306')}"
-        f"/{os.environ['MYSQL_DATABASE']}"
-    )
+    from shared.config import get_config
+
+    return get_config().db_url
 
 
 def _async_dsn() -> str:

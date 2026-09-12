@@ -35,7 +35,7 @@
 | `GET` | `/api/images/exists/<file>` | gated | Exists |
 | `GET` | `/documentation/*` | gated | Docs site (`handle_path` → `solver_documentation:8005`) |
 
-Caddy `handle /health` + `handle /404` are public; `handle_path /documentation/*` and `handle /*` are `forward_auth gatekeeper:7000`.
+Caddy `handle /health` + `handle /404` are public; `handle_path /documentation/*` and `handle /*` are `GateKeeper gate`.
 
 ## gRPC (internal `net-executor`, `solver_executor:50051`)
 
@@ -43,9 +43,9 @@ Proto: `shared/proto/executor.proto`
 
 ```
 service ExecutorService {
-  rpc EnqueueExecution(EnqueueRequest) → EnqueueResponse;
-  rpc GetExecutionStatus(GetStatusRequest) → GetStatusResponse;
-  rpc HealthCheck(HealthCheckRequest) → HealthCheckResponse;
+ rpc EnqueueExecution(EnqueueRequest) → EnqueueResponse;
+ rpc GetExecutionStatus(GetStatusRequest) → GetStatusResponse;
+ rpc HealthCheck(HealthCheckRequest) → HealthCheckResponse;
 }
 ```
 
@@ -81,7 +81,7 @@ HTTP is the public edge; gRPC is the internal notify. Both share the same servic
 | Port | Service | Publish |
 |---|---|---|
 | 8000 | solver_private (HTTP + optional gRPC) | `expose` only |
-| 7031 | Caddy gateway | via `cloudflared-tunnel_default` (no host `ports`) |
+| 7031 | Caddy gateway | via `cloudflared-tunnel` (no host `ports`) |
 | 50051 | executor gRPC | `expose` only, `net-executor` internal |
 | 8005 | documentation HTTP | `expose` only |
 | 3306 | MySQL | `expose` only |

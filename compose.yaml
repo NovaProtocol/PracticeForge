@@ -44,8 +44,7 @@ services:
         condition: service_healthy
     networks:
       - default
-      - gatekeeper_dynamic
-      - cloudflared-tunnel
+      - gatekeeper
   mysql:
     image: mysql:8.4
     container_name: solver_mysql
@@ -68,8 +67,8 @@ services:
     image: phpmyadmin:5.2
     container_name: solver_phpmyadmin
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:7032:80"
+    expose:
+      - "80"
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
@@ -149,12 +148,8 @@ networks:
   default:
   net-executor:
     internal: true
+  net-data:
+    internal: true
   gatekeeper:
     external: true
-    name: gatekeeper_default
-  cloudflared-tunnel:
-    external: true
-    name: cloudflared-tunnel_default
-  gatekeeper_dynamic:
-    external: true
-    name: gatekeeper_dynamic
+    name: gatekeeper

@@ -6,15 +6,15 @@ Host-side 4-stage pipeline that scrapes Codeforces and uploads AI-enriched probl
 
 ```
 utilities/scraper/
-  run.py               # CLI entrypoint: python utilities/scraper/run.py <contestId>
-  scrape.py            # stage 1: fetch HTML (browser for Cloudflare)
-  extract.py           # parse problem blocks, examples, constraints, tags
-  browser.py           # Playwright-like browser helper for CF challenge
-  images_download.py   # download problem images to images/
-  images_upload.py     # upload images via POST /api/images
-  ai.py / ai_process.py# AI enrichment (generator/solution/executor/hints)
-  api.py / uploader.py # HTTP client for POST /api/problems/upload
-  config.py, log.py, tokens.py
+ run.py # CLI entrypoint: python utilities/scraper/run.py <contestId>
+ scrape.py # stage 1: fetch HTML (browser for Cloudflare)
+ extract.py # parse problem blocks, examples, constraints, tags
+ browser.py # Playwright-like browser helper for CF challenge
+ images_download.py # download problem images to images/
+ images_upload.py # upload images via POST /api/images
+ ai.py / ai_process.py# AI enrichment (generator/solution/executor/hints)
+ api.py / uploader.py # HTTP client for POST /api/problems/upload
+ config.py, log.py, tokens.py
 ```
 
 ## Stages

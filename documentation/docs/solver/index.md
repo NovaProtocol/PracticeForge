@@ -6,16 +6,16 @@ FastAPI app serving problems, solutions, editor, and execution API. Runs on `sol
 
 ```
 solver_private/
-  app.py                # create_app() factory, lifespan, RequestIDMiddleware+structlog, Jinja ChoiceLoader
-  apps/
-    problems/routes.py  # APIRouter `/` — list, detail, editor, console (HTMLResponse)
-    solutions/routes.py # APIRouter `/solutions` — list, detail, re-run
-    api/routes.py       # APIRouter `/api` — REST API used by scraper + browser + gRPC client
-  apps/templating.py    # Jinja2 Environment + ChoiceLoader, Flask url_for shim
-  wsgi.py               # granian target `wsgi:app` (create_app())
-  run.py                # dev uvicorn factory=True --reload
-  templates/404.html    # themed 404, bypasses gate via Caddy handle /404
-  Dockerfile            # python:3.14-slim, granian asgi 1 worker, USER appuser
+ app.py # create_app() factory, lifespan, RequestIDMiddleware+structlog, Jinja ChoiceLoader
+ apps/
+ problems/routes.py # APIRouter `/` — list, detail, editor, console (HTMLResponse)
+ solutions/routes.py # APIRouter `/solutions` — list, detail, re-run
+ api/routes.py # APIRouter `/api` — REST API used by scraper + browser + gRPC client
+ apps/templating.py # Jinja2 Environment + ChoiceLoader, Flask url_for shim
+ wsgi.py # granian target `wsgi:app` (create_app())
+ run.py # dev uvicorn factory=True --reload
+ templates/404.html # themed 404, bypasses gate via Caddy handle /404
+ Dockerfile # python:3.14-slim, granian asgi 1 worker, USER appuser
 ```
 
 ## App Factory
@@ -52,8 +52,8 @@ import grpc
 from shared.proto_gen import executor_pb2, executor_pb2_grpc
 
 async with grpc.aio.insecure_channel("solver_executor:50051") as ch:
-    stub = executor_pb2_grpc.ExecutorServiceStub(ch)
-    resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(...))
+ stub = executor_pb2_grpc.ExecutorServiceStub(ch)
+ resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(...))
 ```
 
 The HTTP routes always insert the `execution_queue` row; the gRPC call is a low-latency notify (best-effort — if the channel is unavailable the executor's 1s poll still picks up the row).

@@ -14,7 +14,7 @@
 ```bash
 git clone <repo-url> SolveSpace
 cd SolveSpace
-cp .env.example .env   # docs only — real vars come from compose interpolation
+# env vars come from compose interpolation — see `.env.example`, export them, no `.env` file
 ```
 
 Key variables (full list in `.env.example`, source of truth):
@@ -62,14 +62,14 @@ docker compose logs -f solver_private solver_executor solver_documentation
 | `http://127.0.0.1:7032/` | phpMyAdmin | loopback only |
 | `solver_executor:50051` | Executor gRPC | internal only (`expose`, no `ports`) |
 
-Gate means `forward_auth gatekeeper:7000 { uri /api/authz/forward-auth }` — present a valid `gatekeeper_token` cookie or `?access_code=` magic link.
+Gate means `GateKeeper gate` — present a valid `gatekeeper_token` cookie or `?access_code=` magic link.
 
 ## 4. Scraper Pipeline (host)
 
 Stage 1 needs a browser for Cloudflare:
 
 ```bash
-python3 utilities/scraper/run.py 1234          # scrape contest 1234
+python3 utilities/scraper/run.py 1234 # scrape contest 1234
 python3 utilities/scraper/run.py --help
 ```
 
@@ -83,8 +83,8 @@ Stages: `scrape` → `images_download` → `images_upload` → `ai` (AI enrichme
 export DEPLOYMENT_TYPE=DEBUG
 export MYSQL_HOST=127.0.0.1
 export MYSQL_PASS=SolveSpace
-python solver_private/run.py --mode debug   # uvicorn factory=True --reload
-# or: granian --interface asgi --host 0.0.0.0 --port 8000 --workers 1 wsgi:app  (from solver_private/)
+python solver_private/run.py --mode debug # uvicorn factory=True --reload
+# or: granian --interface asgi --host 0.0.0.0 --port 8000 --workers 1 wsgi:app (from solver_private/)
 ```
 
 ### Run executor locally
@@ -129,6 +129,6 @@ import grpc
 from shared.proto_gen import executor_pb2, executor_pb2_grpc
 
 async with grpc.aio.insecure_channel("solver_executor:50051") as ch:
-    stub = executor_pb2_grpc.ExecutorServiceStub(ch)
-    resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(problem_id=1, code="..."))
+ stub = executor_pb2_grpc.ExecutorServiceStub(ch)
+ resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(problem_id=1, code="..."))
 ```

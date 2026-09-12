@@ -19,11 +19,11 @@
 ## Stage 4 — AI Enrichment (`ai.py` + `ai_process.py`)
 
 - Calls LLM (via `ZEN_API_KEY`) to generate:
-  - `base_code` — `class Solution` skeleton with `method_name` (default `run`)
-  - `solution_code` — reference solution
-  - `generator_code` — `def generate(): return [cases]` for brute-force
-  - `executor_code` — interactive judge helpers (defines `HIDDEN` checks)
-  - `hints`, `tags` refinement
+ - `base_code` — `class Solution` skeleton with `method_name` (default `run`)
+ - `solution_code` — reference solution
+ - `generator_code` — `def generate(): return [cases]` for brute-force
+ - `executor_code` — interactive judge helpers (defines `HIDDEN` checks)
+ - `hints`, `tags` refinement
 - Validates generated code by executing `shared/wrapper.py` locally via `build_wrapper()` — same wrapper the executor uses, so validation and production runs are identical.
 - Token usage tracked in `token_usage.json`.
 

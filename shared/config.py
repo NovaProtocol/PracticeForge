@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     API_TOKEN: str = Field(default="")
     EXECUTOR_GRPC_ADDR: str = Field(default="solver_executor:50051")
     GRPC_PORT: int = Field(default=50051)
+    SHARED_STATIC_DIR: str = Field(default="")
+    SHARED_TEMPLATES_DIR: str = Field(default="")
     DATABASE_URL_OVERRIDE: str | None = Field(default=None, validation_alias="DATABASE_URL")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", populate_by_name=True)
@@ -60,11 +62,12 @@ def get_config() -> Settings:
     # validate DEPLOYMENT_TYPE early — mirrors compose ${VAR:?}
     return Settings()
 
+
 def shared_static_dir() -> str:
     from pathlib import Path
 
     candidates = [
-        os.environ.get("SHARED_STATIC_DIR", ""),
+        get_config().SHARED_STATIC_DIR,
         "/app/shared/static",
         str(Path(__file__).resolve().parent / "static"),
     ]
@@ -78,7 +81,7 @@ def shared_templates_dir() -> str:
     from pathlib import Path
 
     candidates = [
-        os.environ.get("SHARED_TEMPLATES_DIR", ""),
+        get_config().SHARED_TEMPLATES_DIR,
         "/app/shared/templates",
         str(Path(__file__).resolve().parent / "templates"),
     ]

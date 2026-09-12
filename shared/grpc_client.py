@@ -12,7 +12,9 @@ except ImportError:  # fallback
 
 
 def _grpc_addr() -> str:
-    return os.environ.get("EXECUTOR_GRPC_ADDR", "solver_executor:50051")
+    from shared.config import get_config
+
+    return get_config().EXECUTOR_GRPC_ADDR
 
 
 async def enqueue_via_grpc_async(
