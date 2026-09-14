@@ -67,10 +67,17 @@ async def lifespan(app: FastAPI):
 
 def _build_templates() -> Jinja2Templates:
     root = Path(__file__).resolve().parent.parent
-    app_templates = Path(__file__).resolve().parent / "templates"
+    app_root = Path(__file__).resolve().parent
+    app_templates = app_root / "templates"
     shared_templates = Path(shared_templates_dir())
     # fallback to repo layout if shared_templates_dir not found
-    candidates = [str(app_templates), str(shared_templates)]
+    candidates = []
+    # blueprint template roots so "problems/index.html" resolves
+    for sub in ("apps/problems/templates", "apps/solutions/templates"):
+        p = app_root / sub
+        if p.exists():
+            candidates.append(str(p))
+    candidates += [str(app_templates), str(shared_templates)]
     # Jinja2Templates with ChoiceLoader so both dirs work (host + container)
     loader = ChoiceLoader([FileSystemLoader(c) for c in candidates])
     from jinja2 import Environment, select_autoescape
