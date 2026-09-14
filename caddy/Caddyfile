@@ -5,3 +5,16 @@
 		Referrer-Policy strict-origin-when-cross-origin
 		X-Frame-Options SAMEORIGIN
 	}
+
+	handle /health {
+		reverse_proxy solver_private:8000
+	}
+
+	handle_path /documentation/* {
+		reverse_proxy solver_documentation:8005
+	}
+
+	handle {
+		reverse_proxy solver_private:8000
+	}
+}
