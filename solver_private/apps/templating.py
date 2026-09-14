@@ -9,10 +9,16 @@ from shared.config import shared_static_dir, shared_templates_dir
 
 
 def _build_env() -> Environment:
-    app_templates = Path(__file__).resolve().parent.parent / "templates"
+    app_root = Path(__file__).resolve().parent.parent
+    app_templates = app_root / "templates"
     shared_templates = Path(shared_templates_dir())
     # also include app sub-templates (problems/solutions)
     candidates = []
+    # blueprint template roots so "problems/index.html" resolves
+    for sub in ("apps/problems/templates", "apps/solutions/templates"):
+        p = app_root / sub
+        if p.exists():
+            candidates.append(str(p))
     # solver_private/templates
     if app_templates.exists():
         candidates.append(str(app_templates))

@@ -23,7 +23,7 @@ solver_private/
 `app.py:create_app()` (`FastAPI`, `reference/fastapi/structure.md`):
 
 - `lifespan` → `run_startup()` (`Base.metadata.create_all(get_engine())`) + warm `get_async_engine()` (aiomysql)
-- `_build_templates()` / `apps/templating.py` — `ChoiceLoader([solver_templates, shared/templates])` so host runs resolve `base.html` without the Docker `COPY shared/templates → /app/templates` layer; `url_for` shim for legacy templates
+- `_build_templates()` / `apps/templating.py` — `ChoiceLoader([apps/problems/templates, apps/solutions/templates, solver_templates, shared/templates])` so host runs resolve `base.html` and blueprint pages like `problems/index.html` without the Docker `COPY shared/templates → /app/templates` layer; `url_for` shim for legacy templates
 - `RequestIDMiddleware` first (so even 401s echo `X-Request-ID`), `StaticFiles` at `/static`, `include_router` x3 (`problems`, `solutions`, `api`)
 - `install_error_handlers` (`shared/errors.py`) — `{error:{code,message,request_id}}` + `structlog` JSON + `X-Request-ID` (see Errors below)
 - `/health` → `{"status":"ok"}` (async engine `SELECT 1`, `503 degraded` on DB failure), `/404` → themed `404.html`
