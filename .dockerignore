@@ -8,12 +8,6 @@ __pycache__/
 .venv/
 venv/
 docs/
-.agents/
-.superpowers/
-.opencode/
-.claude/
-.cursor/
-.continue/
 *.code-workspace
 *.db
 *.sqlite3
