@@ -17,7 +17,7 @@ except ImportError:
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Bind request_id into structlog contextvars and echo X-Request-ID.
 
-    Per reference/conventions/observability.md — reads inbound X-Request-ID
+    Reads the inbound X-Request-ID
     or generates uuid4().hex, binds via structlog.contextvars, echoes on
     response and exposes via CORS. Installed first so 401s carry request_id.
     """
