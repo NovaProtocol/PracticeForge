@@ -35,7 +35,7 @@
 | `GET` | `/api/images/exists/<file>` | gated | Exists |
 | `GET` | `/documentation/*` | gated | Docs site (`handle_path` → `solver_documentation:8005`) |
 
-Caddy `handle /health` + `handle /404` are public; `handle_path /documentation/*` and `handle /*` are `GateKeeper gate`.
+Caddy `handle /health` and the catch-all `handle` are the two routes it declares; `/404` is an ordinary app route the catch-all proxies, not a Caddy handle. The Caddyfile has **zero** `forward_auth` — the gate is at the apex wildcard (GateKeeper), applied before the request reaches this Caddy.
 
 ## gRPC (internal `net-executor`, `solver_executor:50051`)
 
@@ -80,12 +80,12 @@ HTTP is the public edge; gRPC is the internal notify. Both share the same servic
 
 | Port | Service | Publish |
 |---|---|---|
-| 8000 | solver_private (HTTP + optional gRPC) | `expose` only |
-| 7031 | Caddy gateway | via `cloudflared-tunnel` (no host `ports`) |
+| 8000 | solver_private (HTTP) | `expose` only |
+| 7031 | Caddy gateway | `127.0.0.1:7031:7031` — the only host-published port |
 | 50051 | executor gRPC | `expose` only, `net-executor` internal |
 | 8005 | documentation HTTP | `expose` only |
 | 3306 | MySQL | `expose` only |
-| 7032 | phpMyAdmin | `127.0.0.1:7032:80` loopback |
+| 80 | phpMyAdmin | `expose` only, `default` network |
 
 ## Error Mapping
 

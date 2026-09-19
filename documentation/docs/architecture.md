@@ -9,7 +9,7 @@ graph TB
  U["Browser / Scraper"]
 
  subgraph "Caddy :7031"
- CADDY["Caddy 2-alpine<br/>:7031 handle + handle_path<br/>GateKeeper gate"]
+ CADDY["Caddy 2-alpine<br/>:7031 handle + handle_path<br/>no forward_auth"]
  end
 
  subgraph "net-executor (internal) + default"
@@ -25,15 +25,13 @@ graph TB
 
  subgraph "External networks"
  GK["gatekeeper<br/>gatekeeper:7000"]
- TUN["cloudflared-tunnel"]
  end
 
- U -->|"HTTP via tunnel"| TUN
- TUN --> CADDY
- CADDY -->|"GateKeeper gate"| GK
+ U -->|HTTP| CADDY
+ CADDY -->|"GateKeeper gate (apex wildcard)"| GK
  CADDY -->|"handle /*"| SOLVER
  CADDY -->|"handle_path /documentation/*"| DOCS
- CADDY -->|"handle /404, /health public"| SOLVER
+ CADDY -->|"handle /health"| SOLVER
 
  SOLVER -->|"gRPC insecure_channel<br/>solver_executor:50051"| EXEC
  SOLVER <-->|"SQLAlchemy / PyMySQL"| DB
@@ -48,12 +46,11 @@ graph TB
 |---|---|---|---|
 | `default` | bridge | solver_private, solver_executor, solver_documentation, solver_mysql, solver_phpmyadmin, solver_caddy | App + docs + DB |
 | `net-executor` | bridge `internal: true` | solver_private, solver_executor | gRPC `solver_executor:50051` only |
-| `gatekeeper` | external `gatekeeper` | solver_caddy | `GateKeeper gate` |
-| `cloudflared-tunnel` | external `cloudflared-tunnel` | solver_caddy | Public ingress via tunnel |
+| `gatekeeper` | external `gatekeeper` | solver_caddy | The apex wildcard gate runs here, in front of this stack |
 
 - `50051` is `expose` only — never `ports`-published. Caddy never proxies gRPC.
-- `solver_private:8000` and `solver_documentation:8005` are `expose` only — Caddy is the sole published surface (`:7031` on the tunnel network).
-- `phpmyadmin` is loopback-only `127.0.0.1:7032:80`.
+- `solver_private:8000` and `solver_documentation:8005` are `expose` only — Caddy is the sole published surface (`127.0.0.1:7031:7031`).
+- `phpmyadmin` is `expose`-only (`80`) on `default`; it publishes nothing.
 
 ## Data Flow
 
@@ -87,7 +84,7 @@ Browser GET /documentation/ → Caddy handle_path strip → solver_documentation
  → FastAPI app.py serves site/index.html (MkDocs Material build)
 ```
 
-Gate: `GateKeeper gate` on `:7031` — same gate as the solver.
+Gate: the apex wildcard on the `gatekeeper` network. This project's own Caddyfile declares **zero** `forward_auth` — every route here is already gated before Caddy sees it.
 
 ## Component Breakdown
 
@@ -97,7 +94,7 @@ Gate: `GateKeeper gate` on `:7031` — same gate as the solver.
 | executor | `executor/` + `shared/wrapper.py` | 50051 (gRPC) | `python:3.14-slim`, root + `SYS_ADMIN` + `bwrap` |
 | documentation | `documentation/` + `shared/` | 8005 | `python:3.14-slim`, granian asgi, `USER appuser 10001` |
 | mysql | `mysql:8.4` | 3306 | named volume `mysql_data` |
-| phpmyadmin | `phpmyadmin:5.2` | 80 | loopback 7032 |
+| phpmyadmin | `phpmyadmin:5.2` | 80 (`expose` only) | phpMyAdmin, `default` network |
 | caddy | `caddy:2-alpine` | 7031 | Caddyfile baked in |
 
 ## Shared Package
@@ -116,5 +113,5 @@ Gate: `GateKeeper gate` on `:7031` — same gate as the solver.
 ## Security Notes
 
 - Executor container runs as **root** with `SYS_ADMIN`, `seccomp:unconfined`, `apparmor:unconfined` — required for `bwrap --unshare-all` user ns. Mitigations: sandboxed code gets empty env, rlimits (`RLIMIT_AS`, `RLIMIT_CPU`, `RLIMIT_CORE`), pid cgroup (`pids_limit: 128`), and subreaper zombie reaping.
-- GateKeeper is the only auth: Caddy `GateKeeper gate` on every `handle` except `/health` and `/404`.
+- GateKeeper is the only auth, and it runs at the apex wildcard. The Caddyfile here declares no `forward_auth` at all — there is no per-app gate to keep in sync.
 - MySQL creds are injected via compose `${MYSQL_PASS:?}` — no `.env` file, no hardcoding.

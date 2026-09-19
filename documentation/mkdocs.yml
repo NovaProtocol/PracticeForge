@@ -1,8 +1,8 @@
 site_name: SolveSpace · Documentation
 site_description: Documentation for SolveSpace — Codeforces scraping, AI enrichment, FastAPI solver, bwrap execution sandbox
 site_author: SolveSpace
-repo_url: https://github.com/anomalyco/SolveSpace
-repo_name: anomalyco/SolveSpace
+repo_url: https://github.com/NovaProtocol/SolveSpace
+repo_name: NovaProtocol/SolveSpace
 edit_uri: edit/main/documentation/docs/
 
 theme:

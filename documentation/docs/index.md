@@ -15,9 +15,9 @@ Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces proble
 | **Executor** | `solver_executor` | 50051 (gRPC, internal) | — | default, net-executor |
 | **Documentation** | `solver_documentation` | 8005 | `/documentation/*` (7031) | default |
 | **MySQL 8.4** | `solver_mysql` | 3306 | — | default |
-| **phpMyAdmin** | `solver_phpmyadmin` | 80 | — (127.0.0.1:7032) | default |
+| **phpMyAdmin** | `solver_phpmyadmin` | 80 | — (internal) | default |
 
-- Gate is at the **wildcard** (`gatekeeper_caddy:7000` → `gatekeeper_auth:8001` on `gatekeeper`) — live `caddy/Caddyfile` proxies without a per-app `GateKeeper gate` (wildcard per `reference/gatekeeper/caddy-setup.md`). Live ingress is 3 handles: `/health`, `/documentation/*`, catch-all.
+- Gate is at the **wildcard** (`gatekeeper_caddy:7000` → `gatekeeper_auth:8001` on `gatekeeper`) — live `caddy/Caddyfile` proxies without a per-app `forward_auth`, so the gate runs before this Caddy sees the request. Live ingress here is 3 handles: `/health`, `/documentation/*`, catch-all.
 - `solver_private ↔ solver_executor` talk over **gRPC** on `solver_executor:50051` (internal `net-executor`, `expose` only) plus the MySQL `execution_queue` table.
 - Browser ingress is HTTP through Caddy (`:7031 → solver_private:8000`); internal RPC is gRPC.
 
@@ -43,15 +43,15 @@ graph TB
 
  subgraph "Data Layer"
  DB[("MySQL 8.4 :3306<br/>problems / solutions / execution_queue")]
- PMA["phpMyAdmin :80<br/>127.0.0.1:7032"]
+ PMA["phpMyAdmin :80<br/>internal"]
  end
 
  subgraph "Host Utilities"
  SCRAPER["utilities/scraper<br/>4-stage pipeline<br/>scrape → images → AI"]
  end
 
- U -->|"HTTPS via tunnel"| CADDY
- CADDY -->|"GateKeeper gate"| GK
+ U -->|HTTPS| CADDY
+ CADDY -->|"apex wildcard gate"| GK
  CADDY -->|"/*"| SOLVER
  CADDY -->|"/documentation/*<br/>handle_path strip"| DOCS
 
