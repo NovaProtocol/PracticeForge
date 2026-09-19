@@ -18,7 +18,8 @@
 
 ## Stage 4 — AI Enrichment (`ai.py` + `ai_process.py`)
 
-- Calls LLM (via `ZEN_API_KEY`) to generate:
+- Calls the configured LLM endpoint (via `LLM_BASE_URL`, `LLM_MODEL` and
+  `LLM_API_KEY`) to generate:
  - `base_code` — `class Solution` skeleton with `method_name` (default `run`)
  - `solution_code` — reference solution
  - `generator_code` — `def generate(): return [cases]` for brute-force
@@ -36,7 +37,9 @@
 ## Running Locally
 
 ```bash
-export ZEN_API_KEY=sk-...
+export LLM_BASE_URL=https://llm.example.com/v1
+export LLM_MODEL=your-model-name
+export LLM_API_KEY=sk-...
 export API_TOKEN=...
 python utilities/scraper/run.py 1900
 # inspect

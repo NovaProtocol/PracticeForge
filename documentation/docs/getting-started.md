@@ -31,7 +31,9 @@ Key variables (full list in `.env.example`, source of truth):
 | `MEMORY_LIMIT_MB` | no | `1024` | Sandbox memory hard limit |
 | `PROCESS_LIMIT` | no | `64` | Sandbox nproc limit (capped by pids cgroup) |
 | `CPU_LIMIT_SECONDS` | no | `25` | Sandbox CPU limit |
-| `ZEN_API_KEY` | no | — | Scraper AI enrichment key |
+| `LLM_API_KEY` | no | — | Scraper LLM enrichment key (blank = no enrichment) |
+| `LLM_BASE_URL` | no | — | OpenAI-compatible endpoint for enrichment |
+| `LLM_MODEL` | no | — | Model name passed to that endpoint |
 
 > Every required var uses `${VAR:?}` in `compose.yaml` — missing = `docker compose up` refuses to start. There is no `.env` file at runtime; export vars in your shell or deployment tool.
 

@@ -21,7 +21,9 @@ services:
       API_TOKEN: ${API_TOKEN:-}
       EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-solver_executor:50051}
       GRPC_PORT: ${GRPC_PORT:-50051}
-      ZEN_API_KEY: ${ZEN_API_KEY:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
     expose:
       - "8000"
     depends_on:

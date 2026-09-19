@@ -6,7 +6,7 @@ Single `compose.yaml` orchestrates the whole stack.
 
 ```yaml
 services:
- solver_private: { build: solver_private/Dockerfile, container_name: solver_private, expose: [8000], networks: [default, net-executor], healthcheck: urllib 8000/health, env: DEPLOYMENT_TYPE+MYSQL_*+API_TOKEN+ZEN_API_KEY }
+  solver_private: { build: solver_private/Dockerfile, container_name: solver_private, expose: [8000], networks: [default, net-executor], healthcheck: urllib 8000/health, env: DEPLOYMENT_TYPE+MYSQL_*+API_TOKEN+LLM_* }
  solver_executor: { build: executor/Dockerfile, container_name: solver_executor, expose: [50051], networks: [default, net-executor], cap_add: [SYS_ADMIN], pids_limit: 128 }
  solver_documentation: { build: documentation/Dockerfile, container_name: solver_documentation, expose: [8005], networks: [default], healthcheck: 8005/health }
  solver_mysql: { image: mysql:8.4, container_name: solver_mysql, volumes: [mysql_data], healthcheck: mysqladmin ping }
