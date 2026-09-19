@@ -31,7 +31,9 @@ submitted code runs in a bwrap sandbox.
 
 See `.env.example`. Required: `MYSQL_PASS` (compose fails fast without it).
 Optional: `MYSQL_USER`, `MYSQL_DATABASE`, `API_TOKEN` (scraper + write API),
-`ACCESS_CODE` (GateKeeper magic-link handshake), `ZEN_API_KEY` (scraper AI — wired as `ZEN_API_KEY: ${ZEN_API_KEY:-}` in `compose.yaml`).
+`ACCESS_CODE` (GateKeeper magic-link handshake), and the scraper's LLM settings —
+`LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` (all three wired as `${VAR:-}` in
+`compose.yaml`). Leave the LLM settings blank to scrape without enrichment.
 
 Variables are injected by compose — there is no `.env` file. For local runs,
 `export` the vars in your shell.

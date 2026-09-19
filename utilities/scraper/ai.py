@@ -6,8 +6,17 @@ import sys
 import tempfile
 
 from . import log
-from .config import AI_KEY, AI_MODEL, AI_URL, RETRY_LIMIT
+from .config import LLM_KEY, LLM_MODEL, LLM_URL, RETRY_LIMIT
 from .tokens import record
+
+#: Names of the settings the enricher needs. Blank means "not configured".
+MISSING_LLM_CONFIG = "LLM_BASE_URL, LLM_MODEL and LLM_API_KEY must all be set"
+
+
+def _llm_configured() -> bool:
+    """True only when the endpoint, model and key are all non-blank."""
+    return bool(LLM_URL and LLM_MODEL and LLM_KEY)
+
 
 SYSTEM_PROMPT = r"""You are an expert Python educational coding platform engine for high school students. Extract problem data from the HTML into this exact JSON structure:
 {
@@ -80,18 +89,18 @@ class AIEnricher:
     @property
     def _openai_client(self):
         if self._client is None:
-            if not AI_KEY:
-                raise ValueError("ZEN_API_KEY not set")
+            if not _llm_configured():
+                raise ValueError(MISSING_LLM_CONFIG)
             from openai import OpenAI
 
-            self._client = OpenAI(api_key=AI_KEY, base_url=AI_URL)
+            self._client = OpenAI(api_key=LLM_KEY, base_url=LLM_URL)
         return self._client
 
     def enrich(self, problem_text: str) -> dict | None:
         self.last_error = ""
-        if not AI_KEY:
-            self.last_error = "ZEN_API_KEY not set"
-            log.warn("ZEN_API_KEY not set — skipping AI enrichment")
+        if not _llm_configured():
+            self.last_error = MISSING_LLM_CONFIG
+            log.warn(f"{MISSING_LLM_CONFIG} — skipping AI enrichment")
             return None
 
         # First call: raw HTML + system prompt
@@ -199,7 +208,7 @@ class AIEnricher:
         log.info("--- End prompt ---")
         try:
             resp = self._openai_client.chat.completions.create(
-                model=AI_MODEL,
+                model=LLM_MODEL,
                 messages=messages,
                 response_format={"type": "json_object"},
                 temperature=0.0,

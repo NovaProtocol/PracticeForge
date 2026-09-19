@@ -14,9 +14,12 @@ ACCESS_CODE = os.environ.get("ACCESS_CODE", "")
 CF_API = "https://codeforces.com/api/problemset.problems"
 
 # AI
-AI_KEY = os.environ.get("ZEN_API_KEY", "")
-AI_URL = "https://opencode.ai/zen/go/v1"
-AI_MODEL = "deepseek-v4-flash"
+# The endpoint, model and key are configuration, not code: the enrichment step
+# is skipped whenever any of the three is blank, so a checkout with no LLM
+# configured still scrapes and still leaves problems in a valid state.
+LLM_KEY = os.environ.get("LLM_API_KEY", "")
+LLM_URL = os.environ.get("LLM_BASE_URL", "")
+LLM_MODEL = os.environ.get("LLM_MODEL", "")
 
 # Timing
 SCRAPE_DELAY = 1  # seconds between scraping problems
