@@ -10,7 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Shared settings — BaseSettings without min_length (no JWT/sessions in SolveSpace).
 
-    Per reference/fastapi/settings.md: when SECRET_KEY not used for JWT/sessions,
+    When SECRET_KEY is not used for JWT/sessions,
     omit Field(min_length=32). See task §2.
     """
 

@@ -5,7 +5,7 @@ from pathlib import Path
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, select_autoescape
 from starlette.templating import Jinja2Templates
 
-from shared.config import shared_static_dir, shared_templates_dir
+from shared.config import shared_templates_dir
 
 
 def _build_env() -> Environment:

@@ -1,13 +1,12 @@
 """Database layer — async engine (aiomysql) + sync compat.
 
-Per reference/fastapi/data.md: async engine via create_async_engine + aiomysql
+Async engine via create_async_engine + aiomysql
 for web layer; sync engine retained for executor and startup. Keeps same
 query/execute signatures for backwards compat (models/startup).
 """
 
 from __future__ import annotations
 
-import os
 import re
 from contextlib import asynccontextmanager
 

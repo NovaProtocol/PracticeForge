@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from jinja2 import ChoiceLoader, FileSystemLoader
 from starlette.templating import Jinja2Templates
@@ -66,7 +66,6 @@ async def lifespan(app: FastAPI):
 
 
 def _build_templates() -> Jinja2Templates:
-    root = Path(__file__).resolve().parent.parent
     app_root = Path(__file__).resolve().parent
     app_templates = app_root / "templates"
     shared_templates = Path(shared_templates_dir())
