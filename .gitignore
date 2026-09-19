@@ -13,7 +13,6 @@ __pycache__/
 .idea/
 *.code-workspace
 .DS_Store
-/docs/
 documentation/site/
 site/
 test_zone/
@@ -25,16 +24,7 @@ utilities/scraper/scraper.log
 utilities/scraper/html/
 utilities/scraper/images/
 
-# AI scratch — never commit
-.agents/
-.superpowers/
-.opencode/
-.claude/
-.cursor/
-.continue/
-AGENTS.md
-CLAUDE.md
-GEMINI.md
+# Local scratch
 scratch/
 *.tmp
 *.bak
