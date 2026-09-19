@@ -20,7 +20,7 @@ solver_private/
 
 ## App Factory
 
-`app.py:create_app()` (`FastAPI`, `reference/fastapi/structure.md`):
+`app.py:create_app()` (a `FastAPI` factory):
 
 - `lifespan` → `run_startup()` (`Base.metadata.create_all(get_engine())`) + warm `get_async_engine()` (aiomysql)
 - `_build_templates()` / `apps/templating.py` — `ChoiceLoader([apps/problems/templates, apps/solutions/templates, solver_templates, shared/templates])` so host runs resolve `base.html` and blueprint pages like `problems/index.html` without the Docker `COPY shared/templates → /app/templates` layer; `url_for` shim for legacy templates
@@ -38,7 +38,7 @@ solver_private/
 
 ## Errors
 
-`shared/errors.py` + `shared/middleware.py` + `shared/static/js/error.js` per `reference/conventions/observability.md`:
+`shared/errors.py` + `shared/middleware.py` + `shared/static/js/error.js`:
 
 - **Server:** `RequestIDMiddleware` binds `request_id` into `structlog.contextvars`, echoes `X-Request-ID`; `install_error_handlers` maps `StarletteHTTPException`/`RequestValidationError`/`grpc.aio.AioRpcError`/`Exception` to `{error:{code,message,request_id}}` (`details` on validation, `503 UPSTREAM_UNAVAILABLE` on gRPC failure — no fallback) and `structlog` JSON to container stdout (`docker compose logs` / `scripts/docker.sh logs`).
 - **Browser:** `/static/js/error.js` (`window.onerror` + `unhandledrejection` + `apiFetch` wrapper) logs `console.error({message,stack,url,method,status,request_id,body,timestamp})` + short toast (`message [request_id]`); loaded by `shared/templates/base.html`.
@@ -60,7 +60,7 @@ The HTTP routes always insert the `execution_queue` row; the gRPC call is a low-
 
 ## Configuration
 
-`shared/config.py`: `Settings(BaseSettings)` (`pydantic-settings`, `reference/fastapi/settings.md`) — env via compose interpolation, no `.env` file. No `SECRET_KEY`/`JWT` (SolveSpace has no sessions; `Field(min_length=32)` omitted per `settings.md` — only JWT holders harden it). `get_config()` (`@lru_cache`) + `db_url`/`async_db_url` (`+pymysql` → `+aiomysql`, `sqlite` → `aiosqlite` for tests). `shared/db.py` exposes `get_engine()` (sync, `pool_pre_ping`) + `get_async_engine()`/`get_db()` (`create_async_engine` aiomysql, `async_sessionmaker`, `lifespan` warmup).
+`shared/config.py`: `Settings(BaseSettings)` (`pydantic-settings`) — env via compose interpolation, no `.env` file. No `SECRET_KEY`/`JWT`: SolveSpace has no sessions, so there is nothing to sign. `get_config()` (`@lru_cache`) + `db_url`/`async_db_url` (`+pymysql` → `+aiomysql`, `sqlite` → `aiosqlite` for tests). `shared/db.py` exposes `get_engine()` (sync, `pool_pre_ping`) + `get_async_engine()`/`get_db()` (`create_async_engine` aiomysql, `async_sessionmaker`, `lifespan` warmup).
 
 ## Static & Templates
 

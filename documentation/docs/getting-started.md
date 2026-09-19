@@ -59,12 +59,12 @@ docker compose logs -f solver_private solver_executor solver_documentation
 |---|---|---|
 | `http://<host>:7031/` | Solver app | gated |
 | `http://<host>:7031/health` | Health (solver) | public |
-| `http://<host>:7031/404` | Themed 404 | public |
+| `http://<host>:7031/404` | Themed 404 (an app route, not a Caddy handle) | public |
 | `http://<host>:7031/documentation/` | Docs site | gated |
-| `http://127.0.0.1:7032/` | phpMyAdmin | loopback only |
 | `solver_executor:50051` | Executor gRPC | internal only (`expose`, no `ports`) |
+| `solver_phpmyadmin:80` | phpMyAdmin | internal only (`expose`, no `ports`) |
 
-Gate means `GateKeeper gate` — present a valid `gatekeeper_token` cookie or `?access_code=` magic link.
+Gate means the GateKeeper wildcard gate — present a valid `gatekeeper_token` cookie or a `?access_code=` magic link. This project's own `caddy/Caddyfile` carries no `forward_auth`.
 
 ## 4. Scraper Pipeline (host)
 

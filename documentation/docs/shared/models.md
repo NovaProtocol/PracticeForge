@@ -63,6 +63,6 @@
 
 ## MySQL Notes
 
-- `mysql:8.4` — `TEXT` columns must not have `server_default` (MySQL 8.4 rejects `TEXT DEFAULT`); use Python-side `default=` per `reference/docker/mysql.md`.
+- `mysql:8.4` — `TEXT` columns must not have `server_default` (MySQL 8.4 rejects `TEXT DEFAULT`); use Python-side `default=` instead.
 - Adaptive migrations wrap `ALTER` with `SET FOREIGN_KEY_CHECKS=0/1`.
 - Volume `mysql_data:/var/lib/mysql` persists data; healthcheck `mysqladmin ping` `5s/5s/10`.
