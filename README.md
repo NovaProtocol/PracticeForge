@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![SolveSpace](https://github.projectnova.download/public/projects/solvespace.svg)
+![SolveSpace](https://github.projectnova.download/public/project/solvespace.svg)
 
 </div>
 
