@@ -254,7 +254,7 @@ def create_solution(conn, problem_id, code, verdict, passed, total, timing_ms, m
         return cur.fetchone()["id"]
 
 
-def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_attempts=1000):
+def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100):
     """Generate test cases using generator_code, validate with solution_code.
     ALL code runs inside the sandbox. Returns (list | None, error_msg)."""
     with conn.cursor() as cur:

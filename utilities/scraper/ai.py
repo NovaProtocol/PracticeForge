@@ -252,7 +252,7 @@ class AIEnricher:
         executor_code = data.get("executor_code", "") or ""
         if not generator_code or not solution_code:
             return False, "Missing generator_code or solution_code"
-        cases = _run_generator(generator_code, count=100)
+        cases = _run_generator(generator_code)
         if cases is None:
             return False, "Generator crashed or produced no output"
         if not cases:
@@ -329,7 +329,7 @@ def _run_code(user_code: str, kwargs: dict, executor_code: str = "", hidden=None
         got = first.get("got", "")
         try:
             output = json.loads(got)
-        except json.JSONDecodeError, TypeError:
+        except (json.JSONDecodeError, TypeError):
             output = got
         return {"output": output, "error": None}
     except Exception as e:
@@ -340,7 +340,7 @@ def _run_code(user_code: str, kwargs: dict, executor_code: str = "", hidden=None
                 os.unlink(p)
 
 
-def _run_generator(generator_code: str, count: int = 100) -> list | None:
+def _run_generator(generator_code: str) -> list | None:
     wrapper = f"""
 import json
 {generator_code}
