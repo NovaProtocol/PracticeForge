@@ -63,6 +63,7 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - Architecture: architecture.md
+  - Caching: caching.md
   - Solver Private:
       - solver/index.md
       - Solver API: solver/api-reference.md
