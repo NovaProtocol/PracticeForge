@@ -3,7 +3,7 @@
 shared.models talks to SQLAlchemy through shared.db, whose engine is built
 from MYSQL_* env vars on first use. Tests swap in a temporary SQLite engine
 (plus its sessionmaker) so nothing needs a real database. Only functions
-whose SQL is MySQL-agnostic are covered — the MySQL-only upserts
+whose SQL is MySQL-agnostic are covered, the MySQL-only upserts
 (ON DUPLICATE KEY UPDATE) are out of scope.
 """
 

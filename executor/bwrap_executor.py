@@ -11,7 +11,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 from wrapper import build_wrapper, parse_output
 
-# gRPC (internal) — optional, best-effort. If import fails, poll-only mode continues.
+# gRPC (internal): optional, best-effort. If import fails, poll-only mode continues.
 try:
     import grpc  # noqa: F401
     from grpc_server import serve_grpc as _grpc_serve  # type: ignore
@@ -40,7 +40,7 @@ def _find_python() -> str:
     for candidate in ("/usr/local/bin/python3", "/usr/bin/python3", "/bin/python3"):
         if os.path.exists(candidate):
             return candidate
-    raise RuntimeError("no python3 found under /usr or /usr/local — sandbox cannot run")
+    raise RuntimeError("no python3 found under /usr or /usr/local, sandbox cannot run")
 
 
 def _log(msg: str, indent: int = 0):
@@ -153,10 +153,10 @@ def _set_rlimits():
     """Hard rlimits for the sandboxed process tree. Runs in the forked child
     before bwrap execs, so bwrap and everything inside the sandbox inherits
     them. User code cannot raise a hard limit. If a limit cannot be set it is
-    logged loudly — the sandbox still runs, the cgroup limits back it up.
+    logged loudly, the sandbox still runs, the cgroup limits back it up.
 
     NOTE: RLIMIT_NPROC is NOT enforced while the sandbox runs as uid 0 in its
-    own user namespace — the kernel exempts processes with CAP_SYS_ADMIN in
+    own user namespace, the kernel exempts processes with CAP_SYS_ADMIN in
     that namespace, so fork bombs are instead bounded by the container's
     pids cgroup limit (pids_limit in compose.yaml). The other limits here
     (RLIMIT_AS, RLIMIT_CPU, RLIMIT_CORE) apply unconditionally."""
@@ -176,7 +176,7 @@ def _set_rlimits():
 
 
 def _run_sandboxed(cmd: list, timeout: int) -> dict:
-    """Run a command inside the sandbox. No fallback — if bwrap fails,
+    """Run a command inside the sandbox. No fallback, if bwrap fails,
     the error is returned loudly and the queue entry is marked failed."""
     try:
         start = time.perf_counter()
@@ -342,23 +342,23 @@ def generate_brute_force_test_cases(conn, problem_id, qid, max_valid=100, max_at
 
         inp_str = json.dumps(tc_data)
         if sol_result["returncode"] != 0:
-            _log(f"gen case: {inp_str} — runtime error (rc={sol_result['returncode']})", indent=2)
+            _log(f"gen case: {inp_str}, runtime error (rc={sol_result['returncode']})", indent=2)
             for line in (sol_result["stderr"] or "").split("\n"):
                 _log(f"stderr: {line}", indent=3)
             continue
         try:
             tc_results = json.loads(sol_result["results_json"])
         except (json.JSONDecodeError, ValueError) as e:
-            _log(f"gen case: {inp_str} — parse error: {e}", indent=2)
+            _log(f"gen case: {inp_str}, parse error: {e}", indent=2)
             _log(f"raw output: {sol_result['stdout'][:500]}", indent=3)
             continue
         if not tc_results:
-            _log(f"gen case: {inp_str} — no results returned", indent=2)
+            _log(f"gen case: {inp_str}, no results returned", indent=2)
             continue
         if tc_results[0].get("status") == "failed":
             got = tc_results[0].get("got", "")
             err = tc_results[0].get("error", "")
-            _log(f"gen case: {inp_str} — solution failed", indent=2)
+            _log(f"gen case: {inp_str}, solution failed", indent=2)
             _log(f"got: {got}", indent=3)
             for line in (err or "").split("\n"):
                 _log(f"{line}", indent=3)
@@ -391,7 +391,7 @@ def process_entry(conn, entry):
     exec_type = entry.get("exec_type") or "run"
 
     label = get_problem_label(conn, problem_id)
-    _log(f"queue [{qid}] ({label}) {exec_type} — started")
+    _log(f"queue [{qid}] ({label}) {exec_type}, started")
     _LOG_INDENT += 1
 
     try:
@@ -543,7 +543,7 @@ def process_entry(conn, entry):
                 cur.execute("UPDATE execution_queue SET solution_id = %s WHERE id = %s", (sid, qid))
             _log(f"solution #{sid} created", indent=1)
 
-        _log(f"queue [{qid}] — done ({timing_ms}ms)")
+        _log(f"queue [{qid}], done ({timing_ms}ms)")
     finally:
         _LOG_INDENT -= 1
 
@@ -560,7 +560,7 @@ def _become_subreaper() -> None:
         PR_SET_CHILD_SUBREAPER = 36
         if libc.prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) != 0:
             raise OSError(ctypes.get_errno(), "prctl(PR_SET_CHILD_SUBREAPER)")
-        _log("subreaper enabled — orphaned sandbox processes will be reaped")
+        _log("subreaper enabled, orphaned sandbox processes will be reaped")
     except Exception as e:
         _log(f"FATAL: cannot become subreaper, zombies will accumulate: {e}")
 
@@ -568,7 +568,7 @@ def _become_subreaper() -> None:
 def reap_orphans() -> None:
     """Non-blocking waitpid sweep for reaped-orphan zombies.
 
-    Only safe while no subprocess.run is in flight — the executor is
+    Only safe while no subprocess.run is in flight, the executor is
     single-threaded, so call between sandbox runs (process_entry finally and
     the idle poll loop)."""
     try:
@@ -585,7 +585,7 @@ def reap_orphans() -> None:
 def _start_grpc_background() -> None:
     """Start gRPC ExecutorService in a daemon thread (internal net only)."""
     if not _HAS_GRPC:
-        _log("gRPC not available — running poll-only")
+        _log("gRPC not available, running poll-only")
         return
     import threading
 

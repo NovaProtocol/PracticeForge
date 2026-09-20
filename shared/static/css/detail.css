@@ -1,4 +1,4 @@
-/* Private problem detail page — editor, console, modals */
+/* Private problem detail page, editor, console, modals */
 html, body { overflow: hidden; }
 #description-panel { overflow-y: auto; transition: flex 0.2s ease, opacity 0.2s ease; }
 #description-panel.collapsed { flex: 0 0 0 !important; min-width: 0 !important; width: 0 !important; padding: 0 !important; opacity: 0; overflow: hidden; border-right: none !important; }

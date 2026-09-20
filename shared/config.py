@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Shared settings — BaseSettings without min_length (no JWT/sessions in SolveSpace).
+    """Shared settings, BaseSettings without min_length (no JWT/sessions in SolveSpace).
 
     When SECRET_KEY is not used for JWT/sessions,
     omit Field(min_length=32). See task §2.
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     def db_url(self) -> str:
         if self.DATABASE_URL_OVERRIDE:
             return self.DATABASE_URL_OVERRIDE
-        # sync DSN default — _async_url swaps to aiomysql
+        # sync DSN default, _async_url swaps to aiomysql
         return (
             f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASS}"
             f"@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
@@ -59,7 +59,7 @@ ProductionConfig = Settings
 
 @lru_cache
 def get_config() -> Settings:
-    # validate DEPLOYMENT_TYPE early — mirrors compose ${VAR:?}
+    # validate DEPLOYMENT_TYPE early, mirrors compose ${VAR:?}
     return Settings()
 
 

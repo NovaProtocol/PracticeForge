@@ -8,7 +8,7 @@ Base path `/api` (via Caddy `handle /*` → `solver_private:8000`).
 |---|---|---|
 | `GET` | `/api/problems` | List summaries (no large HTML) |
 | `GET` | `/api/problems/<cid>/<idx>` | Full problem (adds `examples`, `constraints` arrays) |
-| `POST` | `/api/problems/upload` | Upsert problem (scraper) — `{contest_id, problem_index, title, ...}` |
+| `POST` | `/api/problems/upload` | Upsert problem (scraper), `{contest_id, problem_index, title, ...}` |
 | `GET` | `/api/problems/exists/<cid>/<idx>` | Existence check |
 
 ## Solutions
@@ -22,10 +22,10 @@ Base path `/api` (via Caddy `handle /*` → `solver_private:8000`).
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/run/<cid>/<idx>` | Enqueue `run` (examples) — form `code`, `filename`, `testcases` |
+| `POST` | `/api/run/<cid>/<idx>` | Enqueue `run` (examples), form `code`, `filename`, `testcases` |
 | `POST` | `/api/brute-force/<cid>/<idx>` | Enqueue `brute_force` (generator) |
 | `POST` | `/api/submit/<cid>/<idx>` | Enqueue `submit_brute` (generator + verdict + solution row) |
-| `POST` | `/api/format` | Black format — form `code` |
+| `POST` | `/api/format` | Black format, form `code` |
 | `POST` | `/api/re-run/<solution_id>` | Re-run accepted solution on examples |
 | `GET` | `/api/queue-status/<qid>` | Poll `execution_queue` row |
 
@@ -64,8 +64,8 @@ Allowed `content_type`: `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `i
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/health` | `{"status":"ok"}` — public, no gate |
-| `GET` | `/404` | Themed 404 page — public |
+| `GET` | `/health` | `{"status":"ok"}`, public, no gate |
+| `GET` | `/404` | Themed 404 page, public |
 
 ## gRPC (internal)
 

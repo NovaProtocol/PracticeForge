@@ -1,6 +1,6 @@
 # SolveSpace Documentation
 
-MkDocs site for SolveSpace — served as a dedicated `documentation` container on `:8005` behind the Caddy gate.
+MkDocs site for SolveSpace, served as a dedicated `documentation` container on `:8005` behind the Caddy gate.
 
 ## Local preview
 
@@ -30,8 +30,8 @@ Caddy exposes the site at `https://<host>/documentation/` (gated via
 
 ## Structure
 
-- `mkdocs.yml` — Material theme, WBS-pattern config
-- `docs/` — Markdown source (`index.md`, `getting-started.md`, `architecture.md` + solver/executor/scraper/etc)
-- `requirements.txt` — mkdocs + material + plugins + FastAPI/granian
-- `app.py` — FastAPI serving `site/` on `8005`
-- `Dockerfile` — `python:3.14-slim`, `mkdocs build`, `USER appuser 10001`
+- `mkdocs.yml`, Material theme, WBS-pattern config
+- `docs/`, Markdown source (`index.md`, `getting-started.md`, `architecture.md` + solver/executor/scraper/etc)
+- `requirements.txt`, mkdocs + material + plugins + FastAPI/granian
+- `app.py`, FastAPI serving `site/` on `8005`
+- `Dockerfile`, `python:3.14-slim`, `mkdocs build`, `USER appuser 10001`

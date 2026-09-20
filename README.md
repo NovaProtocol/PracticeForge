@@ -1,76 +1,37 @@
 # SolveSpace
 
-Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces
-problems, AI-enriches them, and uploads them to a private FastAPI app where
-submitted code runs in a bwrap sandbox.
+A private competitive-programming practice workspace.
 
-## How it works
+I use this to practise for algorithm contests. It collects problems, keeps my solutions together
+with the problem statement, and runs submitted code against the official test cases so I can see
+which attempts actually pass before I move on.
 
-```text
-utilities/scraper/   Codeforces ──► DB   (4 stages: HTML → images → upload → enrichment)
-solver_private/      FastAPI :8000       (problems, solutions, editor, execution API)
-executor/            bwrap sandbox       (runs submitted code against test cases)
-caddy/               :7031               (reverse proxy; no forward_auth — gate at the apex)
-```
+## What it does
 
-The scraper runs on the host and writes problems and their test cases into the same database the app serves from; stage 1 needs a real browser because Codeforces challenges the request. The app never executes submitted code itself — it hands the job to the sandbox, which runs it with no network and a memory limit, then writes the verdict back.
+- **A problem library that builds itself.** A scraper pulls problems and their test cases into the
+  database, so the workspace fills up without hand-copying anything. Statements are enriched with
+  worked-through hints and reference solutions, which is what makes a problem useful to revisit
+  weeks later.
+- **Code runs somewhere harmless.** Submitted code is executed in an isolated sandbox with a hard
+  memory cap, a CPU limit, no network access, and a process ceiling. A runaway loop or an infinite
+  allocation is a failed test case, not a dead machine.
+- **An editor and a run button.** Write an attempt next to the problem, run it against the official
+  cases, and get a verdict per case.
+- **Progress you can look at.** Solutions are kept per problem, so it is clear what has been solved
+  and what has not.
 
-## Components
-
-- `solver_private/` — the FastAPI app (problems, solutions, editor, execution
-  API — `create_app()` factory, `APIRouter` x3, `granian` 1 worker, `RequestIDMiddleware`+`structlog` JSON, `{error:{code,message,request_id}}`). Serves on port `8000` inside the container, behind the apex wildcard gate (GateKeeper).
-- `executor/` — bwrap sandbox that runs submitted/generated code against test
-  cases and writes results to the DB.
-- `shared/` — DB layer, models, base templates, static assets, wrapper code.
-- `utilities/scraper/` — 4-stage scraper pipeline (scrape HTML → download
-  images → upload images → AI enrichment + upload).
-- `caddy/` — local reverse proxy: one published port, `7031`, fanning out to
-  `solver_private:8000` and `solver_documentation:8005`. No `forward_auth` — the
-  gate is at the apex wildcard (GateKeeper).
-- `mysql/` — reserved for init scripts (currently empty).
-
-## Ports
-
-Only Caddy publishes a host port. Every other service is reachable solely across
-the compose networks.
-
-| Port | Service |
-|---|---|
-| 7031 | Caddy (`127.0.0.1:7031:7031`) — the only published port |
-| 8000 | solver app (container-internal) |
-| 8005 | documentation (container-internal, via Caddy `/documentation/*`) |
-| 50051 | executor gRPC (container-internal, `expose` only) |
-| 3306 | MySQL (container-internal) |
-| 80 | phpMyAdmin (container-internal, `expose` only) |
-
-## Environment
-
-See `.env.example`. Required: `MYSQL_PASS` (compose fails fast without it).
-Optional: `MYSQL_USER`, `MYSQL_DATABASE`, `API_TOKEN` (scraper + write API),
-`ACCESS_CODE` (GateKeeper magic-link handshake), and the scraper's LLM settings —
-`LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` (all three wired as `${VAR:-}` in
-`compose.yaml`). Leave the LLM settings blank to scrape without enrichment.
-
-Variables are injected by compose — there is no `.env` file. For local runs,
-`export` the vars in your shell.
-
-## Run
-
-    docker compose up -d --build
-
-Scraper pipeline (on the host; stage 1 needs a browser for Cloudflare):
-
-    python3 utilities/scraper/run.py 1234
-
-## Tests
+## Running it
 
 ```bash
-uv run --no-project --with-requirements shared/requirements.txt \
-  --with-requirements requirements-dev.txt pytest -q
+cp .env.example .env
+# then fill in the values it documents, and start the stack
+docker compose up -d --build
 ```
 
-Covers app construction and the 404 render path (`tests/test_health.py`), the
-`?`-placeholder shim over the DB layer (`tests/test_db_shim.py`), the model
-queries against a throwaway SQLite database (`tests/test_models.py`), and the
-bwrap sandbox — the sandbox cases skip where `bwrap` is unavailable
-(`tests/test_executor_sandbox.py`).
+`.env.example` lists every variable. Leaving the enrichment settings blank runs the workspace
+without the AI-generated hints, which is fine for solving.
+
+## Documentation
+
+Full documentation is served by the stack at `/documentation/`, and the sources are in
+[`documentation/docs`](documentation/docs).

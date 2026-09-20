@@ -14,28 +14,28 @@
 ```bash
 git clone <repo-url> SolveSpace
 cd SolveSpace
-# env vars come from compose interpolation — see `.env.example`, export them, no `.env` file
+# env vars come from compose interpolation: see `.env.example`, export them, no `.env` file
 ```
 
 Key variables (full list in `.env.example`, source of truth):
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `DEPLOYMENT_TYPE` | yes | — | `DEBUG` or `PRODUCTION` |
-| `MYSQL_PASS` | yes | — | MySQL root password (compose fails fast if missing) |
+| `DEPLOYMENT_TYPE` | yes | n/a | `DEBUG` or `PRODUCTION` |
+| `MYSQL_PASS` | yes | n/a | MySQL root password (compose fails fast if missing) |
 | `MYSQL_USER` | no | `root` | DB user |
 | `MYSQL_DATABASE` | no | `solvespace` | DB name |
-| `API_TOKEN` | no | — | Scraper + write API token |
+| `API_TOKEN` | no | n/a | Scraper + write API token |
 | `EXECUTOR_GRPC_ADDR` | no | `solver_executor:50051` | Internal gRPC address (solver → executor) |
 | `GRPC_PORT` | no | `50051` | Executor gRPC listen port |
 | `MEMORY_LIMIT_MB` | no | `1024` | Sandbox memory hard limit |
 | `PROCESS_LIMIT` | no | `64` | Sandbox nproc limit (capped by pids cgroup) |
 | `CPU_LIMIT_SECONDS` | no | `25` | Sandbox CPU limit |
-| `LLM_API_KEY` | no | — | Scraper LLM enrichment key (blank = no enrichment) |
-| `LLM_BASE_URL` | no | — | OpenAI-compatible endpoint for enrichment |
-| `LLM_MODEL` | no | — | Model name passed to that endpoint |
+| `LLM_API_KEY` | no | n/a | Scraper LLM enrichment key (blank = no enrichment) |
+| `LLM_BASE_URL` | no | n/a | OpenAI-compatible endpoint for enrichment |
+| `LLM_MODEL` | no | n/a | Model name passed to that endpoint |
 
-> Every required var uses `${VAR:?}` in `compose.yaml` — missing = `docker compose up` refuses to start. There is no `.env` file at runtime; export vars in your shell or deployment tool.
+> Every required var uses `${VAR:?}` in `compose.yaml`, missing = `docker compose up` refuses to start. There is no `.env` file at runtime; export vars in your shell or deployment tool.
 
 ## 2. Start All Services
 
@@ -64,7 +64,7 @@ docker compose logs -f solver_private solver_executor solver_documentation
 | `solver_executor:50051` | Executor gRPC | internal only (`expose`, no `ports`) |
 | `solver_phpmyadmin:80` | phpMyAdmin | internal only (`expose`, no `ports`) |
 
-Gate means the GateKeeper wildcard gate — present a valid `gatekeeper_token` cookie or a `?access_code=` magic link. This project's own `caddy/Caddyfile` carries no `forward_auth`.
+Gate means the GateKeeper wildcard gate, present a valid `gatekeeper_token` cookie or a `?access_code=` magic link. This project's own `caddy/Caddyfile` carries no `forward_auth`.
 
 ## 4. Scraper Pipeline (host)
 

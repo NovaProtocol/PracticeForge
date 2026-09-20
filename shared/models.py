@@ -14,7 +14,7 @@ def _parse_problem(row: dict) -> dict:
 
 
 def get_problems_summary():
-    """Lightweight list — no description_html or large text fields."""
+    """Lightweight list, no description_html or large text fields."""
     rows = query(
         """SELECT p.id, p.contest_id, p.problem_index, p.title, p.slug,
                   p.difficulty_rating, p.tags, p.time_limit, p.memory_limit, p.url,

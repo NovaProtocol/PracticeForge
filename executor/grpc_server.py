@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExecutorServicer(executor_pb2_grpc.ExecutorServiceServicer):
-    """gRPC servicer — delegates to shared DB layer, same as HTTP routes."""
+    """gRPC servicer, delegates to shared DB layer, same as HTTP routes."""
 
     async def EnqueueExecution(self, request, context):  # type: ignore[no-untyped-def]
         try:
@@ -83,7 +83,7 @@ async def serve_grpc(port: int = 50051) -> None:
 
 
 def create_grpc_server(port: int = 50051) -> grpc.aio.Server:
-    """Create but not start — for embedding in bwrap_executor lifespan."""
+    """Create but not start, for embedding in bwrap_executor lifespan."""
     server = grpc.aio.server()
     executor_pb2_grpc.add_ExecutorServiceServicer_to_server(ExecutorServicer(), server)
     server.add_insecure_port(f"0.0.0.0:{port}")

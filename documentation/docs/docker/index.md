@@ -20,8 +20,8 @@ volumes: { mysql_data: }
 ```
 
 - Every app has `restart: unless-stopped`.
-- Secrets via `${VAR:?}` interpolation — no `.env` file.
-- `net-executor` is `internal: true` — only solver ↔ executor gRPC.
+- Secrets via `${VAR:?}` interpolation, no `.env` file.
+- `net-executor` is `internal: true`, only solver ↔ executor gRPC.
 
 ## Dockerfiles
 
@@ -50,7 +50,7 @@ All use `PYTHONDONTWRITEBYTECODE=1`, `PYTHONUNBUFFERED=1`, `--no-cache-dir`, `rm
 }
 ```
 
-- Live `caddy/Caddyfile` has 3 handles (`/health`, `/documentation/*`, catch-all) — **zero per-app `forward_auth`** (the apex wildcard on `gatekeeper` decides; see live `Caddyfile`).
+- Live `caddy/Caddyfile` has 3 handles (`/health`, `/documentation/*`, catch-all), **zero per-app `forward_auth`** (the apex wildcard on `gatekeeper` decides; see live `Caddyfile`).
 - Site address is the project port `:7031`; proxy targets are **container_name** (`solver_private:8000`, `solver_documentation:8005`).
 - `/documentation/*` uses `handle_path` (strips prefix) so the docs app sees `/`.
 - Single Caddyfile, always deployment config.

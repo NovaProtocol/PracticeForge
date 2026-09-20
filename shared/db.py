@@ -1,4 +1,4 @@
-"""Database layer — async engine (aiomysql) + sync compat.
+"""Database layer, async engine (aiomysql) + sync compat.
 
 Async engine via create_async_engine + aiomysql
 for web layer; sync engine retained for executor and startup. Keeps same
@@ -58,7 +58,7 @@ def get_async_sessionmaker():
 
 @asynccontextmanager
 async def get_db():
-    """FastAPI dependency — yields request-scoped AsyncSession."""
+    """FastAPI dependency, yields request-scoped AsyncSession."""
     factory = get_async_sessionmaker()
     async with factory() as session:
         yield session

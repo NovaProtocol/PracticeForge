@@ -2,7 +2,7 @@
 
 ## bwrap Sandbox
 
-Executor runs user code with **bubblewrap** (`bwrap`), no fallback — sandbox failure is a loud `failed` queue status.
+Executor runs user code with **bubblewrap** (`bwrap`), no fallback, sandbox failure is a loud `failed` queue status.
 
 ### Invocation
 
@@ -26,7 +26,7 @@ cmd = [
 subprocess.run(cmd, env={}, preexec_fn=_set_rlimits, timeout=TIMEOUT)
 ```
 
-- Sandboxed process gets **empty env** (`_bwrap_env() → {}`) — no `MYSQL_*` secrets.
+- Sandboxed process gets **empty env** (`_bwrap_env() → {}`), no `MYSQL_*` secrets.
 - Extra binds add the user code file when needed.
 
 ### rlimits (`_set_rlimits`)
@@ -36,11 +36,11 @@ Set in `preexec_fn` before exec, inherited by bwrap + child:
 | Limit | Value | Notes |
 |---|---|---|
 | `RLIMIT_AS` | `MEMORY_LIMIT_MB*1024*1024` (default 1024) | Address space |
-| `RLIMIT_NPROC` | `PROCESS_LIMIT` (default 64) | Not enforced as uid 0 in user ns — bounded by `pids_limit: 128` cgroup |
+| `RLIMIT_NPROC` | `PROCESS_LIMIT` (default 64) | Not enforced as uid 0 in user ns, bounded by `pids_limit: 128` cgroup |
 | `RLIMIT_CPU` | `CPU_LIMIT_SECONDS` (default 25) | CPU time |
 | `RLIMIT_CORE` | `0` | No core dumps |
 
-Failures to set a limit are logged but don't abort — cgroup limits back them up.
+Failures to set a limit are logged but don't abort, cgroup limits back them up.
 
 ### Container Privileges
 
@@ -54,7 +54,7 @@ pids_limit: 128
 cpus: "2"
 ```
 
-`SYS_ADMIN` + `unconfined` are mandatory for `bwrap --unshare-all` user namespace creation. Documented tradeoff — sandboxed code itself is still empty-env + rlimits + no net.
+`SYS_ADMIN` + `unconfined` are mandatory for `bwrap --unshare-all` user namespace creation. Documented tradeoff, sandboxed code itself is still empty-env + rlimits + no net.
 
 ### Wrapper (`shared/wrapper.py`)
 
@@ -73,7 +73,7 @@ libc.prctl(PR_SET_CHILD_SUBREAPER, 1) # become subreaper
 os.waitpid(-1, WNOHANG) # reap_orphans() between runs
 ```
 
-Orphaned sandbox children are reparented to the executor instead of init and reaped — prevents pid cgroup exhaustion.
+Orphaned sandbox children are reparented to the executor instead of init and reaped, prevents pid cgroup exhaustion.
 
 ## gRPC Service
 

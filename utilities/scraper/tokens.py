@@ -37,7 +37,7 @@ def record(tokens: int):
     projected = state["tokens_used"] + tokens
     if projected > TOKEN_LIMIT:
         reset_at = datetime.fromtimestamp(state["window_start"] + WINDOW_SECONDS, tz=UTC)
-        log.warn(f"Token limit exceeded ({state['tokens_used']}/{TOKEN_LIMIT}) — overage allowed")
+        log.warn(f"Token limit exceeded ({state['tokens_used']}/{TOKEN_LIMIT}), overage allowed")
         log.warn(f"Window resets at {reset_at.isoformat()}")
 
     state["tokens_used"] += tokens

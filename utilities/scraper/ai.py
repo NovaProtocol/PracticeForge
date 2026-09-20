@@ -41,9 +41,9 @@ SYSTEM_PROMPT = r"""You are an expert Python educational coding platform engine 
 }
 
 Guidelines (Strictly Python-Centric):
-1. MATH CONVERSION: Ensure all mathematical variables and expressions are cleanly formatted using standard LaTeX (e.g., $n$, $n \times m$, $998\,244\,353$) so they render properly on the frontend. Do NOT wrap variable names in HTML tags — just use LaTeX directly. Write $a_i$ instead of <var>a_i</var>.
+1. MATH CONVERSION: Ensure all mathematical variables and expressions are cleanly formatted using standard LaTeX (e.g., $n$, $n \times m$, $998\,244\,353$) so they render properly on the frontend. Do NOT wrap variable names in HTML tags, just use LaTeX directly. Write $a_i$ instead of <var>a_i</var>.
 2. DESCRIPTION: Rewrite the problem description so it reads like a clean, standalone coding challenge (like LeetCode). Strip out all competitive programming I/O boilerplate (e.g., ignore mentions of "the first line contains t test cases", "standard input", or raw stream reading). Focus entirely on explaining the core logical task using the input variables provided to the function. Keep the original structure with short paragraphs, bullet points, and clear sections. Preserve whitespace and logical breaks. Keep the full reasoning, edge cases, tie-breaking rules, and any conditional logic from the original. The description must be complete enough that someone understands the entire problem without guessing. Preserve all numerical bounds and constraints.
-   IMAGES: A marker like `[image: <filename>]` in the problem text indicates a figure or diagram at that position in the original statement. Keep the marker in its original position in the description so the figure placement is preserved. The marker MUST be on its own line with no other text on that line — place it as a standalone line between the surrounding paragraphs. If the surrounding text explains what the figure shows (e.g., "according to the picture"), include that explanation in your own words in the adjacent paragraph. Do not invent facts about the image that the text does not support.
+   IMAGES: A marker like `[image: <filename>]` in the problem text indicates a figure or diagram at that position in the original statement. Keep the marker in its original position in the description so the figure placement is preserved. The marker MUST be on its own line with no other text on that line, place it as a standalone line between the surrounding paragraphs. If the surrounding text explains what the figure shows (e.g., "according to the picture"), include that explanation in your own words in the adjacent paragraph. Do not invent facts about the image that the text does not support.
 3. CONSTRAINTS: Bulleted list of constraints inferred or stated.
 4. HINTS: Python-friendly logic tips and algorithmic hints.
 5. EXECUTOR_CODE: This is for INTERACTIVE problems (problems where the solution must query the judge, e.g. "you can ask up to 20 queries", "this is an interactive problem", reading responses after printing queries). If the problem is interactive, provide Python source code in `executor_code` that defines the judge's state and query functions. This code is exec'd AFTER the user's `Solution` class is defined, in the same namespace, so it can attach functions to the class via `Solution.<name> = staticmethod(<function>)`. Use `staticmethod` so the user can call `self.<name>(...)` inside `run()` without binding issues. Example for a "guess the hidden number" problem:
@@ -56,14 +56,14 @@ Guidelines (Strictly Python-Centric):
            raise Exception("query limit exceeded")
        return HIDDEN % x == 0
    Solution.query = staticmethod(query)
-   The user's solution then calls `self.query(...)` inside `run()`. The `HIDDEN` variable and `_queries` counter are reset by the executor before each test case from the test case's `hidden` field — your `base_code`, `solution_code`, and `generator_code` must reference `self.query` (or whatever you name it). The generator must emit cases with a `hidden` key carrying the judge's secret plus the expected final answer. The `run()` method should receive no input params for interactive problems (the interaction happens via the query functions) and return the final answer. If the problem is NOT interactive, set `executor_code` to an empty string.
+   The user's solution then calls `self.query(...)` inside `run()`. The `HIDDEN` variable and `_queries` counter are reset by the executor before each test case from the test case's `hidden` field, your `base_code`, `solution_code`, and `generator_code` must reference `self.query` (or whatever you name it). The generator must emit cases with a `hidden` key carrying the judge's secret plus the expected final answer. The `run()` method should receive no input params for interactive problems (the interaction happens via the query functions) and return the final answer. If the problem is NOT interactive, set `executor_code` to an empty string.
 6. EXAMPLES: Parse raw sample test cases into an array (`examples`). NEVER use newline strings (`\n`) in output. Every test case's `input` must be a keyword-argument object with keys matching the parameter names in `run()`. The `output` must be cast to its correct type: if the correct answer is a number, use int/float; if a string, use string; if multiple values, use a list. For example, if sample output is "4\n()()", produce `"output": [4, "()()"]`. If it's just "4", produce `"output": 4`. For interactive problems, each example must include a `hidden` key carrying the judge's secret value (extracted from the note/statement if possible) alongside the expected `output`.
-   SIMULATED TEST CASES: If an example test case from the problem is unreliable, ambiguous, or does not make sense (e.g., the interaction transcript is contradictory or the expected answer cannot be determined), you MAY replace it with a test case you generate yourself that you are confident is correct. LIMIT this — only do it when necessary, as invented test cases have a higher chance of being wrong. If you DO substitute a simulated test case, append the exact hidden signal text "Simulated Test Case" inside that test case's `input` object under a key named `_hint` (e.g. `"input": {"_hint": "Simulated Test Case", ...}`) so it is visible to the platform as a marker that this case was possibly not reliable.
+   SIMULATED TEST CASES: If an example test case from the problem is unreliable, ambiguous, or does not make sense (e.g., the interaction transcript is contradictory or the expected answer cannot be determined), you MAY replace it with a test case you generate yourself that you are confident is correct. LIMIT this, only do it when necessary, as invented test cases have a higher chance of being wrong. If you DO substitute a simulated test case, append the exact hidden signal text "Simulated Test Case" inside that test case's `input` object under a key named `_hint` (e.g. `"input": {"_hint": "Simulated Test Case", ...}`) so it is visible to the platform as a marker that this case was possibly not reliable.
 7. BASE_CODE: Provide a friendly LeetCode-style starter code with explicit parameter names and type hints. Parameters will be passed as **kwargs. Example:
    class Solution:
        def run(self, h: int, n: int, damage: list, cooldown: list) -> int:
            pass
-8. SOLUTION_CODE: Provide a CORRECT, general-purpose solution matching the base code signature. It will be automatically run against all example AND generated test cases. It must solve the problem generally — no hardcoded example-to-answer mapping. Write readable code with clear variable names, appropriate data structures, proper control flow. It does not need to be overly verbose. Do NOT use recursion deeper than Python's default limit. Do NOT use external libraries. Handle ALL edge cases mentioned in the constraints.
+8. SOLUTION_CODE: Provide a CORRECT, general-purpose solution matching the base code signature. It will be automatically run against all example AND generated test cases. It must solve the problem generally, no hardcoded example-to-answer mapping. Write readable code with clear variable names, appropriate data structures, proper control flow. It does not need to be overly verbose. Do NOT use recursion deeper than Python's default limit. Do NOT use external libraries. Handle ALL edge cases mentioned in the constraints.
 9. GENERATOR_CODE: Provide a Python script with a function `generate()` that returns a list of dicts. Each dict's keys must match the `run()` method parameter names. Do NOT wrap the code in markdown. Just output the raw Python source as a string. Example:
    import random
    def generate():
@@ -100,7 +100,7 @@ class AIEnricher:
         self.last_error = ""
         if not _llm_configured():
             self.last_error = MISSING_LLM_CONFIG
-            log.warn(f"{MISSING_LLM_CONFIG} — skipping AI enrichment")
+            log.warn(f"{MISSING_LLM_CONFIG}, skipping AI enrichment")
             return None
 
         # First call: raw HTML + system prompt
@@ -109,7 +109,7 @@ class AIEnricher:
             self.last_error = "AI returned no data (empty or parse failure)"
             return None
 
-        # Solution validation — retry with cleaned problem data
+        # Solution validation, retry with cleaned problem data
         solution_ok, solution_err = self._validate_solution(data)
         if not solution_ok:
             for attempt in range(RETRY_LIMIT):
@@ -129,7 +129,7 @@ class AIEnricher:
                 log.error(f"Solution validation failed after max retries: {solution_err}")
                 return None
 
-        # Generator validation — retry with cleaned problem data + solution + generator
+        # Generator validation, retry with cleaned problem data + solution + generator
         gen_ok, gen_err = self._validate_generator(data)
         if not gen_ok:
             for attempt in range(RETRY_LIMIT):
@@ -316,7 +316,7 @@ def _run_code(user_code: str, kwargs: dict, executor_code: str = "", hidden=None
         stdout = r.stdout.strip()
         if not stdout:
             # Wrapper crashed before printing (e.g. syntax error or module-level
-            # exception in executor_code) — surface the real error from stderr.
+            # exception in executor_code), surface the real error from stderr.
             err = r.stderr.strip() or f"exit code {r.returncode}, no output"
             return {"output": None, "error": err}
         parsed = parse_output(stdout)

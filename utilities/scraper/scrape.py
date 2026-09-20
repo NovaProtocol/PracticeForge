@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""STAGE 1 — Scrape Codeforces problem pages and save problem-statement HTML.
+"""STAGE 1, Scrape Codeforces problem pages and save problem-statement HTML.
 
 Usage:  cd Projects/SolveSpace && python3 utilities/scraper/scrape.py
 
@@ -11,7 +11,7 @@ Then run:
   python3 utilities/scraper/images_upload.py     (stage 3)
   python3 utilities/scraper/ai_process.py        (AI enrichment)
 
-Cloudflare captcha: solve it in the browser window — the script waits.
+Cloudflare captcha: solve it in the browser window, the script waits.
 """
 
 import sys
@@ -64,7 +64,7 @@ def main():
             to_process = [
                 p for p in problems if str(p["contestId"]) == parts[0] and p["index"] == parts[1]
             ]
-            log.info(f"TEST_TARGET set — only scraping {TEST_TARGET}")
+            log.info(f"TEST_TARGET set, only scraping {TEST_TARGET}")
         else:
             log.error(f"Invalid TEST_TARGET: {TEST_TARGET}")
     if LIMIT:
@@ -80,7 +80,7 @@ def main():
             idx = cf_data["index"]
             pid_str = f"{cid}/{idx}"
             name = cf_data.get("name", "")
-            log.info(f"[{i + 1}/{total}] {pid_str} — {name}")
+            log.info(f"[{i + 1}/{total}] {pid_str}, {name}")
 
             out_file = HTML_DIR / f"{cid}-{idx}.html"
 
@@ -111,9 +111,9 @@ def main():
             if problem_div:
                 saved_html = str(problem_div)
                 out_file.write_text(saved_html)
-                log.info(f"{pid_str} saved — problem statement, {len(saved_html)} chars")
+                log.info(f"{pid_str} saved, problem statement, {len(saved_html)} chars")
             else:
-                log.warn(f"{pid_str} problem-statement div not found — skipped")
+                log.warn(f"{pid_str} problem-statement div not found, skipped")
 
             ok += 1
             time.sleep(SCRAPE_DELAY)

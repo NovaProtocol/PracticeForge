@@ -48,7 +48,7 @@ def _configure_logging() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # create tables (sync — safe at startup)
+    # create tables (sync, safe at startup)
     try:
         from shared.startup import run as run_startup
 
@@ -128,7 +128,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     async def health(request: Request):
-        # lightweight DB check — degraded if unreachable
+        # lightweight DB check, degraded if unreachable
         try:
             from sqlalchemy import text
 

@@ -48,8 +48,8 @@ graph TB
 | `net-executor` | bridge `internal: true` | solver_private, solver_executor | gRPC `solver_executor:50051` only |
 | `gatekeeper` | external `gatekeeper` | solver_caddy | The apex wildcard gate runs here, in front of this stack |
 
-- `50051` is `expose` only — never `ports`-published. Caddy never proxies gRPC.
-- `solver_private:8000` and `solver_documentation:8005` are `expose` only — Caddy is the sole published surface (`127.0.0.1:7031:7031`).
+- `50051` is `expose` only, never `ports`-published. Caddy never proxies gRPC.
+- `solver_private:8000` and `solver_documentation:8005` are `expose` only, Caddy is the sole published surface (`127.0.0.1:7031:7031`).
 - `phpmyadmin` is `expose`-only (`80`) on `default`; it publishes nothing.
 
 ## Data Flow
@@ -84,7 +84,7 @@ Browser GET /documentation/ → Caddy handle_path strip → solver_documentation
  → FastAPI app.py serves site/index.html (MkDocs Material build)
 ```
 
-Gate: the apex wildcard on the `gatekeeper` network. This project's own Caddyfile declares **zero** `forward_auth` — every route here is already gated before Caddy sees it.
+Gate: the apex wildcard on the `gatekeeper` network. This project's own Caddyfile declares **zero** `forward_auth`, every route here is already gated before Caddy sees it.
 
 ## Component Breakdown
 
@@ -101,17 +101,17 @@ Gate: the apex wildcard on the `gatekeeper` network. This project's own Caddyfil
 
 `shared/` is the cross-sector library (imported via `PYTHONPATH=/app/shared`):
 
-- `db.py` — SQLAlchemy engine/session, `%s`→`:pN` shim for PyMySQL-compat queries
-- `sqlalchemy_models.py` — `Problem`, `Solution`, `ExecutionQueue`, `AutoSave`, `ProblemImage`
-- `models.py` — query helpers (`get_problem`, `get_solutions`, …)
-- `wrapper.py` — `build_wrapper()` / `parse_output()` (used by executor and scraper AI validation)
-- `startup.py` — `Base.metadata.create_all()` on boot
-- `proto/` — `executor.proto` (gRPC contract)
-- `proto_gen/` — generated `*_pb2.py` stubs
-- `templates/base.html` + `static/` — base layout
+- `db.py`, SQLAlchemy engine/session, `%s`→`:pN` shim for PyMySQL-compat queries
+- `sqlalchemy_models.py`, `Problem`, `Solution`, `ExecutionQueue`, `AutoSave`, `ProblemImage`
+- `models.py`, query helpers (`get_problem`, `get_solutions`, …)
+- `wrapper.py`, `build_wrapper()` / `parse_output()` (used by executor and scraper AI validation)
+- `startup.py`, `Base.metadata.create_all()` on boot
+- `proto/`, `executor.proto` (gRPC contract)
+- `proto_gen/`, generated `*_pb2.py` stubs
+- `templates/base.html` + `static/`, base layout
 
 ## Security Notes
 
-- Executor container runs as **root** with `SYS_ADMIN`, `seccomp:unconfined`, `apparmor:unconfined` — required for `bwrap --unshare-all` user ns. Mitigations: sandboxed code gets empty env, rlimits (`RLIMIT_AS`, `RLIMIT_CPU`, `RLIMIT_CORE`), pid cgroup (`pids_limit: 128`), and subreaper zombie reaping.
-- GateKeeper is the only auth, and it runs at the apex wildcard. The Caddyfile here declares no `forward_auth` at all — there is no per-app gate to keep in sync.
-- MySQL creds are injected via compose `${MYSQL_PASS:?}` — no `.env` file, no hardcoding.
+- Executor container runs as **root** with `SYS_ADMIN`, `seccomp:unconfined`, `apparmor:unconfined`, required for `bwrap --unshare-all` user ns. Mitigations: sandboxed code gets empty env, rlimits (`RLIMIT_AS`, `RLIMIT_CPU`, `RLIMIT_CORE`), pid cgroup (`pids_limit: 128`), and subreaper zombie reaping.
+- GateKeeper is the only auth, and it runs at the apex wildcard. The Caddyfile here declares no `forward_auth` at all, there is no per-app gate to keep in sync.
+- MySQL creds are injected via compose `${MYSQL_PASS:?}`, no `.env` file, no hardcoding.
