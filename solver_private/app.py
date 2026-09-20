@@ -13,7 +13,7 @@ from starlette.templating import Jinja2Templates
 
 from shared.config import get_config, shared_static_dir, shared_templates_dir
 from shared.errors import install_error_handlers
-from shared.middleware import RequestIDMiddleware
+from shared.middleware import CacheControlMiddleware, RequestIDMiddleware
 
 try:
     import structlog  # type: ignore
@@ -111,6 +111,7 @@ def create_app() -> FastAPI:
 
     # RequestID must be first so even 401s have X-Request-ID
     app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(CacheControlMiddleware, is_debug=config.DEBUG)
 
     # static
     static_dir = Path(shared_static_dir())
