@@ -34,6 +34,6 @@
 
 `apps/problems/templates/problems/partials/`:
 
-- `_description.html` — rendered `description_html` + images via `/api/images/<file>`
-- `_editor.html` — file tabs + editor
-- `_console_scripts.html` — queue poll + result render
+- `_description.html`, rendered `description_html` + images via `/api/images/<file>`
+- `_editor.html`, file tabs + editor
+- `_console_scripts.html`, queue poll + result render

@@ -26,7 +26,7 @@ RUN python3 -m compileall -q /app /app/shared 2>/dev/null || true
 EXPOSE 50051
 
 # NOTE (2026-08-12): this container intentionally runs as root with
-# SYS_ADMIN + seccomp/apparmor unconfined — bwrap's user-namespace sandbox
+# SYS_ADMIN + seccomp/apparmor unconfined: bwrap's user-namespace sandbox
 # needs it (see compose.yaml). Residual risk: a bwrap kernel bug would mean
 # root-in-container with DB creds in the env. The bwrap invocation itself
 # uses --unshare-all, an empty env, and rlimits, so sandboxed code never sees

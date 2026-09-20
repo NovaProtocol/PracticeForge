@@ -6,7 +6,7 @@ Usage:  cd Projects/SolveSpace && python3 utilities/scraper/ai_process.py
 Reads:  utilities/scraper/html/<contest_id>-<index>.html
 Writes: utilities/scraper/fail.json (on failures)
 
-Does NOT use a browser — run this unattended after scrape.py finishes.
+Does NOT use a browser, run this unattended after scrape.py finishes.
 """
 
 import sys
@@ -122,7 +122,7 @@ def main():
     for i, (cid_str, idx, html_file) in enumerate(to_process):
         cid = int(cid_str)
         pid_str = f"{cid}/{idx}"
-        log.info(f"[{i + 1}/{total}] {pid_str} — {html_file}")
+        log.info(f"[{i + 1}/{total}] {pid_str}, {html_file}")
 
         if uploader.exists_on_server(cid, idx):
             continue
@@ -141,7 +141,7 @@ def main():
             _record_failure(pid_str, "", msg)
             continue
 
-        # Use CF API metadata (tags, rating, name) — fall back to AI title
+        # Use CF API metadata (tags, rating, name), fall back to AI title
         cf = cf_meta.get(pid_str, {})
         cf_data = {
             "contestId": cid,
@@ -156,7 +156,7 @@ def main():
         if pid:
             ok += 1
             if not uploader.verify_upload(payload):
-                msg = "Upload verification failed — server data mismatch"
+                msg = "Upload verification failed, server data mismatch"
                 log.warn(f"{pid_str} {msg}")
                 _record_failure(pid_str, cf_data["name"], msg)
         else:

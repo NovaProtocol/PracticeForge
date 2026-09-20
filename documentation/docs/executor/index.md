@@ -26,7 +26,7 @@ executor/
 
 - `mark_running()`, fetch `executor_code` + `problem` row
 - Parse `test_cases_json` (list/dict/str)
-- If `exec_type` is `brute_force`/`submit_brute`: `generate_brute_force_test_cases()` — runs `generator_code` in sandbox, validates each case by running `solution_code` through `build_wrapper()` in sandbox
+- If `exec_type` is `brute_force`/`submit_brute`: `generate_brute_force_test_cases()`, runs `generator_code` in sandbox, validates each case by running `solution_code` through `build_wrapper()` in sandbox
 - Write user code to `/tmp/solver-<label>-<qid>.py`, build wrapper with `build_wrapper()`, run via `run_bwrap()` (bwrap + rlimits), `parse_output()` → `results_json`
 - Run solution_code against same cases for timing comparison (`sol_timing`)
 - `mark_completed()` with `result` JSON + `timing_ms`/`memory_kb`; if `submit` also `create_solution()` + set `solution_id` on queue row
@@ -34,7 +34,7 @@ executor/
 
 ## gRPC Integration
 
-`executor/grpc_server.py` hosts `ExecutorService` on `0.0.0.0:50051` (internal `net-executor`). The server shares the DB layer — `EnqueueExecution` inserts the queue row and returns the `queue_id` immediately; the poll loop still drives execution (no duplicate execution). `GetExecutionStatus` reads the queue row; `HealthCheck` returns `ok`.
+`executor/grpc_server.py` hosts `ExecutorService` on `0.0.0.0:50051` (internal `net-executor`). The server shares the DB layer, `EnqueueExecution` inserts the queue row and returns the `queue_id` immediately; the poll loop still drives execution (no duplicate execution). `GetExecutionStatus` reads the queue row; `HealthCheck` returns `ok`.
 
 Solver dials it:
 

@@ -28,6 +28,6 @@ def get_session() -> requests.Session:
             except Exception as e:
                 log.error(f"Gate handshake failed: {e}")
         else:
-            log.error("ACCESS_CODE not set — every request will be redirected to login")
+            log.error("ACCESS_CODE not set, every request will be redirected to login")
         _session = s
     return _session

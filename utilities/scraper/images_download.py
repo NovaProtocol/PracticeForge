@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""STAGE 2 — Download images referenced in scraped HTML files.
+"""STAGE 2, Download images referenced in scraped HTML files.
 
 Usage:  cd Projects/SolveSpace && python3 utilities/scraper/images_download.py
 
@@ -87,7 +87,7 @@ def main():
                 log.warn(f"HTTP {r.status_code}: {url}")
         except Exception as e:
             failed += 1
-            log.warn(f"download error: {e} — {url}")
+            log.warn(f"download error: {e}, {url}")
         time.sleep(0.2)
 
     log.info(f"Done. {ok} downloaded, {skipped} already on disk, {failed} failed.")

@@ -23,7 +23,7 @@ async def enqueue_via_grpc_async(
     exec_type: str = "run",
     timeout: float = 5.0,
 ) -> int | None:
-    """Async gRPC enqueue — use from async context (FastAPI/granian)."""
+    """Async gRPC enqueue, use from async context (FastAPI/granian)."""
     addr = _grpc_addr()
     try:
         async with grpc.aio.insecure_channel(addr) as ch:
@@ -51,7 +51,7 @@ def enqueue_via_grpc(
     exec_type: str = "run",
     timeout: float = 5.0,
 ) -> int | None:
-    """Sync gRPC enqueue — safe for Flask (solver_private) routes."""
+    """Sync gRPC enqueue, safe for Flask (solver_private) routes."""
     addr = _grpc_addr()
     try:
         with grpc.insecure_channel(addr) as ch:
@@ -72,7 +72,7 @@ def enqueue_via_grpc(
 
 
 def get_status_via_grpc(queue_id: int, timeout: float = 5.0) -> dict | None:
-    """Sync status fetch via gRPC — returns dict or None on miss/error."""
+    """Sync status fetch via gRPC, returns dict or None on miss/error."""
     addr = _grpc_addr()
     try:
         with grpc.insecure_channel(addr) as ch:

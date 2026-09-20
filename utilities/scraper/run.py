@@ -4,7 +4,7 @@
 Usage:  cd Projects/SolveSpace && python3 utilities/scraper/run.py <stages>
 
 <stages> is a string of digits selecting which stages to run:
-  1 = scrape.py          (scrape problem HTML — needs browser/captcha)
+  1 = scrape.py          (scrape problem HTML, needs browser/captcha)
   2 = images_download.py (download images referenced in the HTML)
   3 = images_upload.py   (upload images to the server via API)
   4 = ai_process.py      (AI enrichment + problem upload)
@@ -38,13 +38,13 @@ def main():
 
     stages = sys.argv[1]
     if not stages.isdigit():
-        print(f"Invalid stages: {stages!r} — expected digits like 1234")
+        print(f"Invalid stages: {stages!r}, expected digits like 1234")
         print(__doc__)
         sys.exit(1)
 
     unknown = [c for c in stages if c not in STAGES]
     if unknown:
-        print(f"Unknown stage(s): {unknown} — valid are 1, 2, 3, 4")
+        print(f"Unknown stage(s): {unknown}, valid are 1, 2, 3, 4")
         sys.exit(1)
 
     for c in stages:

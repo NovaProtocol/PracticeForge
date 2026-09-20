@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""STAGE 3 — Upload downloaded images to the server via the images API.
+"""STAGE 3, Upload downloaded images to the server via the images API.
 
 Usage:  cd Projects/SolveSpace && python3 utilities/scraper/images_upload.py
 

@@ -95,9 +95,9 @@ class Uploader:
         ]
         for field, expected, got in checks:
             if expected != got:
-                log.error(f"  Verify mismatch — {field}: expected={expected!r}, got={got!r}")
+                log.error(f"  Verify mismatch, {field}: expected={expected!r}, got={got!r}")
                 return False
-        log.info(f"  Verify OK — {cid}/{idx} data matches server")
+        log.info(f"  Verify OK, {cid}/{idx} data matches server")
         return True
 
     def verify_upload(self, data: dict) -> bool:

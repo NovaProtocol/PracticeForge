@@ -35,7 +35,7 @@
 | `GET` | `/api/images/exists/<file>` | gated | Exists |
 | `GET` | `/documentation/*` | gated | Docs site (`handle_path` → `solver_documentation:8005`) |
 
-Caddy `handle /health` and the catch-all `handle` are the two routes it declares; `/404` is an ordinary app route the catch-all proxies, not a Caddy handle. The Caddyfile has **zero** `forward_auth` — the gate is at the apex wildcard (GateKeeper), applied before the request reaches this Caddy.
+Caddy `handle /health` and the catch-all `handle` are the two routes it declares; `/404` is an ordinary app route the catch-all proxies, not a Caddy handle. The Caddyfile has **zero** `forward_auth`, the gate is at the apex wildcard (GateKeeper), applied before the request reaches this Caddy.
 
 ## gRPC (internal `net-executor`, `solver_executor:50051`)
 
@@ -81,7 +81,7 @@ HTTP is the public edge; gRPC is the internal notify. Both share the same servic
 | Port | Service | Publish |
 |---|---|---|
 | 8000 | solver_private (HTTP) | `expose` only |
-| 7031 | Caddy gateway | `127.0.0.1:7031:7031` — the only host-published port |
+| 7031 | Caddy gateway | `127.0.0.1:7031:7031`, the only host-published port |
 | 50051 | executor gRPC | `expose` only, `net-executor` internal |
 | 8005 | documentation HTTP | `expose` only |
 | 3306 | MySQL | `expose` only |
@@ -92,4 +92,4 @@ HTTP is the public edge; gRPC is the internal notify. Both share the same servic
 - gRPC `NOT_FOUND` → HTTP `404`
 - gRPC `INVALID_ARGUMENT` → HTTP `400`
 - gRPC `PERMISSION_DENIED` → HTTP `403`
-- Business logic lives in `*_service.py` / `shared/models.py` — both transports call it, no duplication.
+- Business logic lives in `*_service.py` / `shared/models.py`, both transports call it, no duplication.

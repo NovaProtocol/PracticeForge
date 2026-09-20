@@ -10,14 +10,14 @@ Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces proble
 
 | Service | Container | Internal Port | Caddy Route | Network |
 |---|---|---|---|---|
-| **Caddy** | `solver_caddy` | 7031 | — | default, gatekeeper |
+| **Caddy** | `solver_caddy` | 7031 | n/a | default, gatekeeper |
 | **Solver Private** | `solver_private` | 8000 | `/*` (7031) | default, net-executor |
-| **Executor** | `solver_executor` | 50051 (gRPC, internal) | — | default, net-executor |
+| **Executor** | `solver_executor` | 50051 (gRPC, internal) | n/a | default, net-executor |
 | **Documentation** | `solver_documentation` | 8005 | `/documentation/*` (7031) | default |
-| **MySQL 8.4** | `solver_mysql` | 3306 | — | default |
-| **phpMyAdmin** | `solver_phpmyadmin` | 80 | — (internal) | default |
+| **MySQL 8.4** | `solver_mysql` | 3306 | n/a | default |
+| **phpMyAdmin** | `solver_phpmyadmin` | 80 |, (internal) | default |
 
-- Gate is at the **wildcard** (`gatekeeper_caddy:7000` → `gatekeeper_auth:8001` on `gatekeeper`) — live `caddy/Caddyfile` proxies without a per-app `forward_auth`, so the gate runs before this Caddy sees the request. Live ingress here is 3 handles: `/health`, `/documentation/*`, catch-all.
+- Gate is at the **wildcard** (`gatekeeper_caddy:7000` → `gatekeeper_auth:8001` on `gatekeeper`), live `caddy/Caddyfile` proxies without a per-app `forward_auth`, so the gate runs before this Caddy sees the request. Live ingress here is 3 handles: `/health`, `/documentation/*`, catch-all.
 - `solver_private ↔ solver_executor` talk over **gRPC** on `solver_executor:50051` (internal `net-executor`, `expose` only) plus the MySQL `execution_queue` table.
 - Browser ingress is HTTP through Caddy (`:7031 → solver_private:8000`); internal RPC is gRPC.
 
@@ -67,11 +67,11 @@ graph TB
 
 ## Quick Links
 
-- [Getting Started](getting-started.md) — clone, env, `docker compose up`
-- [Architecture](architecture.md) — diagram, networks, data flow
-- [Solver Private](solver/index.md) — Flask blueprints, routes
-- [Executor](executor/index.md) — bwrap sandbox, queue, gRPC
-- [Scraper](scraper/index.md) — 4-stage pipeline
-- [Shared](shared/index.md) — DB layer, models, wrapper
-- [Docker](docker/index.md) — compose, Caddy, MySQL
-- [API Contract](api-contract/index.md) — HTTP + gRPC
+- [Getting Started](getting-started.md), clone, env, `docker compose up`
+- [Architecture](architecture.md), diagram, networks, data flow
+- [Solver Private](solver/index.md), Flask blueprints, routes
+- [Executor](executor/index.md), bwrap sandbox, queue, gRPC
+- [Scraper](scraper/index.md), 4-stage pipeline
+- [Shared](shared/index.md), DB layer, models, wrapper
+- [Docker](docker/index.md), compose, Caddy, MySQL
+- [API Contract](api-contract/index.md), HTTP + gRPC

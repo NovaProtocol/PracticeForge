@@ -50,7 +50,7 @@ async def _require_write_auth(request: Request, x_api_token: str | None = Header
         host = request.headers.get("host", "")
         if parsed.scheme in ("http", "https") and parsed.netloc == host:
             return
-    # allow if no token configured (dev) — match Flask fallback that returned 401 only when token set
+    # allow if no token configured (dev), match Flask fallback that returned 401 only when token set
     if not api_token:
         return
     from fastapi import HTTPException

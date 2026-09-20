@@ -1,4 +1,4 @@
-{# Description panel — styles: /static/css/description.css, scripts: /static/js/description.js #}
+{# Description panel, styles: /static/css/description.css, scripts: /static/js/description.js #}
 <div class="desc-panel">
   <div class="desc-tabs">
     <div class="desc-tab active" data-tab="description">Description</div>
@@ -91,7 +91,7 @@
     {% for sub in submissions %}
     <div class="submission-item">
       <span class="{% if sub.verdict == 'Accepted' %}verdict-accepted{% else %}verdict-wrong{% endif %}">{{ sub.verdict }}</span>
-      <span class="text-secondary"> — {{ sub.passed_count }}/{{ sub.total_count }}</span>
+      <span class="text-secondary">, {{ sub.passed_count }}/{{ sub.total_count }}</span>
       {% if sub.timing_ms %}<span class="text-secondary"> · {{ sub.timing_ms }}ms</span>{% endif %}
       {% if sub.memory_kb %}<span class="text-secondary"> · {% if sub.memory_kb > 1024 %}{{ "%.1f"|format(sub.memory_kb / 1024) }} MB{% else %}{{ "{:,}".format(sub.memory_kb) }} KB{% endif %}</span>{% endif %}
       <span class="text-secondary" style="float: right; font-size: 0.78rem;">{{ sub.created_at.strftime('%Y-%m-%d %H:%M') if sub.created_at else '' }}</span>

@@ -1,4 +1,4 @@
-"""Shared HTML-to-text extraction — used by both scraper and AI processor."""
+"""Shared HTML-to-text extraction, used by both scraper and AI processor."""
 
 import re
 
@@ -9,7 +9,7 @@ def extract_text(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 
     # Replace image tags with a text marker preserving position:
-    # [image: <filename>] — filename only, no path/URL.
+    # [image: <filename>], filename only, no path/URL.
     for el in soup.select("img"):
         src = el.get("src", "")
         name = src.rsplit("/", 1)[-1] if "/" in src else src
