@@ -14,7 +14,7 @@ def _load() -> dict:
     if TRACKER_PATH.exists():
         try:
             return json.loads(TRACKER_PATH.read_text())
-        except json.JSONDecodeError, Exception:
+        except (json.JSONDecodeError, Exception):
             pass
     return {"window_start": 0, "tokens_used": 0}
 

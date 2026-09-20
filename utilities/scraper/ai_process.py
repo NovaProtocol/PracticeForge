@@ -43,7 +43,7 @@ def _load_failed_ids():
         try:
             for entry in json.loads(FAIL_PATH.read_text()):
                 FAILED_IDS_CACHE.add(entry.get("id"))
-        except json.JSONDecodeError, Exception:
+        except (json.JSONDecodeError, Exception):
             pass
     return FAILED_IDS_CACHE
 
