@@ -110,6 +110,28 @@ Gate: the apex wildcard on the `gatekeeper` network. This project's own Caddyfil
 - `proto_gen/`, generated `*_pb2.py` stubs
 - `templates/base.html` + `static/`, base layout
 
+## Cache Headers
+
+One middleware sets `Cache-Control` for the two services that serve HTTP: `shared/middleware.py::CacheControlMiddleware`, installed in `solver_private/app.py` and `documentation/app.py`. Keeping it in the app rather than in the `Caddyfile` means mounted `StaticFiles`, HTML routes, `/health` and error pages are covered by the same code, and the edge never has to guess which visitor a response belongs to.
+
+The rule is **an existing header is kept, a gap is filled**:
+
+- a response that already carries `Cache-Control` is returned untouched; and
+- only a response carrying none is given a value, `no-store` in debug and the path class's lifespan otherwise.
+
+`is_debug` decides which value gets filled in. It does not decide whether an existing value is overwritten.
+
+| Class | Paths | Debug | Production |
+|-------|-------|-------|------------|
+| API | `/api/`, `/customer/api/`, `/staff/api/`, `/developer/api/`, `/webhook/` | `no-store` | `private, no-store` |
+| Static | `/static/` | `no-store` | `public, max-age=86400` |
+| Health | `/health` | `no-store` | `public, max-age=3600` |
+| HTML | anything unmatched | `no-store` | `private, max-age=300` |
+
+The API prefix is tested before the health list, so `/api/health` is `private, no-store` and the `"/api/health"` entry in `_MISC_PATHS` never reaches its own branch. Point a monitor at `/health`.
+
+Neither service is the gate. Each keeps an upstream header and does not demote; GateKeeper demotes a shared-cacheable value on the way out, on any response it produced or whose request it decided. That demotion is what makes keeping an upstream header safe, and it leaves the ungated `action == "none"` pass-through alone so a deliberately published asset stays cacheable at the edge. [Caching](caching.md) covers the policy and how to verify a change.
+
 ## Security Notes
 
 - Executor container runs as **root** with `SYS_ADMIN`, `seccomp:unconfined`, `apparmor:unconfined`, required for `bwrap --unshare-all` user ns. Mitigations: sandboxed code gets empty env, rlimits (`RLIMIT_AS`, `RLIMIT_CPU`, `RLIMIT_CORE`), pid cgroup (`pids_limit: 128`), and subreaper zombie reaping.
