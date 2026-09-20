@@ -35,7 +35,7 @@ docker compose up -d --build
 ```
 
 `.env.example` lists every variable. Leaving the enrichment settings blank runs the workspace
-without the AI-generated hints, which is fine for solving.
+without the generated hints, which is fine for solving.
 
 ## Documentation
 
