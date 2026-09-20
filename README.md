@@ -1,5 +1,11 @@
 # SolveSpace
 
+<div align="center">
+
+![SolveSpace](https://github.projectnova.download/public/projects/solvespace.svg)
+
+</div>
+
 A private competitive-programming practice workspace.
 
 I use this to practise for algorithm contests. It collects problems, keeps my solutions together
