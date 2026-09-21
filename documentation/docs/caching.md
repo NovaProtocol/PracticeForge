@@ -13,14 +13,20 @@ rule is safe.
 
 The middleware decides in this order:
 
-1. **An existing header is kept.** If the response already carries
+1. **Debug caches nothing.** With `DEPLOYMENT_TYPE=debug` the response is
+   replaced with `no-store`, whatever the upstream asked for, so a deliberately
+   `public` value never survives into a development deployment. A value that
+   already forbids storage (`private`, `no-store`) is kept verbatim rather than
+   rewritten.
+2. **Production keeps an existing header.** If the response already carries
    `Cache-Control`, it is returned untouched. A route that made a deliberate
-   decision about its own content is not overruled by a deployment-type default.
-2. **A gap is filled.** Only when the response carries none does the middleware
-   write a value: `no-store` in debug, the path class's lifespan otherwise.
+   decision about its own content is not overruled by a path-class default.
+3. **Production fills a gap.** Only when the response carries none does the
+   middleware write the path class's lifespan.
 
-`is_debug` decides *what value is filled in*. It never decides whether an
-existing value is overwritten.
+`is_debug` decides *whether anything is cacheable at all*. Caching is a
+production behaviour, so every value in the table below applies to production
+only, and debug overrides all of them to `no-store`.
 
 ## Values
 

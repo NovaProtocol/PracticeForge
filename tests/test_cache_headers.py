@@ -51,12 +51,13 @@ def build_app(
 
 
 @pytest.mark.parametrize("is_debug", [True, False])
-def test_a_route_that_sets_its_own_policy_keeps_it(is_debug: bool) -> None:
-    """The precedence fix itself, in both deployment modes."""
+def test_a_route_that_sets_its_own_policy_keeps_it_in_production_only(is_debug: bool) -> None:
+    """In production the upstream header wins; in debug nothing is cacheable."""
     with TestClient(build_app(is_debug, {"Cache-Control": UPSTREAM_CACHE})) as client:
         response = client.get("/thing")
 
-    assert response.headers["Cache-Control"] == UPSTREAM_CACHE
+    expected = "no-store" if is_debug else UPSTREAM_CACHE
+    assert response.headers["Cache-Control"] == expected
 
 
 @pytest.mark.parametrize("is_debug", [True, False])
