@@ -51,3 +51,8 @@ Full documentation is served by the stack at `/documentation/`, and the sources 
 
 It covers the four-stage scraper pipeline, the sandbox limits and how they are enforced, the
 database schema, and the execution API.
+
+
+## License
+
+BSD 3-Clause. See [LICENSE](LICENSE).
