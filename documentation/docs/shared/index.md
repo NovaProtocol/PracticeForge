@@ -39,7 +39,7 @@ Proto in `shared/proto/executor.proto`, stubs in `shared/proto_gen/`, client in 
 ## Errors & Observability
 
 - `shared/middleware.py` `RequestIDMiddleware`, binds `request_id` into `structlog.contextvars`, echoes `X-Request-ID` (exposed via `Access-Control-Expose-Headers`), installed first so even 401s correlate.
-- `shared/errors.py` `install_error_handlers`, `StarletteHTTPException`/`RequestValidationError`/`grpc.aio.AioRpcError`/`Exception` → `{error:{code,message,request_id}}` (`details` on validation, `503 UPSTREAM_UNAVAILABLE` on gRPC, no fallback) + `structlog` JSON to stdout (`docker compose logs` / `scripts/docker.sh logs`).
+- `shared/errors.py` `install_error_handlers`, `StarletteHTTPException`/`RequestValidationError`/`grpc.aio.AioRpcError`/`Exception` → `{error:{code,message,request_id}}` (`details` on validation, `503 UPSTREAM_UNAVAILABLE` on gRPC, no fallback) + `structlog` JSON to stdout, readable through `docker compose logs` on the host running the stack.
 - `shared/static/js/error.js`, `window.onerror` + `unhandledrejection` + `apiFetch(url,opts)` wrapper that `console.error({message,stack,url,method,status,request_id,body,timestamp})` + short toast (`message [request_id]`); loaded by `shared/templates/base.html` (`<script src="/static/js/error.js">`).
 
 ## Templates & Static
