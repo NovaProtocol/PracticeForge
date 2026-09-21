@@ -40,7 +40,7 @@ solver_private/
 
 `shared/errors.py` + `shared/middleware.py` + `shared/static/js/error.js`:
 
-- **Server:** `RequestIDMiddleware` binds `request_id` into `structlog.contextvars`, echoes `X-Request-ID`; `install_error_handlers` maps `StarletteHTTPException`/`RequestValidationError`/`grpc.aio.AioRpcError`/`Exception` to `{error:{code,message,request_id}}` (`details` on validation, `503 UPSTREAM_UNAVAILABLE` on gRPC failure, no fallback) and `structlog` JSON to container stdout (`docker compose logs` / `scripts/docker.sh logs`).
+- **Server:** `RequestIDMiddleware` binds `request_id` into `structlog.contextvars`, echoes `X-Request-ID`; `install_error_handlers` maps `StarletteHTTPException`/`RequestValidationError`/`grpc.aio.AioRpcError`/`Exception` to `{error:{code,message,request_id}}` (`details` on validation, `503 UPSTREAM_UNAVAILABLE` on gRPC failure, no fallback) and `structlog` JSON to container stdout, readable through `docker compose logs`.
 - **Browser:** `/static/js/error.js` (`window.onerror` + `unhandledrejection` + `apiFetch` wrapper) logs `console.error({message,stack,url,method,status,request_id,body,timestamp})` + short toast (`message [request_id]`); loaded by `shared/templates/base.html`.
 
 ## gRPC Client
