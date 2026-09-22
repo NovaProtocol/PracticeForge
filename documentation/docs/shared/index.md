@@ -44,4 +44,4 @@ Proto in `shared/proto/executor.proto`, stubs in `shared/proto_gen/`, client in 
 
 ## Templates & Static
 
-`templates/base.html` is the site layout; solver's `ChoiceLoader` (`apps/templating.py` `Jinja2Templates` + `ChoiceLoader([apps/problems/templates, apps/solutions/templates, solver_private/templates, shared/templates])` + `url_for` shim) merges it without requiring the Docker copy on host. Static lives in `shared/static/` and is copied to `/app/static` in images.
+`templates/base.html` is the site layout; solver's `ChoiceLoader` (`apps/templating.py` `Jinja2Templates` + `ChoiceLoader([apps/problems/templates, apps/solutions/templates, practiceforge_app/templates, shared/templates])` + `url_for` shim) merges it without requiring the Docker copy on host. Static lives in `shared/static/` and is copied to `/app/static` in images.

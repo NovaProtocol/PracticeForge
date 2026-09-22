@@ -19,7 +19,7 @@ def _build_env() -> Environment:
         p = app_root / sub
         if p.exists():
             candidates.append(str(p))
-    # solver_private/templates
+    # practiceforge_app/templates
     if app_templates.exists():
         candidates.append(str(app_templates))
     # shared/templates

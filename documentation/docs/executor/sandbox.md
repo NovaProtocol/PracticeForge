@@ -138,14 +138,14 @@ async def serve():
 
 Runs alongside the poll loop (async task). Port `50051` is `expose` only on `net-executor` (`internal: true`).
 
-### Client (`shared/grpc_client.py` / `solver_private/grpc_client.py`)
+### Client (`shared/grpc_client.py` / `practiceforge_app/grpc_client.py`)
 
 ```python
 import grpc
 from shared.proto_gen import executor_pb2, executor_pb2_grpc
 
 async def enqueue_via_grpc(problem_id, code, method_name, test_cases_json, exec_type):
- async with grpc.aio.insecure_channel("solver_executor:50051") as ch:
+ async with grpc.aio.insecure_channel("practiceforge_executor:50051") as ch:
  stub = executor_pb2_grpc.ExecutorServiceStub(ch)
  resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(...))
  return resp.queue_id
@@ -159,8 +159,8 @@ For sync callers (executor poll, startup), a sync stub using `grpc.insecure_chan
 executor:
  expose: ["50051"]
  networks: [default, net-executor]
-solver_private:
- environment: { EXECUTOR_GRPC_ADDR: "solver_executor:50051" }
+practiceforge_app:
+ environment: { EXECUTOR_GRPC_ADDR: "practiceforge_executor:50051" }
  networks: [default, net-executor]
 networks:
  net-executor: { internal: true }

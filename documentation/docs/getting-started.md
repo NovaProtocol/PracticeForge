@@ -26,7 +26,7 @@ Key variables (full list in `.env.example`, source of truth):
 | `MYSQL_USER` | no | `root` | DB user |
 | `MYSQL_DATABASE` | no | `practiceforge` | DB name |
 | `API_TOKEN` | no | n/a | Scraper + write API token |
-| `EXECUTOR_GRPC_ADDR` | no | `solver_executor:50051` | Internal gRPC address (solver → executor) |
+| `EXECUTOR_GRPC_ADDR` | no | `practiceforge_executor:50051` | Internal gRPC address (solver → executor) |
 | `GRPC_PORT` | no | `50051` | Executor gRPC listen port |
 | `MEMORY_LIMIT_MB` | no | `1024` | Sandbox memory hard limit |
 | `PROCESS_LIMIT` | no | `64` | Sandbox nproc limit (capped by pids cgroup) |
@@ -49,8 +49,8 @@ Check health:
 
 ```bash
 docker compose ps
-curl -s http://127.0.0.1:7031/health || curl -s http://solver_private:8000/health
-docker compose logs -f solver_private solver_executor solver_documentation
+curl -s http://127.0.0.1:7031/health || curl -s http://practiceforge_app:8000/health
+docker compose logs -f practiceforge_app practiceforge_executor practiceforge_documentation
 ```
 
 ## 3. Access the System
@@ -61,8 +61,8 @@ docker compose logs -f solver_private solver_executor solver_documentation
 | `http://<host>:7031/health` | Health (solver) | public |
 | `http://<host>:7031/404` | Themed 404 (an app route, not a Caddy handle) | public |
 | `http://<host>:7031/documentation/` | Docs site | gated |
-| `solver_executor:50051` | Executor gRPC | internal only (`expose`, no `ports`) |
-| `solver_phpmyadmin:80` | phpMyAdmin | internal only (`expose`, no `ports`) |
+| `practiceforge_executor:50051` | Executor gRPC | internal only (`expose`, no `ports`) |
+| `practiceforge_phpmyadmin:80` | phpMyAdmin | internal only (`expose`, no `ports`) |
 
 Gate means the GateKeeper wildcard gate, present a valid `gatekeeper_token` cookie or a `?access_code=` magic link. This project's own `caddy/Caddyfile` carries no `forward_auth`.
 
@@ -85,8 +85,8 @@ Stages: `scrape` → `images_download` → `images_upload` → `ai` (AI enrichme
 export DEPLOYMENT_TYPE=DEBUG
 export MYSQL_HOST=127.0.0.1
 export MYSQL_PASS=PracticeForge
-python solver_private/run.py --mode debug # uvicorn factory=True --reload
-# or: granian --interface asgi --host 0.0.0.0 --port 8000 --workers 1 wsgi:app (from solver_private/)
+python practiceforge_app/run.py --mode debug # uvicorn factory=True --reload
+# or: granian --interface asgi --host 0.0.0.0 --port 8000 --workers 1 wsgi:app (from practiceforge_app/)
 ```
 
 ### Run executor locally
@@ -130,7 +130,7 @@ Solver dials the executor:
 import grpc
 from shared.proto_gen import executor_pb2, executor_pb2_grpc
 
-async with grpc.aio.insecure_channel("solver_executor:50051") as ch:
+async with grpc.aio.insecure_channel("practiceforge_executor:50051") as ch:
  stub = executor_pb2_grpc.ExecutorServiceStub(ch)
  resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(problem_id=1, code="..."))
 ```

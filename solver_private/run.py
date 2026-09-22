@@ -5,7 +5,7 @@ import os
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="PracticeForge solver_private")
+    parser = argparse.ArgumentParser(description="PracticeForge practiceforge_app")
     parser.add_argument(
         "--mode",
         choices=["debug", "production"],

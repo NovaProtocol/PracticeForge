@@ -16,7 +16,7 @@ def app(monkeypatch):
     # run_startup() calls get_engine(), which needs real MYSQL_* env vars;
     # the health page itself never touches the database, so stub it out.
     monkeypatch.setattr("shared.startup.run", lambda: None)
-    from solver_private.app import create_app
+    from practiceforge_app.app import create_app
 
     return create_app()
 

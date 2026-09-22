@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     MYSQL_PASS: str = Field(default="")
     MYSQL_DATABASE: str = Field(default="practiceforge")
     API_TOKEN: str = Field(default="")
-    EXECUTOR_GRPC_ADDR: str = Field(default="solver_executor:50051")
+    EXECUTOR_GRPC_ADDR: str = Field(default="practiceforge_executor:50051")
     GRPC_PORT: int = Field(default=50051)
     SHARED_STATIC_DIR: str = Field(default="")
     SHARED_TEMPLATES_DIR: str = Field(default="")
