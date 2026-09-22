@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """STAGE 2, Download images referenced in scraped HTML files.
 
-Usage:  cd Projects/SolveSpace && python3 utilities/scraper/images_download.py
+Usage:  cd Projects/PracticeForge && python3 utilities/scraper/images_download.py
 
 Reads:  utilities/scraper/html/<contest_id>-<index>.html
 Saves:  static/images/<filename>  (named by the image URL's basename)

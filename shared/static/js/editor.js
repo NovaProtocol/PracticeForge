@@ -188,7 +188,7 @@
     p.classList.toggle('collapsed');
     if (p.classList.contains('collapsed')) { w.classList.remove('col-lg-7'); w.classList.add('col-lg-12'); }
     else { w.classList.remove('col-lg-12'); w.classList.add('col-lg-7'); }
-    localStorage.setItem('solvespace-sidebar', p.classList.contains('collapsed') ? 'collapsed' : 'open');
+    localStorage.setItem('practiceforge-sidebar', p.classList.contains('collapsed') ? 'collapsed' : 'open');
   });
   el('format-btn').addEventListener('click', function() {
     var btn = el('format-btn');

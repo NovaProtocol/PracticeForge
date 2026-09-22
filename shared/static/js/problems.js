@@ -84,7 +84,7 @@
   document.getElementById('view-cards')?.addEventListener('click', function() { setView('cards'); });
   document.getElementById('view-list')?.addEventListener('click', function() { setView('list'); });
 
-  window.solveSpaceProblems = { applyFilters: applyFilters, setView: setView, cardHtml: cardHtml };
+  window.practiceForgeProblems = { applyFilters: applyFilters, setView: setView, cardHtml: cardHtml };
 
   // Auto-load only if the list is empty or shows a loading placeholder
   // (API-driven page). Server-rendered pages already have cards.

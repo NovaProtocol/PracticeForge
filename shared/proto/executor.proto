@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package solvespace.v1;
+package practiceforge.v1;
 
 service ExecutorService {
   rpc EnqueueExecution(EnqueueRequest) returns (EnqueueResponse);

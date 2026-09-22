@@ -57,6 +57,6 @@ All use `PYTHONDONTWRITEBYTECODE=1`, `PYTHONUNBUFFERED=1`, `--no-cache-dir`, `rm
 
 ## MySQL
 
-`image: mysql:8.4`, `container_name: solver_mysql`, `MYSQL_ROOT_PASSWORD=${MYSQL_PASS:?}`, `MYSQL_DATABASE=${MYSQL_DATABASE:-solvespace}`, `mysql_data:/var/lib/mysql`, `healthcheck: mysqladmin ping`.
+`image: mysql:8.4`, `container_name: solver_mysql`, `MYSQL_ROOT_PASSWORD=${MYSQL_PASS:?}`, `MYSQL_DATABASE=${MYSQL_DATABASE:-practiceforge}`, `mysql_data:/var/lib/mysql`, `healthcheck: mysqladmin ping`.
 
 phpMyAdmin `5.2` on the compose `default` network (`expose: [80]`, not published), `PMA_HOST=mysql`, `PMA_USER=${MYSQL_USER:-root}`.

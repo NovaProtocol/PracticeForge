@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Shared settings, BaseSettings without min_length (no JWT/sessions in SolveSpace).
+    """Shared settings, BaseSettings without min_length (no JWT/sessions in PracticeForge).
 
     When SECRET_KEY is not used for JWT/sessions,
     omit Field(min_length=32). See task §2.
@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     MYSQL_PORT: int = Field(default=3306)
     MYSQL_USER: str = Field(default="root")
     MYSQL_PASS: str = Field(default="")
-    MYSQL_DATABASE: str = Field(default="solvespace")
+    MYSQL_DATABASE: str = Field(default="practiceforge")
     API_TOKEN: str = Field(default="")
     EXECUTOR_GRPC_ADDR: str = Field(default="solver_executor:50051")
     GRPC_PORT: int = Field(default=50051)

@@ -12,8 +12,8 @@
 ## 1. Clone & Configure
 
 ```bash
-git clone <repo-url> SolveSpace
-cd SolveSpace
+git clone <repo-url> PracticeForge
+cd PracticeForge
 # env vars come from compose interpolation: see `.env.example`, export them, no `.env` file
 ```
 
@@ -24,7 +24,7 @@ Key variables (full list in `.env.example`, source of truth):
 | `DEPLOYMENT_TYPE` | yes | n/a | `DEBUG` or `PRODUCTION` |
 | `MYSQL_PASS` | yes | n/a | MySQL root password (compose fails fast if missing) |
 | `MYSQL_USER` | no | `root` | DB user |
-| `MYSQL_DATABASE` | no | `solvespace` | DB name |
+| `MYSQL_DATABASE` | no | `practiceforge` | DB name |
 | `API_TOKEN` | no | n/a | Scraper + write API token |
 | `EXECUTOR_GRPC_ADDR` | no | `solver_executor:50051` | Internal gRPC address (solver → executor) |
 | `GRPC_PORT` | no | `50051` | Executor gRPC listen port |
@@ -84,7 +84,7 @@ Stages: `scrape` → `images_download` → `images_upload` → `ai` (AI enrichme
 ```bash
 export DEPLOYMENT_TYPE=DEBUG
 export MYSQL_HOST=127.0.0.1
-export MYSQL_PASS=SolveSpace
+export MYSQL_PASS=PracticeForge
 python solver_private/run.py --mode debug # uvicorn factory=True --reload
 # or: granian --interface asgi --host 0.0.0.0 --port 8000 --workers 1 wsgi:app (from solver_private/)
 ```

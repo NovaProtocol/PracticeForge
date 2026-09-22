@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """STAGE 3, Upload downloaded images to the server via the images API.
 
-Usage:  cd Projects/SolveSpace && python3 utilities/scraper/images_upload.py
+Usage:  cd Projects/PracticeForge && python3 utilities/scraper/images_upload.py
 
 Reads:  static/images/<filename>
 Uploads: POST /api/images {filename, data(base64), content_type} to API_BASE

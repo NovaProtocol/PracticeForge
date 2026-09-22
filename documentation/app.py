@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 SITE_DIR = Path(__file__).resolve().parent / "site"
 
-app = FastAPI(title="SolveSpace Docs")
+app = FastAPI(title="PracticeForge Docs")
 _DEBUG_DEPLOY = os.environ.get("DEPLOYMENT_TYPE", "").lower() in ("debug", "development")
 app.add_middleware(CacheControlMiddleware, is_debug=_DEBUG_DEPLOY)
 

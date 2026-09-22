@@ -1,8 +1,8 @@
-site_name: SolveSpace · Documentation
-site_description: Documentation for SolveSpace, Codeforces scraping, AI enrichment, FastAPI solver, bwrap execution sandbox
-site_author: SolveSpace
-repo_url: https://github.com/NovaProtocol/SolveSpace
-repo_name: NovaProtocol/SolveSpace
+site_name: PracticeForge · Documentation
+site_description: Documentation for PracticeForge, Codeforces scraping, AI enrichment, FastAPI solver, bwrap execution sandbox
+site_author: PracticeForge
+repo_url: https://github.com/NovaProtocol/PracticeForge
+repo_name: NovaProtocol/PracticeForge
 edit_uri: edit/main/documentation/docs/
 
 theme:

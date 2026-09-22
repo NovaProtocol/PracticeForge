@@ -81,7 +81,7 @@ Orphaned sandbox children are reparented to the executor instead of init and rea
 
 ```protobuf
 syntax = "proto3";
-package solvespace.v1;
+package practiceforge.v1;
 
 service ExecutorService {
  rpc EnqueueExecution(EnqueueRequest) returns (EnqueueResponse);
