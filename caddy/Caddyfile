@@ -7,14 +7,14 @@
 	}
 
 	handle /health {
-		reverse_proxy solver_private:8000
+		reverse_proxy practiceforge_app:8000
 	}
 
 	handle_path /documentation/* {
-		reverse_proxy solver_documentation:8005
+		reverse_proxy practiceforge_documentation:8005
 	}
 
 	handle {
-		reverse_proxy solver_private:8000
+		reverse_proxy practiceforge_app:8000
 	}
 }

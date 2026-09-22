@@ -15,7 +15,7 @@ COPY shared/ /app/shared/
 COPY shared/templates/ /app/templates/
 COPY shared/static/ /app/static/
 
-COPY solver_private/ /app/
+COPY practiceforge_app/ /app/
 
 RUN python3 -m compileall -q /app /app/shared 2>/dev/null || true
 

@@ -1,11 +1,11 @@
 # Solver Private
 
-FastAPI app serving problems, solutions, editor, and execution API. Runs on `solver_private:8000` behind the Caddy gate (`:7031`, `127.0.0.1:7031:7031`).
+FastAPI app serving problems, solutions, editor, and execution API. Runs on `practiceforge_app:8000` behind the Caddy gate (`:7031`, `127.0.0.1:7031:7031`).
 
 ## Layout
 
 ```
-solver_private/
+practiceforge_app/
  app.py # create_app() factory, lifespan, RequestIDMiddleware+structlog, Jinja ChoiceLoader
  apps/
  problems/routes.py # APIRouter `/`, list, detail, editor, console (HTMLResponse)
@@ -45,13 +45,13 @@ solver_private/
 
 ## gRPC Client
 
-`solver_private/grpc_client.py` (and `shared/grpc_client.py`) dials the executor:
+`practiceforge_app/grpc_client.py` (and `shared/grpc_client.py`) dials the executor:
 
 ```python
 import grpc
 from shared.proto_gen import executor_pb2, executor_pb2_grpc
 
-async with grpc.aio.insecure_channel("solver_executor:50051") as ch:
+async with grpc.aio.insecure_channel("practiceforge_executor:50051") as ch:
  stub = executor_pb2_grpc.ExecutorServiceStub(ch)
  resp = await stub.EnqueueExecution(executor_pb2.EnqueueRequest(...))
 ```

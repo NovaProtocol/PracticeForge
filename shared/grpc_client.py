@@ -51,7 +51,7 @@ def enqueue_via_grpc(
     exec_type: str = "run",
     timeout: float = 5.0,
 ) -> int | None:
-    """Sync gRPC enqueue, safe for Flask (solver_private) routes."""
+    """Sync gRPC enqueue, safe for Flask (practiceforge_app) routes."""
     addr = _grpc_addr()
     try:
         with grpc.insecure_channel(addr) as ch:

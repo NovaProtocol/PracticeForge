@@ -1,6 +1,6 @@
 # API Contract
 
-## HTTP (public ingress via Caddy `:7031 → solver_private:8000`)
+## HTTP (public ingress via Caddy `:7031 → practiceforge_app:8000`)
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -33,11 +33,11 @@
 | `POST` | `/api/images` | gated | Upload image |
 | `DELETE` | `/api/images/<file>` | gated | Delete image |
 | `GET` | `/api/images/exists/<file>` | gated | Exists |
-| `GET` | `/documentation/*` | gated | Docs site (`handle_path` → `solver_documentation:8005`) |
+| `GET` | `/documentation/*` | gated | Docs site (`handle_path` → `practiceforge_documentation:8005`) |
 
 Caddy `handle /health` and the catch-all `handle` are the two routes it declares; `/404` is an ordinary app route the catch-all proxies, not a Caddy handle. The Caddyfile has **zero** `forward_auth`, the gate is at the apex wildcard (GateKeeper), applied before the request reaches this Caddy.
 
-## gRPC (internal `net-executor`, `solver_executor:50051`)
+## gRPC (internal `net-executor`, `practiceforge_executor:50051`)
 
 Proto: `shared/proto/executor.proto`
 
@@ -49,8 +49,8 @@ service ExecutorService {
 }
 ```
 
-- Server: `solver_executor:50051` (`grpc.aio.server`, `add_insecure_port("0.0.0.0:50051")`)
-- Client: `solver_private` via `grpc.aio.insecure_channel("solver_executor:50051")`
+- Server: `practiceforge_executor:50051` (`grpc.aio.server`, `add_insecure_port("0.0.0.0:50051")`)
+- Client: `practiceforge_app` via `grpc.aio.insecure_channel("practiceforge_executor:50051")`
 - Transport: `expose: ["50051"]` on `net-executor` (`internal: true`), never `ports`, never via Caddy.
 - Auth: none (internal network isolation); add `x-internal-api-key` metadata if needed.
 
@@ -71,7 +71,7 @@ Request `queue_id`; response `status`, `result`, `stdout`, `error`, `timing_ms`,
 ### Flow
 
 ```
-Browser POST /api/run → solver_private INSERT queue + gRPC Enqueue → executor poll → bwrap → UPDATE queue → browser poll GET /api/queue-status
+Browser POST /api/run → practiceforge_app INSERT queue + gRPC Enqueue → executor poll → bwrap → UPDATE queue → browser poll GET /api/queue-status
 ```
 
 HTTP is the public edge; gRPC is the internal notify. Both share the same service layer (`execution_queue` table).
@@ -80,7 +80,7 @@ HTTP is the public edge; gRPC is the internal notify. Both share the same servic
 
 | Port | Service | Publish |
 |---|---|---|
-| 8000 | solver_private (HTTP) | `expose` only |
+| 8000 | practiceforge_app (HTTP) | `expose` only |
 | 7031 | Caddy gateway | `127.0.0.1:7031:7031`, the only host-published port |
 | 50051 | executor gRPC | `expose` only, `net-executor` internal |
 | 8005 | documentation HTTP | `expose` only |

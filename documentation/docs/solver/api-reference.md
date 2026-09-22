@@ -1,6 +1,6 @@
 # Solver API Reference
 
-Base path `/api` (via Caddy `handle /*` → `solver_private:8000`).
+Base path `/api` (via Caddy `handle /*` → `practiceforge_app:8000`).
 
 ## Problems
 
@@ -34,7 +34,7 @@ All enqueue routes do:
 1. `get_problem(cid, idx)` → 404 if missing
 2. `save_last_ran(problem_id, code, filename)`
 3. `INSERT INTO execution_queue (queued)` → `queue_id`
-4. Best-effort `grpc EnqueueExecution` to `solver_executor:50051`
+4. Best-effort `grpc EnqueueExecution` to `practiceforge_executor:50051`
 5. Return `{"queue_id":…, "status":"queued"}`
 
 ## Files (autosave)
@@ -72,6 +72,6 @@ Allowed `content_type`: `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `i
 See [Executor gRPC](../executor/sandbox.md) and [API Contract](../api-contract/index.md).
 
 - Proto: `shared/proto/executor.proto`
-- Server: `solver_executor:50051` (`grpc.aio.server`, `expose` only)
-- Client: `solver_private` via `grpc.aio.insecure_channel("solver_executor:50051")`
+- Server: `practiceforge_executor:50051` (`grpc.aio.server`, `expose` only)
+- Client: `practiceforge_app` via `grpc.aio.insecure_channel("practiceforge_executor:50051")`
 - Methods: `EnqueueExecution`, `GetExecutionStatus`, `HealthCheck`

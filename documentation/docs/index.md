@@ -2,7 +2,7 @@
 
 Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces problems, AI-enriches them, and uploads them to a private FastAPI app where submitted code runs in a **bwrap** sandbox. An internal **gRPC** channel links the solver and executor for low-latency queue operations.
 
-**Stack:** Python 3.14 · FastAPI + Granian 1 worker (solver `solver_private:8000`, `RequestIDMiddleware`+`structlog` JSON `{error:{code,message,request_id}}`, `shared/static/js/error.js` `apiFetch`) · bwrap sandbox (executor `solver_executor:50051` gRPC) · MySQL 8.4 · Caddy 2 (`127.0.0.1:7031:7031`) · MkDocs Material
+**Stack:** Python 3.14 · FastAPI + Granian 1 worker (solver `practiceforge_app:8000`, `RequestIDMiddleware`+`structlog` JSON `{error:{code,message,request_id}}`, `shared/static/js/error.js` `apiFetch`) · bwrap sandbox (executor `practiceforge_executor:50051` gRPC) · MySQL 8.4 · Caddy 2 (`127.0.0.1:7031:7031`) · MkDocs Material
 
 **Docs:** This site (`documentation/`)
 
@@ -10,16 +10,16 @@ Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces proble
 
 | Service | Container | Internal Port | Caddy Route | Network |
 |---|---|---|---|---|
-| **Caddy** | `solver_caddy` | 7031 | n/a | default, gatekeeper |
-| **Solver Private** | `solver_private` | 8000 | `/*` (7031) | default, net-executor |
-| **Executor** | `solver_executor` | 50051 (gRPC, internal) | n/a | default, net-executor |
-| **Documentation** | `solver_documentation` | 8005 | `/documentation/*` (7031) | default |
-| **MySQL 8.4** | `solver_mysql` | 3306 | n/a | default |
-| **phpMyAdmin** | `solver_phpmyadmin` | 80 |, (internal) | default |
+| **Caddy** | `practiceforge_caddy` | 7031 | n/a | default, gatekeeper |
+| **Solver Private** | `practiceforge_app` | 8000 | `/*` (7031) | default, net-executor |
+| **Executor** | `practiceforge_executor` | 50051 (gRPC, internal) | n/a | default, net-executor |
+| **Documentation** | `practiceforge_documentation` | 8005 | `/documentation/*` (7031) | default |
+| **MySQL 8.4** | `practiceforge_mysql` | 3306 | n/a | default |
+| **phpMyAdmin** | `practiceforge_phpmyadmin` | 80 |, (internal) | default |
 
 - Gate is at the **wildcard** (`gatekeeper_caddy:7000` → `gatekeeper_auth:8001` on `gatekeeper`), live `caddy/Caddyfile` proxies without a per-app `forward_auth`, so the gate runs before this Caddy sees the request. Live ingress here is 3 handles: `/health`, `/documentation/*`, catch-all.
-- `solver_private ↔ solver_executor` talk over **gRPC** on `solver_executor:50051` (internal `net-executor`, `expose` only) plus the MySQL `execution_queue` table.
-- Browser ingress is HTTP through Caddy (`:7031 → solver_private:8000`); internal RPC is gRPC.
+- `practiceforge_app ↔ practiceforge_executor` talk over **gRPC** on `practiceforge_executor:50051` (internal `net-executor`, `expose` only) plus the MySQL `execution_queue` table.
+- Browser ingress is HTTP through Caddy (`:7031 → practiceforge_app:8000`); internal RPC is gRPC.
 
 ## Architecture Diagram
 
@@ -36,9 +36,9 @@ graph TB
  end
 
  subgraph "App Layer (default + net-executor)"
- SOLVER["solver_private :8000<br/>FastAPI + Granian 1 worker<br/>problems / solutions / api"]
- EXEC["solver_executor :50051<br/>bwrap sandbox + gRPC server"]
- DOCS["solver_documentation :8005<br/>FastAPI + Granian<br/>MkDocs site"]
+ SOLVER["practiceforge_app :8000<br/>FastAPI + Granian 1 worker<br/>problems / solutions / api"]
+ EXEC["practiceforge_executor :50051<br/>bwrap sandbox + gRPC server"]
+ DOCS["practiceforge_documentation :8005<br/>FastAPI + Granian<br/>MkDocs site"]
  end
 
  subgraph "Data Layer"
@@ -55,7 +55,7 @@ graph TB
  CADDY -->|"/*"| SOLVER
  CADDY -->|"/documentation/*<br/>handle_path strip"| DOCS
 
- SOLVER -->|"HTTP / gRPC Enqueue<br/>solver_executor:50051"| EXEC
+ SOLVER -->|"HTTP / gRPC Enqueue<br/>practiceforge_executor:50051"| EXEC
  SOLVER --> DB
  EXEC -->|"poll + update"| DB
  EXEC -->|"bwrap --unshare-all"| EXEC

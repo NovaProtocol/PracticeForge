@@ -1,9 +1,9 @@
 services:
-  solver_private:
+  practiceforge_app:
     build:
       context: .
-      dockerfile: solver_private/Dockerfile
-    container_name: solver_private
+      dockerfile: practiceforge_app/Dockerfile
+    container_name: practiceforge_app
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
@@ -19,7 +19,7 @@ services:
       MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-practiceforge}
       API_TOKEN: ${API_TOKEN:-}
-      EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-solver_executor:50051}
+      EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-practiceforge_executor:50051}
       GRPC_PORT: ${GRPC_PORT:-50051}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
@@ -37,19 +37,19 @@ services:
     build:
       context: ./caddy
       dockerfile: Dockerfile
-    container_name: solver_caddy
+    container_name: practiceforge_caddy
     restart: unless-stopped
     ports:
       - "127.0.0.1:7031:7031"
     depends_on:
-      solver_private:
+      practiceforge_app:
         condition: service_healthy
     networks:
       - default
       - gatekeeper
   mysql:
     image: mysql:8.4
-    container_name: solver_mysql
+    container_name: practiceforge_mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASS:?MYSQL_PASS is required}
@@ -67,7 +67,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin:5.2
-    container_name: solver_phpmyadmin
+    container_name: practiceforge_phpmyadmin
     restart: unless-stopped
     expose:
       - "80"
@@ -87,7 +87,7 @@ services:
     build:
       context: .
       dockerfile: executor/Dockerfile
-    container_name: solver_executor
+    container_name: practiceforge_executor
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import grpc; from shared.proto_gen import executor_pb2, executor_pb2_grpc; ch=grpc.insecure_channel('127.0.0.1:50051'); stub=executor_pb2_grpc.ExecutorServiceStub(ch); r=stub.HealthCheck(executor_pb2.HealthCheckRequest(), timeout=2); exit(0 if r.status=='ok' else 1)\""]
@@ -116,7 +116,7 @@ services:
       MYSQL_PASS: ${MYSQL_PASS:?MYSQL_PASS is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-practiceforge}
       GRPC_PORT: ${GRPC_PORT:-50051}
-      EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-solver_executor:50051}
+      EXECUTOR_GRPC_ADDR: ${EXECUTOR_GRPC_ADDR:-practiceforge_executor:50051}
     depends_on:
       mysql:
         condition: service_healthy
@@ -128,7 +128,7 @@ services:
     build:
       context: .
       dockerfile: documentation/Dockerfile
-    container_name: solver_documentation
+    container_name: practiceforge_documentation
     restart: unless-stopped
     expose:
       - "8005"
