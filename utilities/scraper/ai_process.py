@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read scraped HTML from disk, enrich with AI, upload to server.
 
-Usage:  cd Projects/SolveSpace && python3 utilities/scraper/ai_process.py
+Usage:  cd Projects/PracticeForge && python3 utilities/scraper/ai_process.py
 
 Reads:  utilities/scraper/html/<contest_id>-<index>.html
 Writes: utilities/scraper/fail.json (on failures)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Entry point for the SolveSpace scraper pipeline.
+"""Entry point for the PracticeForge scraper pipeline.
 
-Usage:  cd Projects/SolveSpace && python3 utilities/scraper/run.py <stages>
+Usage:  cd Projects/PracticeForge && python3 utilities/scraper/run.py <stages>
 
 <stages> is a string of digits selecting which stages to run:
   1 = scrape.py          (scrape problem HTML, needs browser/captcha)

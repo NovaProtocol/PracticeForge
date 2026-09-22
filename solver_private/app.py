@@ -107,7 +107,7 @@ def create_app() -> FastAPI:
     _configure_logging()
     config = get_config()
 
-    app = FastAPI(title="SolveSpace", debug=config.DEBUG, lifespan=lifespan)
+    app = FastAPI(title="PracticeForge", debug=config.DEBUG, lifespan=lifespan)
 
     # RequestID must be first so even 401s have X-Request-ID
     app.add_middleware(RequestIDMiddleware)

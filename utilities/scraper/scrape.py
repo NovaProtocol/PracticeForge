@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """STAGE 1, Scrape Codeforces problem pages and save problem-statement HTML.
 
-Usage:  cd Projects/SolveSpace && python3 utilities/scraper/scrape.py
+Usage:  cd Projects/PracticeForge && python3 utilities/scraper/scrape.py
 
 Saves:  utilities/scraper/html/<contest_id>-<index>.html
         Inner HTML of div.problem-statement, image src URLs left as-is.

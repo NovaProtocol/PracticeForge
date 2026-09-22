@@ -60,7 +60,7 @@ The HTTP routes always insert the `execution_queue` row; the gRPC call is a low-
 
 ## Configuration
 
-`shared/config.py`: `Settings(BaseSettings)` (`pydantic-settings`), env via compose interpolation, no `.env` file. No `SECRET_KEY`/`JWT`: SolveSpace has no sessions, so there is nothing to sign. `get_config()` (`@lru_cache`) + `db_url`/`async_db_url` (`+pymysql` → `+aiomysql`, `sqlite` → `aiosqlite` for tests). `shared/db.py` exposes `get_engine()` (sync, `pool_pre_ping`) + `get_async_engine()`/`get_db()` (`create_async_engine` aiomysql, `async_sessionmaker`, `lifespan` warmup).
+`shared/config.py`: `Settings(BaseSettings)` (`pydantic-settings`), env via compose interpolation, no `.env` file. No `SECRET_KEY`/`JWT`: PracticeForge has no sessions, so there is nothing to sign. `get_config()` (`@lru_cache`) + `db_url`/`async_db_url` (`+pymysql` → `+aiomysql`, `sqlite` → `aiosqlite` for tests). `shared/db.py` exposes `get_engine()` (sync, `pool_pre_ping`) + `get_async_engine()`/`get_db()` (`create_async_engine` aiomysql, `async_sessionmaker`, `lifespan` warmup).
 
 ## Static & Templates
 

@@ -1,4 +1,4 @@
-# SolveSpace
+# PracticeForge
 
 Codeforces problem-solving workspace. A scraper pipeline pulls Codeforces problems, AI-enriches them, and uploads them to a private FastAPI app where submitted code runs in a **bwrap** sandbox. An internal **gRPC** channel links the solver and executor for low-latency queue operations.
 

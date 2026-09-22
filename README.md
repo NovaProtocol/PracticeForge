@@ -1,8 +1,8 @@
-# SolveSpace
+# PracticeForge
 
 <div align="center">
 
-![SolveSpace](https://github.projectnova.download/public/project/solvespace.svg)
+![PracticeForge](https://github.projectnova.download/public/project/practiceforge.svg)
 
 </div>
 

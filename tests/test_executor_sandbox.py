@@ -44,11 +44,11 @@ def test_infinite_loop_is_killed(tmp_path, bwrap_executor):
 
 
 def test_sandbox_env_is_empty_and_has_no_secrets(tmp_path, bwrap_executor, monkeypatch):
-    monkeypatch.setenv("SOLVESPACE_TEST_SECRET", "s3cr3t")
+    monkeypatch.setenv("PRACTICEFORGE_TEST_SECRET", "s3cr3t")
     script = _write_script(
         tmp_path,
         "env.py",
-        "import os\nprint(os.environ.get('SOLVESPACE_TEST_SECRET'))\nprint(len(os.environ))\n",
+        "import os\nprint(os.environ.get('PRACTICEFORGE_TEST_SECRET'))\nprint(len(os.environ))\n",
     )
     result = bwrap_executor.run_script_bwrap(script, timeout=10)
     assert result["returncode"] == 0

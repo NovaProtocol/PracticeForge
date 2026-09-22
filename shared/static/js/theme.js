@@ -1,5 +1,5 @@
 (function() {
-  var KEY = 'solvespace-theme';
+  var KEY = 'practiceforge-theme';
   var current = localStorage.getItem(KEY) || 'dark';
   applyTheme(current);
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ problem.title }} &mdash; SolveSpace{% endblock %}
+{% block title %}{{ problem.title }} &mdash; PracticeForge{% endblock %}
 {% block head_extra %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/material-darker.min.css">
@@ -156,7 +156,7 @@ window.__sampleCases = {{ problem.examples|tojson }};
 </script>
 
 <script>
-var sidebarState = localStorage.getItem('solvespace-sidebar');
+var sidebarState = localStorage.getItem('practiceforge-sidebar');
 if (sidebarState === 'collapsed') {
   document.getElementById('description-panel').classList.add('collapsed');
   document.getElementById('workspace-panel').classList.remove('col-lg-7');

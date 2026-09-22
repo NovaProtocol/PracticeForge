@@ -1,6 +1,6 @@
-# SolveSpace Documentation
+# PracticeForge Documentation
 
-MkDocs site for SolveSpace, served as a dedicated `documentation` container on `:8005` behind the Caddy gate.
+MkDocs site for PracticeForge, served as a dedicated `documentation` container on `:8005` behind the Caddy gate.
 
 ## Local preview
 

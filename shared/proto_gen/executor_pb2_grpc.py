@@ -8,7 +8,7 @@ try:
 except ImportError:
     import executor_pb2 as executor__pb2
 
-GRPC_GENERATED_VERSION = '1.83.0'
+GRPC_GENERATED_VERSION = '1.84.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -38,17 +38,17 @@ class ExecutorServiceStub:
             channel: A grpc.Channel.
         """
         self.EnqueueExecution = channel.unary_unary(
-                '/solvespace.v1.ExecutorService/EnqueueExecution',
+                '/practiceforge.v1.ExecutorService/EnqueueExecution',
                 request_serializer=executor__pb2.EnqueueRequest.SerializeToString,
                 response_deserializer=executor__pb2.EnqueueResponse.FromString,
                 _registered_method=True)
         self.GetExecutionStatus = channel.unary_unary(
-                '/solvespace.v1.ExecutorService/GetExecutionStatus',
+                '/practiceforge.v1.ExecutorService/GetExecutionStatus',
                 request_serializer=executor__pb2.GetStatusRequest.SerializeToString,
                 response_deserializer=executor__pb2.GetStatusResponse.FromString,
                 _registered_method=True)
         self.HealthCheck = channel.unary_unary(
-                '/solvespace.v1.ExecutorService/HealthCheck',
+                '/practiceforge.v1.ExecutorService/HealthCheck',
                 request_serializer=executor__pb2.HealthCheckRequest.SerializeToString,
                 response_deserializer=executor__pb2.HealthCheckResponse.FromString,
                 _registered_method=True)
@@ -95,9 +95,9 @@ def add_ExecutorServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'solvespace.v1.ExecutorService', rpc_method_handlers)
+            'practiceforge.v1.ExecutorService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('solvespace.v1.ExecutorService', rpc_method_handlers)
+    server.add_registered_method_handlers('practiceforge.v1.ExecutorService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -118,7 +118,7 @@ class ExecutorService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/solvespace.v1.ExecutorService/EnqueueExecution',
+            '/practiceforge.v1.ExecutorService/EnqueueExecution',
             executor__pb2.EnqueueRequest.SerializeToString,
             executor__pb2.EnqueueResponse.FromString,
             options,
@@ -145,7 +145,7 @@ class ExecutorService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/solvespace.v1.ExecutorService/GetExecutionStatus',
+            '/practiceforge.v1.ExecutorService/GetExecutionStatus',
             executor__pb2.GetStatusRequest.SerializeToString,
             executor__pb2.GetStatusResponse.FromString,
             options,
@@ -172,7 +172,7 @@ class ExecutorService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/solvespace.v1.ExecutorService/HealthCheck',
+            '/practiceforge.v1.ExecutorService/HealthCheck',
             executor__pb2.HealthCheckRequest.SerializeToString,
             executor__pb2.HealthCheckResponse.FromString,
             options,

@@ -40,4 +40,4 @@ def test_404_renders_with_base_template(client):
     assert "Not Found" in html
     # Both markers come from base.html (title + footer/nav), proving the
     # shared template was resolved.
-    assert "SolveSpace" in html
+    assert "PracticeForge" in html

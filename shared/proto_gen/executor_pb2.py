@@ -24,25 +24,25 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x65xecutor.proto\x12\rsolvespace.v1\"s\n\x0e\x45nqueueRequest\x12\x12\n\nproblem_id\x18\x01 \x01(\x05\x12\x0c\n\x04\x63ode\x18\x02 \x01(\t\x12\x13\n\x0bmethod_name\x18\x03 \x01(\t\x12\x17\n\x0ftest_cases_json\x18\x04 \x01(\t\x12\x11\n\texec_type\x18\x05 \x01(\t\"3\n\x0f\x45nqueueResponse\x12\x10\n\x08queue_id\x18\x01 \x01(\x03\x12\x0e\n\x06status\x18\x02 \x01(\t\"$\n\x10GetStatusRequest\x12\x10\n\x08queue_id\x18\x01 \x01(\x03\"\x9f\x01\n\x11GetStatusResponse\x12\x10\n\x08queue_id\x18\x01 \x01(\x03\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x0e\n\x06result\x18\x03 \x01(\t\x12\x0e\n\x06stdout\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x11\n\ttiming_ms\x18\x06 \x01(\x05\x12\x11\n\tmemory_kb\x18\x07 \x01(\x05\x12\x13\n\x0bsolution_id\x18\x08 \x01(\x03\"\x14\n\x12HealthCheckRequest\"%\n\x13HealthCheckResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2\x93\x02\n\x0f\x45xecutorService\x12Q\n\x10\x45nqueueExecution\x12\x1d.solvespace.v1.EnqueueRequest\x1a\x1e.solvespace.v1.EnqueueResponse\x12W\n\x12GetExecutionStatus\x12\x1f.solvespace.v1.GetStatusRequest\x1a .solvespace.v1.GetStatusResponse\x12T\n\x0bHealthCheck\x12!.solvespace.v1.HealthCheckRequest\x1a\".solvespace.v1.HealthCheckResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x65xecutor.proto\x12\x10practiceforge.v1\"s\n\x0e\x45nqueueRequest\x12\x12\n\nproblem_id\x18\x01 \x01(\x05\x12\x0c\n\x04\x63ode\x18\x02 \x01(\t\x12\x13\n\x0bmethod_name\x18\x03 \x01(\t\x12\x17\n\x0ftest_cases_json\x18\x04 \x01(\t\x12\x11\n\texec_type\x18\x05 \x01(\t\"3\n\x0f\x45nqueueResponse\x12\x10\n\x08queue_id\x18\x01 \x01(\x03\x12\x0e\n\x06status\x18\x02 \x01(\t\"$\n\x10GetStatusRequest\x12\x10\n\x08queue_id\x18\x01 \x01(\x03\"\x9f\x01\n\x11GetStatusResponse\x12\x10\n\x08queue_id\x18\x01 \x01(\x03\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x0e\n\x06result\x18\x03 \x01(\t\x12\x0e\n\x06stdout\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x11\n\ttiming_ms\x18\x06 \x01(\x05\x12\x11\n\tmemory_kb\x18\x07 \x01(\x05\x12\x13\n\x0bsolution_id\x18\x08 \x01(\x03\"\x14\n\x12HealthCheckRequest\"%\n\x13HealthCheckResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2\xa5\x02\n\x0f\x45xecutorService\x12W\n\x10\x45nqueueExecution\x12 .practiceforge.v1.EnqueueRequest\x1a!.practiceforge.v1.EnqueueResponse\x12]\n\x12GetExecutionStatus\x12\".practiceforge.v1.GetStatusRequest\x1a#.practiceforge.v1.GetStatusResponse\x12Z\n\x0bHealthCheck\x12$.practiceforge.v1.HealthCheckRequest\x1a%.practiceforge.v1.HealthCheckResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'executor_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_ENQUEUEREQUEST']._serialized_start=33
-  _globals['_ENQUEUEREQUEST']._serialized_end=148
-  _globals['_ENQUEUERESPONSE']._serialized_start=150
-  _globals['_ENQUEUERESPONSE']._serialized_end=201
-  _globals['_GETSTATUSREQUEST']._serialized_start=203
-  _globals['_GETSTATUSREQUEST']._serialized_end=239
-  _globals['_GETSTATUSRESPONSE']._serialized_start=242
-  _globals['_GETSTATUSRESPONSE']._serialized_end=401
-  _globals['_HEALTHCHECKREQUEST']._serialized_start=403
-  _globals['_HEALTHCHECKREQUEST']._serialized_end=423
-  _globals['_HEALTHCHECKRESPONSE']._serialized_start=425
-  _globals['_HEALTHCHECKRESPONSE']._serialized_end=462
-  _globals['_EXECUTORSERVICE']._serialized_start=465
-  _globals['_EXECUTORSERVICE']._serialized_end=740
+  _globals['_ENQUEUEREQUEST']._serialized_start=36
+  _globals['_ENQUEUEREQUEST']._serialized_end=151
+  _globals['_ENQUEUERESPONSE']._serialized_start=153
+  _globals['_ENQUEUERESPONSE']._serialized_end=204
+  _globals['_GETSTATUSREQUEST']._serialized_start=206
+  _globals['_GETSTATUSREQUEST']._serialized_end=242
+  _globals['_GETSTATUSRESPONSE']._serialized_start=245
+  _globals['_GETSTATUSRESPONSE']._serialized_end=404
+  _globals['_HEALTHCHECKREQUEST']._serialized_start=406
+  _globals['_HEALTHCHECKREQUEST']._serialized_end=426
+  _globals['_HEALTHCHECKRESPONSE']._serialized_start=428
+  _globals['_HEALTHCHECKRESPONSE']._serialized_end=465
+  _globals['_EXECUTORSERVICE']._serialized_start=468
+  _globals['_EXECUTORSERVICE']._serialized_end=761
 # @@protoc_insertion_point(module_scope)
