@@ -22,7 +22,7 @@ known-first-party = ["apps", "shared"]
 "documentation/app.py" = ["E501"]
 "executor/*" = ["E501", "RUF001"]
 "shared/*" = ["E501", "SIM105"]
-"practiceforge_app/*" = ["E501", "SIM105"]
+"solver_private/*" = ["E501", "SIM105"]
 "utilities/scraper/*" = ["E402", "E501", "SIM105", "SIM115"]
 "tests/*" = ["E501", "SIM105"]
 
@@ -43,7 +43,7 @@ module = "shared.*"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "practiceforge_app.*"
+module = "solver_private.*"
 ignore_errors = true
 
 [[tool.mypy.overrides]]

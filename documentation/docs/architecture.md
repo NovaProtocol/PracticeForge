@@ -90,7 +90,7 @@ Gate: the apex wildcard on the `gatekeeper` network. This project's own Caddyfil
 
 | Component | Code | Port | Runtime |
 |---|---|---|---|
-| practiceforge_app | `practiceforge_app/` + `shared/` | 8000 | `python:3.14-slim`, `granian asgi 1 worker` (`wsgi:app`) + `RequestIDMiddleware`+`structlog` JSON `{error:{code,message,request_id}}` |
+| practiceforge_app | `solver_private/` + `shared/` | 8000 | `python:3.14-slim`, `granian asgi 1 worker` (`wsgi:app`) + `RequestIDMiddleware`+`structlog` JSON `{error:{code,message,request_id}}` |
 | executor | `executor/` + `shared/wrapper.py` | 50051 (gRPC) | `python:3.14-slim`, root + `SYS_ADMIN` + `bwrap` |
 | documentation | `documentation/` + `shared/` | 8005 | `python:3.14-slim`, granian asgi, `USER appuser 10001` |
 | mysql | `mysql:8.4` | 3306 | named volume `mysql_data` |
@@ -112,7 +112,7 @@ Gate: the apex wildcard on the `gatekeeper` network. This project's own Caddyfil
 
 ## Cache Headers
 
-One middleware sets `Cache-Control` for the two services that serve HTTP: `shared/middleware.py::CacheControlMiddleware`, installed in `practiceforge_app/app.py` and `documentation/app.py`. Keeping it in the app rather than in the `Caddyfile` means mounted `StaticFiles`, HTML routes, `/health` and error pages are covered by the same code, and the edge never has to guess which visitor a response belongs to.
+One middleware sets `Cache-Control` for the two services that serve HTTP: `shared/middleware.py::CacheControlMiddleware`, installed in `solver_private/app.py` and `documentation/app.py`. Keeping it in the app rather than in the `Caddyfile` means mounted `StaticFiles`, HTML routes, `/health` and error pages are covered by the same code, and the edge never has to guess which visitor a response belongs to.
 
 The rule is **an existing header is kept, a gap is filled**:
 

@@ -6,7 +6,7 @@ Single `compose.yaml` orchestrates the whole stack.
 
 ```yaml
 services:
-  practiceforge_app: { build: practiceforge_app/Dockerfile, container_name: practiceforge_app, expose: [8000], networks: [default, net-executor], healthcheck: urllib 8000/health, env: DEPLOYMENT_TYPE+MYSQL_*+API_TOKEN+LLM_* }
+  practiceforge_app: { build: solver_private/Dockerfile, container_name: practiceforge_app, expose: [8000], networks: [default, net-executor], healthcheck: urllib 8000/health, env: DEPLOYMENT_TYPE+MYSQL_*+API_TOKEN+LLM_* }
  practiceforge_executor: { build: executor/Dockerfile, container_name: practiceforge_executor, expose: [50051], networks: [default, net-executor], cap_add: [SYS_ADMIN], pids_limit: 128 }
  practiceforge_documentation: { build: documentation/Dockerfile, container_name: practiceforge_documentation, expose: [8005], networks: [default], healthcheck: 8005/health }
  practiceforge_mysql: { image: mysql:8.4, container_name: practiceforge_mysql, volumes: [mysql_data], healthcheck: mysqladmin ping }
