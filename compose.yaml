@@ -2,7 +2,7 @@ services:
   practiceforge_app:
     build:
       context: .
-      dockerfile: practiceforge_app/Dockerfile
+      dockerfile: solver_private/Dockerfile
     container_name: practiceforge_app
     restart: unless-stopped
     healthcheck:

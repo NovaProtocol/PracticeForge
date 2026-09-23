@@ -138,7 +138,7 @@ async def serve():
 
 Runs alongside the poll loop (async task). Port `50051` is `expose` only on `net-executor` (`internal: true`).
 
-### Client (`shared/grpc_client.py` / `practiceforge_app/grpc_client.py`)
+### Client (`shared/grpc_client.py` / `solver_private/grpc_client.py`)
 
 ```python
 import grpc

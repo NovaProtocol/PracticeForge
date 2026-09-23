@@ -5,7 +5,7 @@ FastAPI app serving problems, solutions, editor, and execution API. Runs on `pra
 ## Layout
 
 ```
-practiceforge_app/
+solver_private/
  app.py # create_app() factory, lifespan, RequestIDMiddleware+structlog, Jinja ChoiceLoader
  apps/
  problems/routes.py # APIRouter `/`, list, detail, editor, console (HTMLResponse)
@@ -45,7 +45,7 @@ practiceforge_app/
 
 ## gRPC Client
 
-`practiceforge_app/grpc_client.py` (and `shared/grpc_client.py`) dials the executor:
+`solver_private/grpc_client.py` (and `shared/grpc_client.py`) dials the executor:
 
 ```python
 import grpc
