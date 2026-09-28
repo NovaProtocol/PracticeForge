@@ -69,7 +69,7 @@ graph TB
 
 - [Getting Started](getting-started.md), clone, env, `docker compose up`
 - [Architecture](architecture.md), diagram, networks, data flow
-- [Solver Private](solver/index.md), Flask blueprints, routes
+- [Solver Private](solver/index.md), routers, routes
 - [Executor](executor/index.md), bwrap sandbox, queue, gRPC
 - [Scraper](scraper/index.md), 4-stage pipeline
 - [Shared](shared/index.md), DB layer, models, wrapper

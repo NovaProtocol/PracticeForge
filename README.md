@@ -36,8 +36,8 @@ been solved and what has not, and which problems are worth another attempt.
 ## Running it
 
 ```bash
-cp .env.example .env
-# then fill in the values it documents, and start the stack
+# env comes from the shell — there is no .env file (see .env.example for the list)
+export DEPLOYMENT_TYPE=DEBUG MYSQL_PASS=<pw> API_TOKEN=<token> ACCESS_CODE=<code>
 docker compose up -d --build
 ```
 

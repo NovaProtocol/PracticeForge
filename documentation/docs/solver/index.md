@@ -11,7 +11,7 @@ solver_private/
  problems/routes.py # APIRouter `/`, list, detail, editor, console (HTMLResponse)
  solutions/routes.py # APIRouter `/solutions`, list, detail, re-run
  api/routes.py # APIRouter `/api`, REST API used by scraper + browser + gRPC client
- apps/templating.py # Jinja2 Environment + ChoiceLoader, Flask url_for shim
+ apps/templating.py # Jinja2 Environment + ChoiceLoader, `url_for` shim
  wsgi.py # granian target `wsgi:app` (create_app())
  run.py # dev uvicorn factory=True --reload
  templates/404.html # themed 404, bypasses gate via Caddy handle /404
