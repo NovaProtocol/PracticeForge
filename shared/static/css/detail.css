@@ -37,3 +37,22 @@ html, body { overflow: hidden; }
 .result-spinner { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; flex:1; color:var(--text-secondary); font-size:0.85rem; }
 .spinner { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* ---------- responsive ----------
+   Below the `lg` breakpoint Bootstrap stacks the two `col-lg-*` panels, but the
+   page pins `overflow: hidden` and both panels are 100% tall, which pushes the
+   workspace below the fold with no way to scroll to it. Unpin the page and give
+   the stacked panels natural heights. Inline `height` styles need `!important`. */
+@media (max-width: 991.98px) {
+  html, body { overflow: auto; }
+  .container-fluid { height: auto !important; }
+  .container-fluid > .row { height: auto !important; }
+  #description-panel {
+    height: auto !important;
+    max-height: 50vh;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+  }
+  #workspace-panel { height: auto !important; min-height: 75vh; }
+  .result-table td, .result-table th { padding: 0.3rem 0.4rem; font-size: 0.72rem; }
+}

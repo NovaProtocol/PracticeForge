@@ -29,3 +29,10 @@
 .pass { color: #4ade80; }
 .fail { color: #f87171; }
 .stdout-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; margin-top: 1rem; white-space: pre-wrap; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 768px) {
+  .solution-header, .solution-body { padding: 1rem; }
+  .results-table th, .results-table td { padding: 0.35rem 0.45rem; font-size: 0.72rem; }
+  .code-block { padding: 0.75rem; font-size: 0.76rem; }
+}

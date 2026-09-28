@@ -44,3 +44,17 @@
 .loading { text-align: center; padding: 3rem; color: var(--text-secondary); }
 .card-link { text-decoration: none; color: inherit; }
 .card-link:hover .card { border-color: var(--accent); transform: translateY(-2px); }
+
+/* ---------- responsive ----------
+   The filter rail is a fixed 240px column and `.main-area` reserves that width.
+   On a phone that leaves the list a sliver, so the rail becomes a normal block
+   above the list instead of a fixed overlay. */
+@media (max-width: 991.98px) {
+  .sidebar-filters {
+    position: static;
+    width: auto;
+    border-left: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .main-area { margin-right: 0; }
+}
