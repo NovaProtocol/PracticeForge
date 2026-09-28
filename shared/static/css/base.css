@@ -231,3 +231,10 @@ textarea.form-control {
     color: var(--accent);
     border-color: var(--accent);
 }
+
+/* ---------- responsive ---------- */
+@media (max-width: 768px) {
+    .section-title { font-size: 1.35rem; }
+    .section-subtitle { margin-bottom: 1.5rem; }
+    .navbar-nav .nav-link { padding: 0.5rem 0.25rem !important; }
+}
