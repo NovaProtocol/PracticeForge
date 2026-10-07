@@ -10,9 +10,9 @@
     document.getElementById('confirm-modal-title').textContent = title;
     document.getElementById('confirm-modal-text').textContent = text;
     var btn = document.getElementById('confirm-modal-yes');
-    var handler = function() { btn.removeEventListener('click', handler); jQuery('#confirm-modal').modal('hide'); cb(); };
+    var handler = function() { btn.removeEventListener('click', handler); bootstrap.Modal.getOrCreateInstance(document.getElementById('confirm-modal')).hide(); cb(); };
     btn.addEventListener('click', handler);
-    jQuery('#confirm-modal').modal('show');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('confirm-modal')).show();
   }
 
   function showNewFileModal() {
@@ -31,7 +31,7 @@
         input.select();
         return;
       }
-      jQuery('#newfile-modal').modal('hide');
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('newfile-modal')).hide();
       fetch('/api/files/' + C.problemId, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,7 +43,7 @@
     };
     btn.addEventListener('click', handler);
     input.addEventListener('keydown', function(e) { if (e.key === 'Enter') btn.click(); });
-    jQuery('#newfile-modal').modal('show');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('newfile-modal')).show();
     setTimeout(function() { input.focus(); }, 300);
   }
 
@@ -177,8 +177,8 @@
     if (!document.fullscreenElement) { fsActive = false; document.body.classList.remove('editor-fullscreen'); if (window.editor) window.editor.refresh(); }
   });
   el('run-btn').addEventListener('click', function() {
-    jQuery('#solver-modal').modal('show');
-    jQuery('#solver-modal').data('action', 'run');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('solver-modal')).show();
+    document.getElementById('solver-modal').dataset.action = 'run';
     el('modal-tab-testcases').click();
   });
   var sidebarToggle = el('sidebar-toggle');

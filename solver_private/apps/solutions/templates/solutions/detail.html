@@ -7,11 +7,11 @@
             <h3 class="mb-0">Solution #{{ solution.id }}</h3>
             {% set v = solution.verdict|lower %}
             {% if v == 'accepted' %}
-                <span class="verdict-accepted" style="font-size: 1.1rem;"><i class="fas fa-check-circle mr-1"></i>Accepted</span>
+                <span class="verdict-accepted" style="font-size: 1.1rem;"><i class="fas fa-check-circle me-1"></i>Accepted</span>
             {% elif v in ('wrong answer', 'error') %}
-                <span class="verdict-wrong" style="font-size: 1.1rem;"><i class="fas fa-times-circle mr-1"></i>{{ solution.verdict }}</span>
+                <span class="verdict-wrong" style="font-size: 1.1rem;"><i class="fas fa-times-circle me-1"></i>{{ solution.verdict }}</span>
             {% elif v == 'timeout' %}
-                <span class="verdict-timeout" style="font-size: 1.1rem;"><i class="fas fa-hourglass-end mr-1"></i>Time Limit</span>
+                <span class="verdict-timeout" style="font-size: 1.1rem;"><i class="fas fa-hourglass-end me-1"></i>Time Limit</span>
             {% else %}
                 <span class="verdict-pending" style="font-size: 1.1rem;">{{ solution.verdict }}</span>
             {% endif %}

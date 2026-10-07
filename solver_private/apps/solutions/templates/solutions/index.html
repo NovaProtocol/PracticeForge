@@ -10,7 +10,7 @@
             <table class="table table-dark table-borderless mb-0" style="background: transparent;">
                 <thead>
                     <tr style="color: var(--text-secondary); font-size: 0.85rem; border-bottom: 1px solid var(--border);">
-                        <th class="pl-3">Problem</th>
+                        <th class="ps-3">Problem</th>
                         <th>Verdict</th>
                         <th>Tests</th>
                         <th>Date</th>
@@ -20,7 +20,7 @@
                 <tbody>
                     {% for solution in solutions %}
                     <tr style="border-bottom: 1px solid var(--border);">
-                        <td class="pl-3">
+                        <td class="ps-3">
                             <a href="{{ url_for('problems_blueprint.detail', contest_id=solution.contest_id, index=solution.problem_index) }}" style="color: var(--text-primary);">
                                 {{ solution.contest_id }}{{ solution.problem_index }} &mdash; {{ solution.title }}
                             </a>
@@ -28,11 +28,11 @@
                         <td>
                             {% set v = solution.verdict|lower %}
                             {% if v == 'accepted' %}
-                                <span class="verdict-accepted"><i class="fas fa-check-circle mr-1"></i>Accepted</span>
+                                <span class="verdict-accepted"><i class="fas fa-check-circle me-1"></i>Accepted</span>
                             {% elif v in ('wrong answer', 'error') %}
-                                <span class="verdict-wrong"><i class="fas fa-times-circle mr-1"></i>{{ solution.verdict }}</span>
+                                <span class="verdict-wrong"><i class="fas fa-times-circle me-1"></i>{{ solution.verdict }}</span>
                             {% elif v == 'timeout' %}
-                                <span class="verdict-timeout"><i class="fas fa-hourglass-end mr-1"></i>Time Limit</span>
+                                <span class="verdict-timeout"><i class="fas fa-hourglass-end me-1"></i>Time Limit</span>
                             {% else %}
                                 <span class="verdict-pending">{{ solution.verdict }}</span>
                             {% endif %}

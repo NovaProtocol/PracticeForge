@@ -50,7 +50,7 @@
           <button class="modal-tab" data-modaltab="results" id="modal-tab-results" style="background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-weight:700;text-transform:uppercase;padding:0.25rem 0.75rem;cursor:pointer;border-bottom:2px solid transparent;">Results</button>
         </div>
         <span style="flex:1"></span>
-        <button type="button" class="close" data-dismiss="modal" style="color: var(--text-secondary);">&times;</button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="color: var(--text-secondary);"></button>
       </div>
       <div class="modal-body" style="padding: 0; overflow: hidden; flex: 1; display: flex; flex-direction: column;">
         <div class="modal-pane" id="modal-pane-testcases" style="display:flex;flex-direction:column;flex:1;overflow:hidden;padding:0.5rem;">
@@ -97,11 +97,11 @@
         </div>
       </div>
       <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 0.75rem 1rem; flex-shrink: 0; display:flex;gap:6px;">
-        <button id="modal-test-btn" class="btn-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-play mr-1"></i>Test</button>
-        <button id="modal-benchmark-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-bolt mr-1"></i>Benchmark</button>
-        <button id="modal-submit-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-cloud-upload-alt mr-1"></i>Submit</button>
+        <button id="modal-test-btn" class="btn-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-play me-1"></i>Test</button>
+        <button id="modal-benchmark-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-bolt me-1"></i>Benchmark</button>
+        <button id="modal-submit-btn" class="btn-outline-accent btn-sm" style="padding:0.4rem 1.2rem;font-size:0.82rem;"><i class="fas fa-cloud-upload-alt me-1"></i>Submit</button>
         <span style="flex:1"></span>
-        <button type="button" class="btn-outline-accent btn-sm" data-dismiss="modal" style="padding:0.4rem 1.2rem;font-size:0.82rem;">Close</button>
+        <button type="button" class="btn-outline-accent btn-sm" data-bs-dismiss="modal" style="padding:0.4rem 1.2rem;font-size:0.82rem;">Close</button>
       </div>
     </div>
   </div>
@@ -112,14 +112,14 @@
     <div class="modal-content" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;">
       <div class="modal-header" style="border-bottom:1px solid var(--border);padding:0.75rem 1rem;">
         <h6 id="confirm-modal-title" style="margin:0;font-weight:700;font-size:0.9rem;">Confirm</h6>
-        <button type="button" class="close" data-dismiss="modal" style="color:var(--text-secondary);">&times;</button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="color:var(--text-secondary);"></button>
       </div>
       <div class="modal-body" style="padding:1rem;">
         <p id="confirm-modal-text" style="margin:0;font-size:0.88rem;color:var(--text-primary);"></p>
       </div>
       <div class="modal-footer" style="border-top:1px solid var(--border);padding:0.75rem 1rem;display:flex;gap:6px;">
         <button id="confirm-modal-yes" class="btn-accent btn-sm" style="padding:0.35rem 1rem;font-size:0.82rem;">Yes</button>
-        <button type="button" class="btn-outline-accent btn-sm" data-dismiss="modal" style="padding:0.35rem 1rem;font-size:0.82rem;">Cancel</button>
+        <button type="button" class="btn-outline-accent btn-sm" data-bs-dismiss="modal" style="padding:0.35rem 1rem;font-size:0.82rem;">Cancel</button>
       </div>
     </div>
   </div>
@@ -130,7 +130,7 @@
     <div class="modal-content" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;">
       <div class="modal-header" style="border-bottom:1px solid var(--border);padding:0.75rem 1rem;">
         <h6 style="margin:0;font-weight:700;font-size:0.9rem;">New File</h6>
-        <button type="button" class="close" data-dismiss="modal" style="color:var(--text-secondary);">&times;</button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="color:var(--text-secondary);"></button>
       </div>
       <div class="modal-body" style="padding:1rem;">
         <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:0.4rem;">Filename</label>
@@ -138,7 +138,7 @@
       </div>
       <div class="modal-footer" style="border-top:1px solid var(--border);padding:0.75rem 1rem;display:flex;gap:6px;">
         <button id="newfile-create-btn" class="btn-accent btn-sm" style="padding:0.35rem 1rem;font-size:0.82rem;">Create</button>
-        <button type="button" class="btn-outline-accent btn-sm" data-dismiss="modal" style="padding:0.35rem 1rem;font-size:0.82rem;">Cancel</button>
+        <button type="button" class="btn-outline-accent btn-sm" data-bs-dismiss="modal" style="padding:0.35rem 1rem;font-size:0.82rem;">Cancel</button>
       </div>
     </div>
   </div>
