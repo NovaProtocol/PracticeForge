@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: var(--ui-surface);
+  --bg-secondary: var(--ui-surface-variant);
+  --bg-card: var(--ui-surface-variant);
+  --border: var(--ui-outline);
+  --text-primary: var(--ui-on-surface);
+  --text-secondary: var(--ui-on-surface-variant);
+  --accent: var(--ui-primary);
+  --accent-dim: color-mix(in srgb, var(--ui-primary) 12%, transparent);
+}

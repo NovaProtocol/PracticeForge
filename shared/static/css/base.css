@@ -1,26 +1,32 @@
 /* PracticeForge base theme, dark default, light override via [data-theme="light"] */
 :root {
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #12121a;
-    --bg-card: #1a1a28;
-    --border: #2a2a3e;
-    --text-primary: #e8e8f0;
-    --text-secondary: #8888a0;
-    --accent: #64ffda;
+    --bg-primary: var(--ui-surface);
+    --bg-secondary: var(--ui-surface-variant);
+    --bg-card: var(--ui-surface-variant);
+    --border: var(--ui-outline);
+    --text-primary: var(--ui-on-surface);
+    --text-secondary: var(--ui-on-surface-variant);
+    --accent: var(--ui-primary);
     --accent-dim: rgba(100, 255, 218, 0.1);
     --difficulty-easy: #4ade80;
     --difficulty-medium: #fbbf24;
     --difficulty-hard: #f87171;
+
+
+    /* Bootstrap component colors default to its light theme; pin them to the
+       tokens so cards, modals and tables inherit the dark theme's text. */
+    --bs-body-color: var(--text-primary);
+    --bs-body-bg: var(--bg-primary);
 }
 
 [data-theme="light"] {
-    --bg-primary: #f5f6fa;
-    --bg-secondary: #ffffff;
-    --bg-card: #ffffff;
-    --border: #d8dce6;
-    --text-primary: #1a1a2e;
-    --text-secondary: #5a5f73;
-    --accent: #0d9488;
+    --bg-primary: var(--ui-surface);
+    --bg-secondary: var(--ui-surface-variant);
+    --bg-card: var(--ui-surface-variant);
+    --border: var(--ui-outline);
+    --text-primary: var(--ui-on-surface);
+    --text-secondary: var(--ui-on-surface-variant);
+    --accent: var(--ui-primary);
     --accent-dim: rgba(13, 148, 136, 0.08);
     --difficulty-easy: #16a34a;
     --difficulty-medium: #d97706;
@@ -210,27 +216,6 @@ textarea.form-control {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-
-/* Theme toggle button */
-.theme-toggle {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    margin-left: 0.5rem;
-}
-.theme-toggle:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-}
 
 /* ---------- responsive ---------- */
 @media (max-width: 768px) {
