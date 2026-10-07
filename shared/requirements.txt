@@ -5,6 +5,7 @@ jinja2>=3.1,<4
 pydantic-settings>=2,<3
 structlog>=24,<25
 SQLAlchemy>=2.0
+greenlet>=3.2
 aiomysql>=0.2
 aiosqlite>=0.20
 PyMySQL>=1.1
