@@ -1,56 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>{% block title %}PracticeForge{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha384-nRgPTkuX86pH8yjPJUAFuASXQSSl2/bBUiNV47vSYpKFxHJhbcrGnmlYpYJMeD7a" crossorigin="anonymous">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="preconnect" href="https://cdn.projectnova.download" crossorigin>
-    <link rel="stylesheet" href="https://cdn.projectnova.download/flat/dark/theme.css?v=7">
-    <link rel="stylesheet" href="/static/css/tailwind.css?v=1">
-    <link rel="stylesheet" href="/static/css/base.css?v=3">
-    <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$','$']],
-        displayMath: [['$$','$$']]
-      }
-    };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    {% block head_extra %}{% endblock %}
-    <script src="https://cdn.projectnova.download/shell.js"></script>
-</head>
-<body>
+{% extends "_shell/base.html" %}
 
-<nav class="ui-navbar">
-  <div class="ui-navbar__inner">
-    <span class="ui-navbar__lead" aria-hidden="true"></span>
-    <a class="ui-navbar__brand" href="{{ url_for('problems_blueprint.index') }}">~/<span>practiceforge</span></a>
-    <div class="ui-navbar__right">
-      <ul class="ui-navbar__links">
-      <li><a class="ui-navbar__link" href="{{ url_for('problems_blueprint.index') }}">Problems</a></li>
-      <li><a class="ui-navbar__link" href="{{ url_for('solutions_blueprint.index') }}">Solutions</a></li>
-    </ul>
-      <button class="ui-theme-toggle" title="Toggle light/dark" aria-label="Toggle light/dark"></button>
-    </div>
-  </div>
-</nav>
+{% block title %}PracticeForge{% endblock %}
 
-<main>
-    {% block content %}{% endblock %}
-</main>
+{% block head_assets %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha384-nRgPTkuX86pH8yjPJUAFuASXQSSl2/bBUiNV47vSYpKFxHJhbcrGnmlYpYJMeD7a" crossorigin="anonymous">
+<link rel="stylesheet" href="/static/css/base.css?v=3">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$']],
+    displayMath: [['$$','$$']]
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+{% endblock %}
 
-<footer class="ui-footer">
-  <div class="ui-footer__inner">
-    <div>&copy; 2026 Nova. PracticeForge &mdash; Codeforces Practice</div>
-    <div><a href="https://github.com/NovaProtocol" target="_blank" rel="noopener noreferrer"><i class="fab fa-github"></i></a></div>
-  </div>
-</footer>
+{% block brand_href %}{{ url_for('problems_blueprint.index') }}{% endblock %}
+{% block brand_name %}practiceforge{% endblock %}
 
+{% block nav_links %}
+<li><a class="ui-navbar__link" href="{{ url_for('problems_blueprint.index') }}">Problems</a></li>
+<li><a class="ui-navbar__link" href="{{ url_for('solutions_blueprint.index') }}">Solutions</a></li>
+{% endblock %}
+
+{% block footer_text %}&copy; 2026 Nova. PracticeForge &mdash; Codeforces Practice{% endblock %}
+
+{% block content %}{% endblock %}
+
+{% block scripts_pre %}
 <script src="/static/js/ui-modal.js?v=1"></script>
 <script src="/static/js/error.js"></script>
-</body>
-</html>
+{% endblock %}
