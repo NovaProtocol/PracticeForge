@@ -29,7 +29,6 @@ Key variables (full list in `.env.example`, source of truth):
 | `EXECUTOR_GRPC_ADDR` | no | `practiceforge_executor:50051` | Internal gRPC address (solver → executor) |
 | `GRPC_PORT` | no | `50051` | Executor gRPC listen port |
 | `MEMORY_LIMIT_MB` | no | `1024` | Sandbox memory hard limit |
-| `PROCESS_LIMIT` | no | `64` | Sandbox nproc limit (capped by pids cgroup) |
 | `CPU_LIMIT_SECONDS` | no | `25` | Sandbox CPU limit |
 | `LLM_API_KEY` | no | n/a | Scraper LLM enrichment key (blank = no enrichment) |
 | `LLM_BASE_URL` | no | n/a | OpenAI-compatible endpoint for enrichment |

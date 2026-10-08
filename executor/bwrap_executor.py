@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import resource
+import signal
 import subprocess
 import sys
 import time
@@ -29,7 +30,6 @@ _LOG_INDENT = 0
 # Hard limits applied to every sandboxed process tree (see _set_rlimits).
 # User code inherits them and cannot raise a hard limit.
 MEMORY_LIMIT_MB = int(os.environ.get("MEMORY_LIMIT_MB", "1024"))
-PROCESS_LIMIT = int(os.environ.get("PROCESS_LIMIT", "64"))
 CPU_LIMIT_SECONDS = int(os.environ.get("CPU_LIMIT_SECONDS", "25"))
 
 
@@ -135,6 +135,13 @@ def _bwrap_cmd(script_path: str, extra_binds: tuple = ()) -> list:
         "--ro-bind",
         "/lib64",
         "/lib64",
+        # The dynamic loader resolves the shared libpython through the linker
+        # cache in /etc, not an RPATH (measured 2026-10-08). Without it the
+        # sandbox cannot start python at all: "error while loading shared
+        # libraries: libpython3.14.so.1.0". One read-only file, no secrets.
+        "--ro-bind",
+        "/etc/ld.so.cache",
+        "/etc/ld.so.cache",
         "--tmpfs",
         "/tmp",
         "--dev",
@@ -155,16 +162,21 @@ def _set_rlimits():
     them. User code cannot raise a hard limit. If a limit cannot be set it is
     logged loudly, the sandbox still runs, the cgroup limits back it up.
 
-    NOTE: RLIMIT_NPROC is NOT enforced while the sandbox runs as uid 0 in its
-    own user namespace, the kernel exempts processes with CAP_SYS_ADMIN in
-    that namespace, so fork bombs are instead bounded by the container's
-    pids cgroup limit (pids_limit in compose.yaml). The other limits here
-    (RLIMIT_AS, RLIMIT_CPU, RLIMIT_CORE) apply unconditionally."""
+    NOTE: there is deliberately NO RLIMIT_NPROC here. Setting it broke the
+    sandbox outright. Creating the user namespace is charged against the
+    caller's RLIMIT_NPROC, and inside this container uid 0 *is* the host's
+    root (no userns remapping), whose process count is already far above any
+    small bound — so `unshare(CLONE_NEWUSER)` fails with EAGAIN and every run
+    dies with "bwrap: Creating new namespace failed: Resource temporarily
+    unavailable". Measured 2026-10-08: RLIMIT_NPROC=64 → EAGAIN, unset or
+    65536 → the sandbox starts. It was never the fork-bomb guard anyway — the
+    sandbox runs as uid 0 with CAP_SYS_ADMIN, which the kernel exempts from
+    RLIMIT_NPROC (an earlier comment even said so). Fork bombs are bounded by
+    the container's pids cgroup (`pids_limit` in compose.yaml)."""
     import resource
 
     limits = {
         resource.RLIMIT_AS: MEMORY_LIMIT_MB * 1024 * 1024,
-        resource.RLIMIT_NPROC: PROCESS_LIMIT,
         resource.RLIMIT_CPU: CPU_LIMIT_SECONDS,
         resource.RLIMIT_CORE: 0,
     }
@@ -175,41 +187,67 @@ def _set_rlimits():
             _log(f"setrlimit {rlim} failed: {e}", indent=1)
 
 
+def _kill_sandbox(proc: subprocess.Popen) -> None:
+    """SIGKILL the sandbox's whole process group (best effort).
+
+    bwrap is started with `start_new_session`, so its pid is the group id and one
+    killpg takes out bwrap *and* everything it spawned. Killing bwrap alone is not
+    enough: SIGKILL runs no cleanup, so the sandboxed children would be orphaned,
+    keep the stdout pipe open, and hang `communicate()` forever."""
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+    except (ProcessLookupError, PermissionError, OSError):
+        try:
+            proc.kill()
+        except Exception:
+            pass
+
+
 def _run_sandboxed(cmd: list, timeout: int) -> dict:
     """Run a command inside the sandbox. No fallback, if bwrap fails,
-    the error is returned loudly and the queue entry is marked failed."""
+    the error is returned loudly and the queue entry is marked failed.
+
+    The sandbox gets its own session so a timeout kills the whole tree, and
+    orphaned sandbox processes (which reparent to this process — it is the child
+    subreaper) are reaped after *every* run. Both matter for the benchmark: it
+    invokes the sandbox once per generated test case, and with one leaked child
+    per run it exhausted the container's pids cgroup, which wedged gRPC and
+    stranded the queue in 'running' (2026-10-08)."""
     try:
         start = time.perf_counter()
-        r = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=timeout,
             env=_bwrap_env(),
             preexec_fn=_set_rlimits,
+            start_new_session=True,
         )
-        elapsed = int((time.perf_counter() - start) * 1000)
+    except Exception:
+        reap_orphans()
+        raise
+
+    timed_out = False
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        _kill_sandbox(proc)
         try:
-            mem = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-        except Exception as e:
-            _log(f"getrusage failed: {e}", indent=1)
-            mem = 0
-        return {
-            "returncode": r.returncode,
-            "stdout": r.stdout.strip(),
-            "stderr": r.stderr.strip(),
-            "timing_ms": elapsed,
-            "memory_kb": mem,
-        }
-    except subprocess.TimeoutExpired as te:
-        partial = ""
-        if te.output:
-            partial = te.output.decode() if isinstance(te.output, bytes) else te.output
+            stdout, stderr = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            stdout, stderr = "", ""
+    finally:
+        reap_orphans()
+
+    if timed_out:
+        partial = stdout or ""
         msg = "Time Limit Exceeded"
-        if partial:
-            idx = partial.find("case ")
-            if idx >= 0:
-                msg += f" (during test {partial[idx : idx + 20].strip()})"
+        idx = partial.find("case ")
+        if idx >= 0:
+            msg += f" (during test {partial[idx : idx + 20].strip()})"
         return {
             "returncode": -1,
             "stdout": "",
@@ -217,6 +255,20 @@ def _run_sandboxed(cmd: list, timeout: int) -> dict:
             "timing_ms": timeout * 1000,
             "memory_kb": 0,
         }
+
+    elapsed = int((time.perf_counter() - start) * 1000)
+    try:
+        mem = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    except Exception as e:
+        _log(f"getrusage failed: {e}", indent=1)
+        mem = 0
+    return {
+        "returncode": proc.returncode,
+        "stdout": (stdout or "").strip(),
+        "stderr": (stderr or "").strip(),
+        "timing_ms": elapsed,
+        "memory_kb": mem,
+    }
 
 
 def run_bwrap(
