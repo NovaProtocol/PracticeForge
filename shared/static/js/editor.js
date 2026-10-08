@@ -10,9 +10,9 @@
     document.getElementById('confirm-modal-title').textContent = title;
     document.getElementById('confirm-modal-text').textContent = text;
     var btn = document.getElementById('confirm-modal-yes');
-    var handler = function() { btn.removeEventListener('click', handler); bootstrap.Modal.getOrCreateInstance(document.getElementById('confirm-modal')).hide(); cb(); };
+    var handler = function() { btn.removeEventListener('click', handler); closeModal('#confirm-modal'); cb(); };
     btn.addEventListener('click', handler);
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('confirm-modal')).show();
+    openModal('#confirm-modal');
   }
 
   function showNewFileModal() {
@@ -31,7 +31,7 @@
         input.select();
         return;
       }
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('newfile-modal')).hide();
+      closeModal('#newfile-modal');
       fetch('/api/files/' + C.problemId, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,7 +43,7 @@
     };
     btn.addEventListener('click', handler);
     input.addEventListener('keydown', function(e) { if (e.key === 'Enter') btn.click(); });
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('newfile-modal')).show();
+    openModal('#newfile-modal');
     setTimeout(function() { input.focus(); }, 300);
   }
 
@@ -177,7 +177,7 @@
     if (!document.fullscreenElement) { fsActive = false; document.body.classList.remove('editor-fullscreen'); if (window.editor) window.editor.refresh(); }
   });
   el('run-btn').addEventListener('click', function() {
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('solver-modal')).show();
+    openModal('#solver-modal');
     document.getElementById('solver-modal').dataset.action = 'run';
     el('modal-tab-testcases').click();
   });

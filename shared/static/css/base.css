@@ -13,10 +13,6 @@
     --difficulty-hard: #f87171;
 
 
-    /* Bootstrap component colors default to its light theme; pin them to the
-       tokens so cards, modals and tables inherit the dark theme's text. */
-    --bs-body-color: var(--text-primary);
-    --bs-body-bg: var(--bg-primary);
 }
 
 [data-theme="light"] {
@@ -194,6 +190,51 @@ code, pre {
     color: var(--text-primary);
     border-radius: 8px;
 }
+/* Modal system, replacing Bootstrap's (see shared/static/js/ui-modal.js). The
+   dialog uses `margin:auto` so an oversized dialog scrolls from its top rather
+   than being clipped; the body scrolls, the header and footer stay put. */
+.ui-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  overflow-y: auto;
+  padding: 1.75rem 1rem;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+}
+.ui-modal.is-open { display: flex; align-items: flex-start; justify-content: center; }
+.ui-modal__dialog { width: 100%; max-width: 520px; margin: auto; }
+.ui-modal__content {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+.ui-modal__header, .ui-modal__footer {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.ui-modal__footer { border-bottom: none; border-top: 1px solid var(--border); gap: 6px; }
+.ui-modal__body { padding: 1rem; overflow-y: auto; min-height: 0; }
+.ui-modal__close {
+  background: none;
+  border: 0;
+  padding: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ui-modal__close::before { content: "\2715"; }
+.ui-modal__close:hover { color: var(--text-primary); }
+
 .form-control:focus {
     background: var(--bg-secondary);
     border-color: var(--accent);

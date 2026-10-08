@@ -67,14 +67,14 @@
     document.getElementById('confirm-modal-text').textContent = 'Are you sure? This is an intentional action to reveal the solution.';
     document.getElementById('confirm-modal-yes').addEventListener('click', function h() {
       document.getElementById('confirm-modal-yes').removeEventListener('click', h);
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('confirm-modal')).hide();
+      closeModal('#confirm-modal');
       var pre = document.getElementById('solution-code');
       if (pre) {
         pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
         document.getElementById('get-solution-btn').textContent = pre.style.display === 'none' ? 'Get solution' : 'Hide solution';
       }
     });
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('confirm-modal')).show();
+    openModal('#confirm-modal');
   });
 
   function _inlineLen(val) {
