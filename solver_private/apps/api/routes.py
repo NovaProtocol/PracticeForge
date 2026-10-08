@@ -47,8 +47,15 @@ async def _require_write_auth(request: Request, x_api_token: str | None = Header
     if origin:
         from urllib.parse import urlparse
         parsed = urlparse(origin)
-        host = request.headers.get("host", "")
-        if parsed.scheme in ("http", "https") and parsed.netloc == host:
+        # GateKeeper proxies to the upstream container with `Host` rewritten to
+        # `<upstream>:<port>`, carrying the public host in `X-Forwarded-Host`.
+        # Comparing the browser's Origin against `Host` alone could therefore
+        # never match behind the gate, so every write answered 401. Compare the
+        # hostnames (ignoring any port) against the forwarded host, falling back
+        # to `Host` when the app is reached directly.
+        forwarded = (request.headers.get("x-forwarded-host") or "").split(",")[0].strip()
+        host = (forwarded or request.headers.get("host", "")).split(":")[0].lower()
+        if parsed.scheme in ("http", "https") and parsed.hostname == host:
             return
     # allow if no token configured (dev), match Flask fallback that returned 401 only when token set
     if not api_token:

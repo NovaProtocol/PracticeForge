@@ -15,6 +15,13 @@
 	}
 
 	handle {
-		reverse_proxy practiceforge_app:8000
+		reverse_proxy practiceforge_app:8000 {
+			# Forward the host the *client* addressed, not this proxy's own host
+			# (`practiceforge_caddy:7031`). GateKeeper already put the public host in
+			# X-Forwarded-Host; Caddy's default replaces it with the value it received,
+			# which made the app's write-origin check impossible to satisfy behind the
+			# gate (every POST answered 401).
+			header_up X-Forwarded-Host {http.request.header.X-Forwarded-Host}
+		}
 	}
 }
