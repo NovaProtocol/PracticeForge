@@ -36,7 +36,7 @@ been solved and what has not, and which problems are worth another attempt.
 ## Running it
 
 ```bash
-# env comes from the shell — there is no .env file (see .env.example for the list)
+# env comes from the shell, there is no .env file (see .env.example for the list)
 export DEPLOYMENT_TYPE=DEBUG MYSQL_PASS=<pw> API_TOKEN=<token> ACCESS_CODE=<code>
 docker compose up -d --build
 ```
