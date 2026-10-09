@@ -25,8 +25,8 @@ docker compose up -d documentation
 curl http://127.0.0.1:8005/health
 ```
 
-Caddy exposes the site at `https://<host>/documentation/` on `:7031` — gated at the
-GateKeeper wildcard, not per-app (this project's `caddy/Caddyfile` carries zero
+Caddy exposes the site at `https://<host>/documentation/` on `:7031`, gated at the
+GateKeeper wildcard and not per-app (this project's `caddy/Caddyfile` carries zero
 `forward_auth`).
 
 ## Structure

@@ -42,10 +42,10 @@ Set in `preexec_fn` before exec, inherited by bwrap + child:
 
 Failures to set a limit are logged but don't abort, cgroup limits back them up.
 
-**No `RLIMIT_NPROC`** — it was removed on 2026-10-08 because it broke the sandbox.
+**No `RLIMIT_NPROC`**. It was removed on 2026-10-08 because it broke the sandbox.
 Creating the user namespace is charged against the caller's `RLIMIT_NPROC`, and inside this
 container uid 0 *is* the host's root (no userns remapping), whose process count is already far above
-a small bound — so `bwrap --unshare-all` failed with `Creating new namespace failed: Resource
+a small bound, so `bwrap --unshare-all` failed with `Creating new namespace failed: Resource
 temporarily unavailable` and every run died. It was never the fork-bomb guard anyway: the sandbox runs
 as uid 0 with `CAP_SYS_ADMIN`, which the kernel exempts from `RLIMIT_NPROC`. Fork bombs are bounded by
 the pids cgroup (`pids_limit: 128`).
