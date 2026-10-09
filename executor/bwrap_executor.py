@@ -166,10 +166,10 @@ def _set_rlimits():
     sandbox outright. Creating the user namespace is charged against the
     caller's RLIMIT_NPROC, and inside this container uid 0 *is* the host's
     root (no userns remapping), whose process count is already far above any
-    small bound — so `unshare(CLONE_NEWUSER)` fails with EAGAIN and every run
+    small bound, so `unshare(CLONE_NEWUSER)` fails with EAGAIN and every run
     dies with "bwrap: Creating new namespace failed: Resource temporarily
     unavailable". Measured 2026-10-08: RLIMIT_NPROC=64 → EAGAIN, unset or
-    65536 → the sandbox starts. It was never the fork-bomb guard anyway — the
+    65536 → the sandbox starts. It was never the fork-bomb guard anyway, the
     sandbox runs as uid 0 with CAP_SYS_ADMIN, which the kernel exempts from
     RLIMIT_NPROC (an earlier comment even said so). Fork bombs are bounded by
     the container's pids cgroup (`pids_limit` in compose.yaml)."""
@@ -208,7 +208,7 @@ def _run_sandboxed(cmd: list, timeout: int) -> dict:
     the error is returned loudly and the queue entry is marked failed.
 
     The sandbox gets its own session so a timeout kills the whole tree, and
-    orphaned sandbox processes (which reparent to this process — it is the child
+    orphaned sandbox processes (which reparent to this process, it is the child
     subreaper) are reaped after *every* run. Both matter for the benchmark: it
     invokes the sandbox once per generated test case, and with one leaked child
     per run it exhausted the container's pids cgroup, which wedged gRPC and

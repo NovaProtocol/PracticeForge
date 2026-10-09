@@ -1,4 +1,4 @@
-"""Guards the sandbox's process hygiene — the parts that are invisible until
+"""Guards the sandbox's process hygiene, the parts that are invisible until
 they break on a real host.
 
 Kept out of `test_executor_sandbox.py` on purpose: that module skips when bwrap
@@ -26,13 +26,13 @@ def test_set_rlimits_does_not_set_rlimit_nproc():
 
     Creating the sandbox user namespace is charged against the caller's
     RLIMIT_NPROC, and inside the container uid 0 is the host's root (no userns
-    remapping), whose process count is already far above a small bound — so
+    remapping), whose process count is already far above a small bound, so
     `unshare(CLONE_NEWUSER)` fails with EAGAIN and every run dies with
     "bwrap: Creating new namespace failed: Resource temporarily unavailable".
     Fork bombs are bounded by the pids cgroup, not this.
     """
     assert "RLIMIT_NPROC" not in _attrs(_function("_set_rlimits")), (
-        "RLIMIT_NPROC must not be set on the bwrap process — it makes the user "
+        "RLIMIT_NPROC must not be set on the bwrap process, it makes the user "
         "namespace fail with EAGAIN; see the note in _set_rlimits()."
     )
 

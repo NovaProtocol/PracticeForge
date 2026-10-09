@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Solutions &mdash; PracticeForge{% endblock %}
+{% block title %}Solutions - PracticeForge{% endblock %}
 {% block content %}
 <div class="container py-4">
     <h1 class="section-title">Solutions</h1>
@@ -22,7 +22,7 @@
                     <tr style="border-bottom: 1px solid var(--border);">
                         <td class="ps-3">
                             <a href="{{ url_for('problems_blueprint.detail', contest_id=solution.contest_id, index=solution.problem_index) }}" style="color: var(--text-primary);">
-                                {{ solution.contest_id }}{{ solution.problem_index }} &mdash; {{ solution.title }}
+                                {{ solution.contest_id }}{{ solution.problem_index }} - {{ solution.title }}
                             </a>
                         </td>
                         <td>

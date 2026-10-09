@@ -16,7 +16,7 @@
 /* ---------------------------------------------------------------------------
    Bootstrap vocabulary, re-supplied.
 
-   The markup — and `problems.js`, which builds the problem cards — was written
+   The markup, and `problems.js`, which builds the problem cards, was written
    against Bootstrap's vendored CSS. Rather than rename classes across the
    templates and the JS (a layout change, not a cleanup), the names are kept and
    re-supplied here with Tailwind utilities over the kit's tokens, using
@@ -59,7 +59,7 @@
 .w-100 { width: 100%; }
 .h-100 { height: 100%; }
 
-/* spacing — Bootstrap's scale (0, .25, .5, 1, 1.5, 3rem) */
+/* spacing, Bootstrap's scale (0, .25, .5, 1, 1.5, 3rem) */
 .m-0 { margin: 0; }
 .m-1 { margin: 0.25rem; }
 .m-2 { margin: 0.5rem; }

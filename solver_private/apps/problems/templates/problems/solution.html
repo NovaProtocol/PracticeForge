@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Solution #{{ solution.id }} &mdash; {{ problem.title }}{% endblock %}
+{% block title %}Solution #{{ solution.id }} - {{ problem.title }}{% endblock %}
 {% block head_extra %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -15,7 +15,7 @@
         {% set d = 'easy' if problem.difficulty_rating < 1200 else ('medium' if problem.difficulty_rating < 1600 else 'hard') %}
         <span class="badge-difficulty badge-{{ d }}" style="font-size: 0.72rem;">{{ problem.difficulty_rating }}</span>
       {% endif %}
-      <span class="text-secondary" style="font-size: 0.85rem;">&mdash;</span>
+      <span class="text-secondary" style="font-size: 0.85rem;">-</span>
       <h4 style="font-weight: 700; margin: 0;">{{ problem.title }}</h4>
     </div>
     <div class="d-flex align-items-center" style="gap: 8px;">
