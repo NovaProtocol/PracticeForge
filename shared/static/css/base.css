@@ -7,7 +7,7 @@
     --text-primary: var(--ui-on-surface);
     --text-secondary: var(--ui-on-surface-variant);
     --accent: var(--ui-primary);
-    --accent-dim: rgba(100, 255, 218, 0.1);
+    --accent-dim: color-mix(in srgb, var(--ui-primary) 12%, transparent);
     --difficulty-easy: #4ade80;
     --difficulty-medium: #fbbf24;
     --difficulty-hard: #f87171;
