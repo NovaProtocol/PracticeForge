@@ -264,3 +264,18 @@ textarea.form-control {
     .section-subtitle { margin-bottom: 1.5rem; }
     .navbar-nav .nav-link { padding: 0.5rem 0.25rem !important; }
 }
+
+/* iOS Safari zooms the viewport when a form control under 16px takes focus. */
+@media (max-width: 639px) {
+  .form-control { font-size: 1rem; }
+}
+
+/* ------------------------------------------------------- typography mechanics */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
+p, li { text-wrap: pretty; }
+body { overflow-wrap: break-word; }
+table { font-variant-numeric: tabular-nums; }
